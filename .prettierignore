@@ -1,0 +1,8 @@
+resources/js/components/ui/*
+resources/views/mail/*
+storage
+nativephp
+public
+vendor
+**/*/resources/boost/**/*.blade.php
+

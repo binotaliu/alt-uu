@@ -1,0 +1,30 @@
+{
+    "name": "altuu/plugin-nativephp-patch",
+    "description": "Unified NativePHP shell patch plugin with hash-verified full-file replacement for iOS and Android.",
+    "type": "nativephp-plugin",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "AltUU"
+        }
+    ],
+    "require": {
+        "php": "^8.2",
+        "nativephp/mobile": "^3.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "AltUU\\NativePHPPatch\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "AltUU\\NativePHPPatch\\NativePHPPatchServiceProvider"
+            ]
+        },
+        "nativephp": {
+            "manifest": "nativephp.json"
+        }
+    }
+}

@@ -1,0 +1,56 @@
+{
+    "name": "altuu/plugin-attachment-bridge",
+    "version": "1.0.0",
+    "description": "NativePHP attachment download bridge with confirm, preview, and save actions",
+    "namespace": "AttachmentBridge",
+    "category": "utilities",
+    "platforms": ["ios", "android"],
+    "bridge_functions": [
+        {
+            "name": "AttachmentBridge.Download",
+            "ios": "AttachmentBridgeFunctions.Download",
+            "android": "com.altuu.plugins.attachment_bridge.AttachmentBridgeFunctions.Download",
+            "description": "Download an attachment via native bridge and prompt user to preview or save"
+        },
+        {
+            "name": "AttachmentBridge.OpenURL",
+            "ios": "AttachmentBridgeFunctions.OpenURL",
+            "android": "com.altuu.plugins.attachment_bridge.AttachmentBridgeFunctions.OpenURL",
+            "description": "Open any URL in an in-app browser with session cookies injected"
+        },
+        {
+            "name": "AttachmentBridge.OpenInBrowser",
+            "ios": "AttachmentBridgeFunctions.OpenInBrowser",
+            "android": "com.altuu.plugins.attachment_bridge.AttachmentBridgeFunctions.OpenInBrowser",
+            "description": "Open an attachment URL in an in-app browser with Hungu session cookies injected"
+        },
+        {
+            "name": "AttachmentBridge.OpenDiscussAttachment",
+            "ios": "AttachmentBridgeFunctions.OpenDiscussAttachment",
+            "android": "com.altuu.plugins.attachment_bridge.AttachmentBridgeFunctions.OpenDiscussAttachment",
+            "description": "Open discuss thread page via POST and auto-click target attachment link"
+        },
+        {
+            "name": "AttachmentBridge.OpenTronclass",
+            "ios": "AttachmentBridgeFunctions.OpenTronclass",
+            "android": "com.altuu.plugins.attachment_bridge.AttachmentBridgeFunctions.OpenTronclass",
+            "description": "Open tronclass:// URL scheme in native app"
+        }
+    ],
+    "ios": {
+        "min_version": "18.0",
+        "permissions": [],
+        "info_plist": {
+            "LSApplicationQueriesSchemes": ["tronclass"]
+        },
+        "dependencies": {
+            "swift_packages": [],
+            "pods": []
+        }
+    },
+    "android": {
+        "min_version": 31
+    },
+    "events": [],
+    "service_provider": "AltUU\\AttachmentBridge\\AttachmentBridgeServiceProvider"
+}

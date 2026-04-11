@@ -1,0 +1,97 @@
+{
+    "name": "altuu/plugin-media-player",
+    "version": "1.0.0",
+    "description": "NativePHP EDGE Component for native media player (audio/video) with bridge control for Material Viewer",
+    "namespace": "MediaPlayer",
+    "category": "media",
+    "license": "MIT",
+    "author": {
+        "name": "Binota Liu"
+    },
+    "platforms": ["ios", "android"],
+    "bridge_functions": [
+        {
+            "name": "MediaPlayer.SetPlayer",
+            "ios": "MediaPlayerFunctions.SetPlayer",
+            "android": "com.altuu.plugins.media_player.MediaPlayerFunctions.SetPlayer",
+            "description": "Set media player URL and display frame in Material Viewer"
+        },
+        {
+            "name": "MediaPlayer.Play",
+            "ios": "MediaPlayerFunctions.Play",
+            "android": "com.altuu.plugins.media_player.MediaPlayerFunctions.Play",
+            "description": "Play the current media"
+        },
+        {
+            "name": "MediaPlayer.Pause",
+            "ios": "MediaPlayerFunctions.Pause",
+            "android": "com.altuu.plugins.media_player.MediaPlayerFunctions.Pause",
+            "description": "Pause the current media"
+        },
+        {
+            "name": "MediaPlayer.Stop",
+            "ios": "MediaPlayerFunctions.Stop",
+            "android": "com.altuu.plugins.media_player.MediaPlayerFunctions.Stop",
+            "description": "Stop the current media"
+        },
+        {
+            "name": "MediaPlayer.Seek",
+            "ios": "MediaPlayerFunctions.Seek",
+            "android": "com.altuu.plugins.media_player.MediaPlayerFunctions.Seek",
+            "description": "Seek to a specific time in the media"
+        },
+        {
+            "name": "MediaPlayer.GetCurrentTime",
+            "ios": "MediaPlayerFunctions.GetCurrentTime",
+            "android": "com.altuu.plugins.media_player.MediaPlayerFunctions.GetCurrentTime",
+            "description": "Get the current playback position in seconds"
+        },
+        {
+            "name": "MediaPlayer.SetPlaybackRate",
+            "ios": "MediaPlayerFunctions.SetPlaybackRate",
+            "android": "com.altuu.plugins.media_player.MediaPlayerFunctions.SetPlaybackRate",
+            "description": "Set the playback rate for the current media"
+        },
+        {
+            "name": "MediaPlayer.GetPlaybackRate",
+            "ios": "MediaPlayerFunctions.GetPlaybackRate",
+            "android": "com.altuu.plugins.media_player.MediaPlayerFunctions.GetPlaybackRate",
+            "description": "Get the current playback rate"
+        },
+        {
+            "name": "MediaPlayer.GetState",
+            "ios": "MediaPlayerFunctions.GetState",
+            "android": "com.altuu.plugins.media_player.MediaPlayerFunctions.GetState",
+            "description": "Get the current player state and restore context"
+        }
+    ],
+    "ios": {
+        "min_version": "18.0",
+        "permissions": [],
+        "background_modes": ["audio"],
+        "info_plist": {
+            "UIBackgroundModes": ["audio"]
+        },
+        "dependencies": {
+            "swift_packages": [],
+            "pods": []
+        }
+    },
+    "android": {
+        "min_version": 31,
+        "permissions": ["android.permission.POST_NOTIFICATIONS"],
+        "dependencies": {
+            "implementation": [
+                "androidx.media3:media3-exoplayer:1.5.1",
+                "androidx.media3:media3-exoplayer-hls:1.5.1",
+                "androidx.media3:media3-ui:1.5.1"
+            ]
+        }
+    },
+    "assets": {
+        "android": [],
+        "ios": []
+    },
+    "events": [],
+    "service_provider": "AltUU\\MediaPlayer\\MediaPlayerServiceProvider"
+}

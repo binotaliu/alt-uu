@@ -1,0 +1,85 @@
+--- /Users/binota/Developer/alt-uu/storage/framework/testing/nativephp-patch-ios-be22a232-1959-4032-97dd-a6365005af81/resources/xcode/NativePHP/PHPSchemeHandler.swift
++++ /Users/binota/Developer/alt-uu/packages/altuu/plugin-nativephp-patch/resources/patches/ios/NativePHP/PHPSchemeHandler.swift
+@@ -188,6 +188,7 @@
+                     }
+                 }
+ 
++                print("PHPSchemeHandler: WebView -> Handler request \(request.httpMethod ?? "GET") \(request.url?.absoluteString ?? "<unknown>") headers: \(request.allHTTPHeaderFields ?? [:])")
+                 WebView.dataStore.httpCookieStore.getAllCookies { cookies in
+                     guard self.isTaskActive(schemeTask) else { return }
+ 
+@@ -392,6 +393,7 @@
+     }
+ 
+     private func forwardToPHP(requestData: RequestData, schemeTask: WKURLSchemeTask, redirectCount: Int = 0) {
++        print("PHPSchemeHandler: Handler -> PHP request \(requestData.method) \(requestData.uri) headers: \(requestData.headers)")
+         getResponse(request: requestData) { result in
+             guard self.isTaskActive(schemeTask) else { return }
+ 
+@@ -466,6 +468,7 @@
+                         headers[headerComponents[0].lowercased()] = headerComponents[1]
+                     }
+                 }
++                print("PHPSchemeHandler: PHP -> Handler parsed headers: \(headers)")
+ 
+                 // Legacy X-Native-UI header support (now using Edge.Set bridge function instead)
+                 // Note: This is kept for backward compatibility but the primary method is now
+@@ -545,6 +548,25 @@
+                 }
+ 
+                 print("Forwarding response to WebView")
++
++                // [binary-response-patch]
++                // The PHP→Swift bridge transports the response as a UTF-8 String, so binary
++                // payloads (images, audio, etc.) are base64-encoded on the PHP side and tagged
++                // with "X-Body-Encoding: base64". Decode them back to raw bytes here before
++                // forwarding to WebKit so the WebView receives intact binary content.
++                let finalBodyData: Data
++                if headers["x-body-encoding"] == "base64" {
++                    headers.removeValue(forKey: "x-body-encoding")
++                    let trimmed = bodyString.trimmingCharacters(in: .whitespacesAndNewlines)
++                    finalBodyData = Data(base64Encoded: trimmed) ?? Data()
++                } else {
++                    finalBodyData = bodyString.data(using: .utf8) ?? Data()
++                }
++
++                // Ensure Content-Length matches the actual body bytes in accelerated and
++                // streaming contexts (especially for media playback). This is critical for
++                // binary responses where body is decoded separately from the original text.
++                headers["content-length"] = "\(finalBodyData.count)"
+ 
+                 guard let httpResponse = HTTPURLResponse(url: (URL(string: requestData.uri) ?? URL(string: "/"))!,
+                                                         statusCode: statusCode,
+@@ -559,16 +581,11 @@
+ 
+                 // Send the response to the task
+                 if self.isTaskActive(schemeTask) {
++                    print("PHPSchemeHandler: Handler -> WebView response status: \(statusCode) headers: \(httpResponse.allHeaderFields)")
+                     schemeTask.didReceive(httpResponse)
+ 
+-                    // Send the body data
+-                    if let bodyData = bodyString.data(using: .utf8) {
+-                        schemeTask.didReceive(bodyData)
+-                    } else {
+-                        let error = self.error(code: 500, description: "Failed to encode body data")
+-                        schemeTask.didFailWithError(error)
+-                        return
+-                    }
++                    // Send the body data (finalBodyData handles both plain UTF-8 and base64-decoded binary)
++                    schemeTask.didReceive(finalBodyData)
+ 
+                     // Indicate that the task has finished
+                     schemeTask.didFinish()
+@@ -610,9 +627,10 @@
+ 
+             // Extract cookie headers
+             let components = response.components(separatedBy: "\r\n\r\n")
+-            let headers = components[0]
++            let rawHeaderString = components[0]
++            print("PHPSchemeHandler: PHP -> Handler raw response headers:\n\(rawHeaderString)")
+ 
+-            let headersList = headers.components(separatedBy: "\n").filter { !$0.isEmpty }
++            let headersList = rawHeaderString.components(separatedBy: "\n").filter { !$0.isEmpty }
+ 
+             let setCookieHeaders = headersList.filter { $0.hasPrefix("Set-Cookie:") || $0.hasPrefix("set-cookie:") }
+ 

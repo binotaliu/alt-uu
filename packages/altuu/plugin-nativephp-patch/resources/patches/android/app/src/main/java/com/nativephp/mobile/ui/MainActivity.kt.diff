@@ -1,0 +1,158 @@
+--- /Users/binota/Developer/alt-uu/vendor/nativephp/mobile/resources/androidstudio/app/src/main/java/com/nativephp/mobile/ui/MainActivity.kt
++++ /Users/binota/Developer/alt-uu/packages/altuu/plugin-nativephp-patch/resources/patches/android/app/src/main/java/com/nativephp/mobile/ui/MainActivity.kt
+@@ -46,6 +46,8 @@
+ import androidx.compose.ui.res.painterResource
+ import androidx.compose.ui.unit.dp
+ import androidx.compose.ui.unit.sp
++import androidx.compose.ui.zIndex
++import com.altuu.plugins.media_player.NativeMediaPlayerOverlay
+ import androidx.compose.ui.viewinterop.AndroidView
+ import androidx.core.view.WindowCompat
+ import androidx.core.view.WindowInsetsControllerCompat
+@@ -66,6 +68,7 @@
+     private var shouldStopWatcher = false
+     private var pendingInsets: Insets? = null
+     private var showSplash by mutableStateOf(true)
++    private var isInPiP by mutableStateOf(false)
+ 
+     // Status bar style configuration - replaced during build
+     private val statusBarStyle = "REPLACE_STATUS_BAR_STYLE"
+@@ -158,11 +161,18 @@
+             injectJavaScript(webView)
+         }
+ 
++        // [media-player-android-back-press-patch]
+         onBackPressedDispatcher.addCallback(this) {
+-            if (webView.canGoBack()) {
+-                webView.goBack()
+-            } else {
+-                finish()
++            dispatchBackPressedEventToWebView { isHandledByWebView ->
++                if (isHandledByWebView) {
++                    return@dispatchBackPressedEventToWebView
++                }
++
++                if (webView.canGoBack()) {
++                    webView.goBack()
++                } else {
++                    finish()
++                }
+             }
+         }
+     }
+@@ -305,6 +315,11 @@
+         NativePHPLifecycle.post(NativePHPLifecycle.Events.ON_PAUSE)
+     }
+ 
++    override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: Configuration) {
++        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
++        isInPiP = isInPictureInPictureMode
++    }
++
+     private fun handleDeepLinkIntent(intent: Intent?) {
+         // Check for notification URL extra (from local notification taps or foreground push)
+         val notificationUrl = intent?.getStringExtra("notification_url")
+@@ -353,12 +368,12 @@
+             Log.d("OAuth", "🔐 OAuth callback host: ${uri.host}")
+             Log.d("OAuth", "🔐 OAuth callback path: ${uri.path}")
+             Log.d("OAuth", "🔐 OAuth callback query: ${uri.query}")
+-            
++
+             // Check for common OAuth parameters
+             val code = uri.getQueryParameter("code")
+             val state = uri.getQueryParameter("state")
+             val error = uri.getQueryParameter("error")
+-            
++
+             if (code != null) {
+                 Log.d("OAuth", "✅ OAuth authorization code received: ${code.take(10)}...")
+             }
+@@ -891,16 +906,81 @@
+                 }
+             )
+ 
++            // [media-player-android-main-screen-patch]
++            MediaPlayerOverlayLayer()
++
+             // Splash overlay with fade animation (full screen, no insets)
+             AnimatedVisibility(
+                 visible = showSplash,
+                 exit = fadeOut(animationSpec = tween(300))
+             ) {
+                 SplashScreen()
++            }
++        }
++    }
++
++    @Composable
++    private fun MediaPlayerOverlayLayer() {
++        val mediaPlayerData by NativeUIState.mediaPlayerData
++
++        mediaPlayerData?.let { data ->
++            // [media-player-android-pip-patch]
++            if (isInPiP) {
++                Box(
++                    modifier = Modifier
++                        .fillMaxSize()
++                        .background(Color.Black)
++                        .zIndex(20f),
++                ) {
++                    NativeMediaPlayerOverlay(
++                        data = data,
++                        isInPiP = true,
++                        modifier = Modifier.fillMaxSize(),
++                    )
++                }
++            } else {
++                NativeMediaPlayerOverlay(
++                    data = data,
++                    modifier = Modifier
++                        .offset(x = data.frame.x.dp, y = data.frame.y.dp)
++                        .size(width = data.frame.width.dp, height = data.frame.height.dp)
++                        .zIndex(20f),
++                )
+             }
+         }
+     }
+ 
++    private fun dispatchBackPressedEventToWebView(onResult: (Boolean) -> Unit) {
++        if (!::webView.isInitialized) {
++            onResult(false)
++            return
++        }
++
++        val backPressScript = """
++            (() => {
++                try {
++                    const event = new CustomEvent('nativephp:back-pressed', {
++                        cancelable: true,
++                        detail: { source: 'android' },
++                    })
++
++                    window.dispatchEvent(event)
++
++                    return event.defaultPrevented ? 'handled' : 'unhandled'
++                } catch (_) {
++                    return 'error'
++                }
++            })();
++        """.trimIndent()
++
++        webView.post {
++            webView.evaluateJavascript(backPressScript) { result ->
++                val normalized = result?.trim()?.trim('"')
++                onResult(normalized == "handled")
++            }
++        }
++    }
++
+     /**
+      * Splash screen composable - shows custom image or fallback text
+      */
+@@ -1040,4 +1120,4 @@
+         }
+     }
+ 
+-}
+\ No newline at end of file
++}

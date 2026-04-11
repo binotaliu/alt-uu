@@ -1,0 +1,30 @@
+{
+    "name": "altuu/plugin-media-player",
+    "description": "NativePHP EDGE Component for native media player (audio/video) with bridge control",
+    "type": "nativephp-plugin",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Binota Liu"
+        }
+    ],
+    "require": {
+        "php": "^8.2",
+        "nativephp/mobile": "^3.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "AltUU\\MediaPlayer\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "AltUU\\MediaPlayer\\MediaPlayerServiceProvider"
+            ]
+        },
+        "nativephp": {
+            "manifest": "nativephp.json"
+        }
+    }
+}

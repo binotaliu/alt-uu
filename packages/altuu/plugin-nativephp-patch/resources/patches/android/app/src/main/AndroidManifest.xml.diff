@@ -1,0 +1,17 @@
+--- /Users/binota/Developer/alt-uu/vendor/nativephp/mobile/resources/androidstudio/app/src/main/AndroidManifest.xml
++++ /Users/binota/Developer/alt-uu/packages/altuu/plugin-nativephp-patch/resources/patches/android/app/src/main/AndroidManifest.xml
+@@ -30,10 +30,12 @@
+         </provider>
+         <activity
+         android:name=".ui.MainActivity"
+-            android:configChanges="uiMode|colorMode|orientation|screenSize"
++            android:configChanges="uiMode|colorMode|orientation|screenSize|smallestScreenSize|screenLayout"
+             android:exported="true"
+             android:launchMode="singleTop"
+-            android:windowSoftInputMode="adjustResize">
++            android:windowSoftInputMode="adjustResize"
++            android:supportsPictureInPicture="true"
++            android:resizeableActivity="true">
+             <intent-filter>
+                 <action android:name="android.intent.action.MAIN" />
+                 <category android:name="android.intent.category.LAUNCHER" />

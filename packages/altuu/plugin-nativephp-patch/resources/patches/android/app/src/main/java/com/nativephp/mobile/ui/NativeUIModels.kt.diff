@@ -1,0 +1,47 @@
+--- /Users/binota/Developer/alt-uu/vendor/nativephp/mobile/resources/androidstudio/app/src/main/java/com/nativephp/mobile/ui/NativeUIModels.kt
++++ /Users/binota/Developer/alt-uu/packages/altuu/plugin-nativephp-patch/resources/patches/android/app/src/main/java/com/nativephp/mobile/ui/NativeUIModels.kt
+@@ -183,6 +183,31 @@
+ )
+ 
+ /**
++ * Media player frame data
++ */
++// [media-player-android-model-patch]
++data class MediaPlayerFrame(
++    val x: Float = 0f,
++    val y: Float = 0f,
++    val width: Float = 320f,
++    val height: Float = 200f
++)
++
++/**
++ * Media player EDGE component data
++ */
++data class MediaPlayerData(
++    val url: String,
++    val type: String,
++    val frame: MediaPlayerFrame,
++    @SerializedName("courseName")
++    val courseName: String? = null,
++    @SerializedName("materialName")
++    val materialName: String? = null,
++    val appearance: String? = null
++)
++
++/**
+  * Helper to parse NativeUI JSON
+  */
+ object NativeUIParser {
+@@ -288,4 +313,12 @@
+             null
+         }
+     }
++
++    fun parseMediaPlayerData(data: JsonElement): MediaPlayerData? {
++        return try {
++            gson.fromJson(data, MediaPlayerData::class.java)
++        } catch (e: Exception) {
++            null
++        }
++    }
+ }

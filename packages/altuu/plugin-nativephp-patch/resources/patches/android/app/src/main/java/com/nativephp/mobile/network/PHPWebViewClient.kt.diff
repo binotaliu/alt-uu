@@ -1,0 +1,62 @@
+--- /Users/binota/Developer/alt-uu/vendor/nativephp/mobile/resources/androidstudio/app/src/main/java/com/nativephp/mobile/network/PHPWebViewClient.kt
++++ /Users/binota/Developer/alt-uu/packages/altuu/plugin-nativephp-patch/resources/patches/android/app/src/main/java/com/nativephp/mobile/network/PHPWebViewClient.kt
+@@ -1,5 +1,6 @@
+ package com.nativephp.mobile.network
+ 
++import android.util.Base64
+ import android.util.Log
+ import android.webkit.*
+ import java.io.ByteArrayInputStream
+@@ -136,7 +137,7 @@
+                         statusCode,
+                         "OK",
+                         responseHeaders,
+-                        body.byteInputStream()
++                        decodeResponseBody(responseHeaders.toMutableMap(), body).inputStream()
+                     )
+                 } else {
+                     Log.d(TAG, "❌ Asset not found via PHP: $path (Status: $statusCode)")
+@@ -241,14 +242,39 @@
+         }
+ 
+         // ✅ Normal response
++        val sanitizedHeaders = responseHeaders.toMutableMap()
++        val responseBodyBytes = decodeResponseBody(sanitizedHeaders, body)
++
+         return WebResourceResponse(
+-            responseHeaders["Content-Type"] ?: "text/html",
+-            responseHeaders["Charset"] ?: "UTF-8",
++            sanitizedHeaders["Content-Type"] ?: "text/html",
++            sanitizedHeaders["Charset"] ?: "UTF-8",
+             statusCode,
+             if (statusCode == 200) "OK" else "Error",
+-            responseHeaders,
+-            body.byteInputStream()
++            sanitizedHeaders,
++            responseBodyBytes.inputStream()
+         )
++    }
++
++    private fun decodeResponseBody(headers: MutableMap<String, String>, body: String): ByteArray {
++        // [binary-response-android-patch]
++        val encodingKey = headers.keys.firstOrNull { it.equals("X-Body-Encoding", ignoreCase = true) }
++        val encodingValue = encodingKey?.let { headers[it]?.trim()?.lowercase() }
++
++        if (encodingKey != null) {
++            headers.remove(encodingKey)
++        }
++
++        if (encodingValue == "base64") {
++            return try {
++                val trimmedBody = body.trim()
++                Base64.decode(trimmedBody, Base64.DEFAULT)
++            } catch (e: IllegalArgumentException) {
++                Log.e(TAG, "Failed to decode base64 body from PHP response", e)
++                ByteArray(0)
++            }
++        }
++
++        return body.toByteArray(Charsets.UTF_8)
+     }
+ 
+    fun parseResponse(rawResponse: String): Triple<Map<String, String>, String, Int> {

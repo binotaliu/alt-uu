@@ -1,0 +1,430 @@
+@import 'tailwindcss';
+@plugin '@tailwindcss/typography';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../../app/**/*.php';
+@source '../../src/**/*.php';
+@source '../**/*.blade.php';
+@source '../**/*.js';
+@source '../**/*.ts';
+
+@theme {
+    --font-sans: system-ui, sans-serif;
+    --color-warm-50: oklch(0.98 0.01 40);
+    --color-warm-100: oklch(0.96 0.02 40);
+    --color-warm-200: oklch(0.93 0.04 40);
+    --color-warm-300: oklch(0.88 0.07 40);
+    --color-warm-400: oklch(0.8 0.12 40);
+    --color-warm-500: oklch(0.72 0.15 40);
+    --color-warm-600: oklch(0.65 0.15 35);
+    --color-warm-700: oklch(0.55 0.13 35);
+    --color-warm-800: oklch(0.45 0.1 35);
+    --color-warm-900: oklch(0.35 0.08 35);
+}
+
+@layer base {
+    [x-cloak],
+    [data-cloak],
+    .x-cloak {
+        display: none !important;
+    }
+
+    /* Prevent text selection to make it feels more like a native app */
+    * {
+        @apply select-none;
+    }
+
+    /* Disable rubber band overscroll effect so user on mobile won't see the background when they scroll to the top or bottom of the page */
+    html,
+    body {
+        @apply overscroll-none;
+    }
+
+    /* Disable drag on links and images to prevent unexpected behavior on mobile */
+    a,
+    img {
+        -webkit-user-drag: none;
+        user-drag: none;
+    }
+
+    @media (prefers-contrast: more) {
+        body {
+            /* amplify lightness differences so every step passes AA/AAA */
+            --color-warm-50: oklch(0.99 0.01 40 / 1);
+            --color-warm-100: oklch(0.9 0.02 40 / 1);
+            --color-warm-200: oklch(0.8 0.04 40 / 1);
+            --color-warm-300: oklch(0.6 0.07 40 / 1);
+            --color-warm-400: oklch(0.4 0.12 40 / 1);
+            --color-warm-500: oklch(0.2 0.15 40 / 1);
+            --color-warm-600: oklch(0.15 0.15 35 / 1);
+            --color-warm-700: oklch(0.1 0.13 35 / 1);
+            --color-warm-800: oklch(0.05 0.1 35 / 1);
+            --color-warm-900: oklch(0.02 0.08 35 / 1);
+        }
+    }
+
+    th {
+        @apply text-left;
+    }
+
+    /** make view-transition feels like a native app */
+    @supports (view-transition-name: page-shell) {
+        :root {
+            --native-transition-duration: 460ms;
+            --native-transition-ease: cubic-bezier(0.22, 1, 0.36, 1);
+            --native-transition-shared-ease: cubic-bezier(0.2, 0.9, 0.2, 1);
+            --native-forward-enter-x: 22px;
+            --native-forward-exit-x: -14px;
+            --native-back-enter-x: -18px;
+            --native-back-exit-x: 28px;
+            --native-lateral-enter-y: 14px;
+        }
+
+        :root::view-transition-group(root) {
+            animation-duration: var(--native-transition-duration);
+            animation-timing-function: var(--native-transition-ease);
+        }
+
+        :root::view-transition-old(root),
+        :root::view-transition-new(root) {
+            animation-duration: var(--native-transition-duration);
+            animation-fill-mode: both;
+            animation-timing-function: var(--native-transition-ease);
+            backface-visibility: hidden;
+            height: 100%;
+            mix-blend-mode: normal;
+            transform-origin: center top;
+            will-change: opacity, transform, filter;
+        }
+
+        :root::view-transition-old(root) {
+            z-index: 1;
+        }
+
+        :root::view-transition-new(root) {
+            z-index: 2;
+            box-shadow: 0 18px 48px rgb(15 23 42 / 12%);
+        }
+
+        :root[data-native-navigation='forward']::view-transition-old(root) {
+            animation-name: native-page-old-forward;
+        }
+
+        :root[data-native-navigation='forward']::view-transition-new(root) {
+            animation-name: native-page-new-forward;
+        }
+
+        :root[data-native-navigation='back']::view-transition-old(root) {
+            animation-name: native-page-old-back;
+        }
+
+        :root[data-native-navigation='back']::view-transition-new(root) {
+            animation-name: native-page-new-back;
+        }
+
+        :root[data-native-navigation='lateral']::view-transition-old(root) {
+            animation-name: native-page-old-lateral;
+        }
+
+        :root[data-native-navigation='lateral']::view-transition-new(root) {
+            animation-name: native-page-new-lateral;
+        }
+
+        :root::view-transition-group(page-header),
+        :root::view-transition-group(page-header-title),
+        :root::view-transition-group(page-header-subtitle),
+        :root::view-transition-group(page-header-actions),
+        :root::view-transition-group(page-header-back-button),
+        :root::view-transition-group(nav) {
+            animation-duration: 380ms;
+            animation-timing-function: var(--native-transition-shared-ease);
+        }
+
+        :root::view-transition-old(page-header),
+        :root::view-transition-old(page-header-title),
+        :root::view-transition-old(page-header-subtitle),
+        :root::view-transition-old(page-header-actions),
+        :root::view-transition-old(page-header-back-button),
+        :root::view-transition-old(mobile-nav),
+        :root::view-transition-old(pad-nav),
+        :root::view-transition-new(page-header),
+        :root::view-transition-new(page-header-title),
+        :root::view-transition-new(page-header-subtitle),
+        :root::view-transition-new(page-header-actions),
+        :root::view-transition-new(page-header-back-button),
+        :root::view-transition-new(mobile-nav),
+        :root::view-transition-new(pad-nav) {
+            animation-duration: 380ms;
+            animation-fill-mode: both;
+            animation-timing-function: var(--native-transition-shared-ease);
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            :root::view-transition-group(root),
+            :root::view-transition-old(root),
+            :root::view-transition-new(root),
+            :root::view-transition-group(page-header),
+            :root::view-transition-group(page-header-title),
+            :root::view-transition-group(page-header-subtitle),
+            :root::view-transition-group(page-header-actions),
+            :root::view-transition-group(page-header-back-button),
+            :root::view-transition-group(mobile-nav),
+            :root::view-transition-group(pad-nav),
+            :root::view-transition-old(page-header),
+            :root::view-transition-old(page-header-title),
+            :root::view-transition-old(page-header-subtitle),
+            :root::view-transition-old(page-header-actions),
+            :root::view-transition-old(page-header-back-button),
+            :root::view-transition-old(mobile-nav),
+            :root::view-transition-old(pad-nav),
+            :root::view-transition-new(page-header),
+            :root::view-transition-new(page-header-title),
+            :root::view-transition-new(page-header-subtitle),
+            :root::view-transition-new(page-header-actions),
+            :root::view-transition-new(page-header-back-button),
+            :root::view-transition-new(mobile-nav),
+            :root::view-transition-new(pad-nav) {
+                animation-duration: 1ms;
+            }
+        }
+
+        :root.device-android::view-transition-group(root),
+        :root.device-android::view-transition-group(page-header),
+        :root.device-android::view-transition-group(page-header-title),
+        :root.device-android::view-transition-group(page-header-subtitle),
+        :root.device-android::view-transition-group(page-header-actions),
+        :root.device-android::view-transition-group(page-header-back-button),
+        :root.device-android::view-transition-group(nav),
+        :root.device-android::view-transition-group(mobile-nav),
+        :root.device-android::view-transition-group(pad-nav),
+        :root.device-android::view-transition-old(root),
+        :root.device-android::view-transition-old(page-header),
+        :root.device-android::view-transition-old(page-header-title),
+        :root.device-android::view-transition-old(page-header-subtitle),
+        :root.device-android::view-transition-old(page-header-actions),
+        :root.device-android::view-transition-old(page-header-back-button),
+        :root.device-android::view-transition-old(mobile-nav),
+        :root.device-android::view-transition-old(pad-nav),
+        :root.device-android::view-transition-new(root),
+        :root.device-android::view-transition-new(page-header),
+        :root.device-android::view-transition-new(page-header-title),
+        :root.device-android::view-transition-new(page-header-subtitle),
+        :root.device-android::view-transition-new(page-header-actions),
+        :root.device-android::view-transition-new(page-header-back-button),
+        :root.device-android::view-transition-new(mobile-nav),
+        :root.device-android::view-transition-new(pad-nav) {
+            animation-duration: var(--native-transition-duration) !important;
+            animation-fill-mode: both !important;
+            animation-timing-function: linear !important;
+            box-shadow: none !important;
+            transform: none !important;
+        }
+
+        :root.device-android::view-transition-old(root),
+        :root.device-android::view-transition-old(page-header),
+        :root.device-android::view-transition-old(page-header-title),
+        :root.device-android::view-transition-old(page-header-subtitle),
+        :root.device-android::view-transition-old(page-header-actions),
+        :root.device-android::view-transition-old(page-header-back-button),
+        :root.device-android::view-transition-old(mobile-nav),
+        :root.device-android::view-transition-old(pad-nav) {
+            animation-name: native-page-old-fade !important;
+        }
+
+        :root.device-android::view-transition-new(root),
+        :root.device-android::view-transition-new(page-header),
+        :root.device-android::view-transition-new(page-header-title),
+        :root.device-android::view-transition-new(page-header-subtitle),
+        :root.device-android::view-transition-new(page-header-actions),
+        :root.device-android::view-transition-new(page-header-back-button),
+        :root.device-android::view-transition-new(mobile-nav),
+        :root.device-android::view-transition-new(pad-nav) {
+            animation-name: native-page-new-fade !important;
+        }
+
+        @keyframes native-page-old-forward {
+            from {
+                opacity: 1;
+                transform: translate3d(0, 0, 0) scale(1);
+                filter: none;
+            }
+
+            to {
+                opacity: 0.48;
+                transform: translate3d(var(--native-forward-exit-x), 0, 0)
+                    scale(0.972);
+                filter: saturate(0.92);
+            }
+        }
+
+        @keyframes native-page-new-forward {
+            from {
+                opacity: 0.82;
+                transform: translate3d(var(--native-forward-enter-x), 0, 0)
+                    scale(0.985);
+                filter: saturate(0.96) blur(1px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translate3d(0, 0, 0) scale(1);
+                filter: none;
+            }
+        }
+
+        @keyframes native-page-old-back {
+            from {
+                opacity: 1;
+                transform: translate3d(0, 0, 0) scale(1);
+                filter: none;
+            }
+
+            to {
+                opacity: 0.32;
+                transform: translate3d(var(--native-back-exit-x), 0, 0)
+                    scale(0.985);
+                filter: saturate(0.9);
+            }
+        }
+
+        @keyframes native-page-new-back {
+            from {
+                opacity: 0.7;
+                transform: translate3d(var(--native-back-enter-x), 0, 0)
+                    scale(0.992);
+                filter: blur(0.5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translate3d(0, 0, 0) scale(1);
+                filter: none;
+            }
+        }
+
+        @keyframes native-page-old-lateral {
+            from {
+                opacity: 1;
+                transform: translate3d(0, 0, 0) scale(1);
+                filter: none;
+            }
+
+            to {
+                opacity: 0.18;
+                transform: translate3d(
+                        0,
+                        calc(var(--native-lateral-enter-y) * -1),
+                        0
+                    )
+                    scale(0.99);
+                filter: saturate(0.94);
+            }
+        }
+
+        @keyframes native-page-new-lateral {
+            from {
+                opacity: 0.68;
+                transform: translate3d(0, var(--native-lateral-enter-y), 0)
+                    scale(0.996);
+                filter: blur(0.5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translate3d(0, 0, 0) scale(1);
+                filter: none;
+            }
+        }
+
+        @keyframes native-page-old-fade {
+            from {
+                opacity: 1;
+                transform: none;
+                filter: none;
+            }
+
+            to {
+                opacity: 0;
+                transform: none;
+                filter: none;
+            }
+        }
+
+        @keyframes native-page-new-fade {
+            from {
+                opacity: 0;
+                transform: none;
+                filter: none;
+            }
+
+            to {
+                opacity: 1;
+                transform: none;
+                filter: none;
+            }
+        }
+    }
+}
+
+@utility prose-warm {
+    --tw-prose-body: var(--color-warm-800);
+    --tw-prose-headings: var(--color-warm-900);
+    --tw-prose-lead: var(--color-warm-700);
+    --tw-prose-links: var(--color-warm-900);
+    --tw-prose-bold: var(--color-warm-900);
+    --tw-prose-counters: var(--color-warm-600);
+    --tw-prose-bullets: var(--color-warm-400);
+    --tw-prose-hr: var(--color-warm-300);
+    --tw-prose-quotes: var(--color-warm-900);
+    --tw-prose-quote-borders: var(--color-warm-300);
+    --tw-prose-captions: var(--color-warm-700);
+    --tw-prose-code: var(--color-warm-900);
+    --tw-prose-pre-code: var(--color-warm-100);
+    --tw-prose-pre-bg: var(--color-warm-900);
+    --tw-prose-th-borders: var(--color-warm-300);
+    --tw-prose-td-borders: var(--color-warm-200);
+    --tw-prose-invert-body: var(--color-warm-200);
+    --tw-prose-invert-headings: var(--color-white);
+    --tw-prose-invert-lead: var(--color-warm-300);
+    --tw-prose-invert-links: var(--color-white);
+    --tw-prose-invert-bold: var(--color-white);
+    --tw-prose-invert-counters: var(--color-warm-400);
+    --tw-prose-invert-bullets: var(--color-warm-600);
+    --tw-prose-invert-hr: var(--color-warm-700);
+    --tw-prose-invert-quotes: var(--color-warm-100);
+    --tw-prose-invert-quote-borders: var(--color-warm-700);
+    --tw-prose-invert-captions: var(--color-warm-400);
+    --tw-prose-invert-code: var(--color-white);
+    --tw-prose-invert-pre-code: var(--color-warm-300);
+    --tw-prose-invert-pre-bg: rgb(0 0 0 / 50%);
+    --tw-prose-invert-th-borders: var(--color-warm-600);
+    --tw-prose-invert-td-borders: var(--color-warm-700);
+}
+
+@utility prose {
+    blockquote p:first-of-type::before {
+        @apply content-none;
+    }
+    blockquote p:last-of-type::after {
+        @apply content-none;
+    }
+    blockquote {
+        @apply border-l-0 not-italic;
+    }
+}
+
+@layer utilities {
+    .scrollbar-hidden {
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+
+    .scrollbar-hidden::-webkit-scrollbar {
+        display: none;
+        width: 0;
+        height: 0;
+    }
+}

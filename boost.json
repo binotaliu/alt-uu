@@ -1,0 +1,16 @@
+{
+    "agents": ["copilot"],
+    "guidelines": true,
+    "mcp": true,
+    "nightwatch_mcp": false,
+    "packages": ["spatie/laravel-ray", "nativephp/mobile"],
+    "sail": false,
+    "skills": [
+        "laravel-best-practices",
+        "pest-testing",
+        "inertia-vue-development",
+        "tailwindcss-development",
+        "nativephp-mobile",
+        "debugging-output-and-previewing-html-using-ray"
+    ]
+}

@@ -1,0 +1,52 @@
+--- /Users/binota/Developer/alt-uu/vendor/nativephp/mobile/resources/androidstudio/app/src/main/java/com/nativephp/mobile/ui/NativeUIState.kt
++++ /Users/binota/Developer/alt-uu/packages/altuu/plugin-nativephp-patch/resources/patches/android/app/src/main/java/com/nativephp/mobile/ui/NativeUIState.kt
+@@ -27,6 +27,10 @@
+     private val _topBarData = mutableStateOf<TopBarData?>(null)
+     val topBarData: State<TopBarData?> = _topBarData
+ 
++    // [media-player-android-state-patch]
++    private val _mediaPlayerData = mutableStateOf<MediaPlayerData?>(null)
++    val mediaPlayerData: State<MediaPlayerData?> = _mediaPlayerData
++
+     // Keyboard visibility state - used to hide bottom nav when keyboard is open
+     private val _isKeyboardVisible = mutableStateOf(false)
+     val isKeyboardVisible: State<Boolean> = _isKeyboardVisible
+@@ -42,6 +46,14 @@
+         _isKeyboardVisible.value = visible
+     }
+ 
++    fun updateMediaPlayer(data: MediaPlayerData) {
++        _mediaPlayerData.value = data
++    }
++
++    fun clearMediaPlayer() {
++        _mediaPlayerData.value = null
++    }
++
+     /**
+      * Update UI state from Edge component data (JSON string or parsed object)
+      */
+@@ -118,6 +130,15 @@
+             _topBarData.value = null
+             Log.d(TAG, "No Top Bar in response")
+         }
++
++        // Extract media player EDGE component if present
++        val mediaPlayer = parsedComponents.firstOrNull { it.type.equals("media-player") }
++        if (mediaPlayer !== null) {
++            val mediaPlayerData = NativeUIParser.parseMediaPlayerData(mediaPlayer.data)
++            _mediaPlayerData.value = mediaPlayerData
++            Log.d(TAG, "Media player updated: ${mediaPlayerData?.type}")
++        }
++        // Note: do not clear _mediaPlayerData when absent — it is managed via bridge calls
+     }
+ 
+     /**
+@@ -148,6 +169,7 @@
+         _sideNavData.value = null
+         _fabData.value = null
+         _topBarData.value = null
++        // Note: _mediaPlayerData is managed via bridge calls, not cleared here
+     }
+ 
+     /**

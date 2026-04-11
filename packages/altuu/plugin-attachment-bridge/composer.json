@@ -1,0 +1,30 @@
+{
+    "name": "altuu/plugin-attachment-bridge",
+    "description": "NativePHP iOS attachment download bridge with confirm, preview, and save actions",
+    "type": "nativephp-plugin",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Binota Liu"
+        }
+    ],
+    "require": {
+        "php": "^8.2",
+        "nativephp/mobile": "^3.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "AltUU\\AttachmentBridge\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "AltUU\\AttachmentBridge\\AttachmentBridgeServiceProvider"
+            ]
+        },
+        "nativephp": {
+            "manifest": "nativephp.json"
+        }
+    }
+}

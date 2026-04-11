@@ -1,0 +1,20 @@
+{
+    "name": "altuu/plugin-nativephp-patch",
+    "description": "Single-source NativePHP shell patching with full-file replacement and upstream hash guards.",
+    "version": "1.0.0",
+    "namespace": "NativePHPPatch",
+    "category": "utilities",
+    "platforms": ["ios", "android"],
+    "bridge_functions": [],
+    "events": [],
+    "hooks": {
+        "pre_compile": "nativephp:nativephp-patch:apply"
+    },
+    "android": {
+        "min_version": 31
+    },
+    "ios": {
+        "min_version": "18.0"
+    },
+    "service_provider": "AltUU\\NativePHPPatch\\NativePHPPatchServiceProvider"
+}

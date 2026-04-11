@@ -1,0 +1,254 @@
+--- /Users/binota/Developer/alt-uu/storage/framework/testing/nativephp-patch-ios-be22a232-1959-4032-97dd-a6365005af81/resources/xcode/NativePHP/AppUpdateManager.swift
++++ /Users/binota/Developer/alt-uu/packages/altuu/plugin-nativephp-patch/resources/patches/ios/NativePHP/AppUpdateManager.swift
+@@ -305,19 +305,83 @@
+         return nil
+     }
+ 
+-    private func shouldUpdateFromBundle() -> Bool {
+-        guard let bundledVersion = getBundledAppVersionFast() else {
+-            print("⚠️ Could not read version from bundled.version file, falling back to ZIP extraction")
+-            guard let bundledVersion = getBundledAppVersion() else {
+-                print("⚠️ Could not read version from bundled app.zip")
+-                return false
++    private func getCurrentVersionCode() -> String? {
++        if !FileManager.default.fileExists(atPath: appPath) {
++            print("❌ App directory doesn't exist - no version code available")
++            return nil
++        }
++
++        let envFile = appPath + "/.env"
++        if FileManager.default.fileExists(atPath: envFile) {
++            if let versionCode = getVersionCodeFromEnvFile(envFile) {
++                print("🔢 Got current version code from .env: \(versionCode)")
++                return versionCode
+             }
+-            return shouldUpdateWithVersion(bundledVersion)
+         }
+ 
+-        return shouldUpdateWithVersion(bundledVersion)
++        print("❌ .env file not found or no version code")
++        return nil
++    }
++
++    private func getVersionCodeFromEnvFile(_ envFilePath: String) -> String? {
++        do {
++            let envContent = try String(contentsOfFile: envFilePath, encoding: .utf8)
++            let regex = try NSRegularExpression(pattern: "NATIVEPHP_APP_VERSION_CODE=(.+)")
++            let range = NSRange(location: 0, length: envContent.utf16.count)
++
++            if let match = regex.firstMatch(in: envContent, range: range) {
++                let versionCodeRange = Range(match.range(at: 1), in: envContent)!
++                let versionCode = String(envContent[versionCodeRange]).trimmingCharacters(in: .whitespacesAndNewlines)
++                let cleanVersionCode = versionCode.trimmingCharacters(in: CharacterSet(charactersIn: "\"'"))
++                return cleanVersionCode
++            }
++        } catch {
++            print("❌ Error reading .env file: \(error)")
++        }
++
++        return nil
+     }
+ 
++    // [version-code-patch]
++    private func shouldUpdateFromBundle() -> Bool {
++        let bundledVersion = getBundledAppVersionFast() ?? getBundledAppVersion()
++
++        if bundledVersion == "DEBUG" {
++            print("🚧 DEBUG version detected, updating from bundle")
++            return true
++        }
++
++        if let bundledVersionCode = getBundledAppVersionCodeFast() {
++            return shouldUpdateWithVersionCode(bundledVersionCode)
++        }
++
++        print("⚠️ Could not read version code from bundled.version.code, falling back to ZIP extraction")
++
++        guard let bundledVersionCode = getBundledAppVersionCode() else {
++            print("⚠️ Could not read version code from bundled app.zip")
++            return false
++        }
++
++        return shouldUpdateWithVersionCode(bundledVersionCode)
++    }
++
++    private func shouldUpdateWithVersionCode(_ bundledVersionCode: String) -> Bool {
++        let currentVersionCode = getInstalledVersionCode() ?? getCurrentVersionCode()
++
++        guard let currentVersionCode else {
++            print("📦 No current version code found, updating from bundle")
++            return true
++        }
++
++        if currentVersionCode != bundledVersionCode {
++            print("📦 Bundle version code (\(bundledVersionCode)) differs from current (\(currentVersionCode)), updating from bundle")
++            return true
++        }
++
++        print("✅ App already up to date with bundle version code (\(bundledVersionCode))")
++        return false
++    }
++
+     private func shouldUpdateWithVersion(_ bundledVersion: String) -> Bool {
+         // Special case: If bundled version is DEBUG, always update from bundle (for development)
+         if bundledVersion == "DEBUG" {
+@@ -346,6 +410,15 @@
+         return getVersionFromZip(at: bundlePath)
+     }
+ 
++    private func getBundledAppVersionCode() -> String? {
++        guard let bundlePath = Bundle.main.path(forResource: "app", ofType: "zip") else {
++            print("❌ No bundled app.zip found")
++            return nil
++        }
++
++        return getVersionCodeFromZip(at: bundlePath)
++    }
++
+     private func getVersionFromZip(at zipPath: String) -> String? {
+         let sourceURL = URL(fileURLWithPath: zipPath)
+ 
+@@ -393,6 +466,50 @@
+         return nil
+     }
+ 
++    private func getVersionCodeFromZip(at zipPath: String) -> String? {
++        let sourceURL = URL(fileURLWithPath: zipPath)
++
++        guard let archive = Archive(url: sourceURL, accessMode: .read) else {
++            print("❌ Failed to open ZIP archive")
++            return nil
++        }
++
++        if let envEntry = archive[".env"] {
++            var envContent = Data()
++            do {
++                _ = try archive.extract(envEntry) { data in
++                    envContent.append(data)
++                }
++                if let envString = String(data: envContent, encoding: .utf8) {
++                    if let versionCode = extractVersionCodeFromEnv(envString) {
++                        print("✅ Read version code from .env without full extraction")
++                        return versionCode
++                    }
++                }
++            } catch {
++                print("⚠️ Failed to read .env from ZIP: \(error)")
++            }
++        }
++
++        if let versionCodeEntry = archive[".version.code"] {
++            var versionCodeContent = Data()
++            do {
++                _ = try archive.extract(versionCodeEntry) { data in
++                    versionCodeContent.append(data)
++                }
++                if let versionCodeString = String(data: versionCodeContent, encoding: .utf8) {
++                    print("✅ Read version code from .version.code without full extraction")
++                    return versionCodeString.trimmingCharacters(in: .whitespacesAndNewlines)
++                }
++            } catch {
++                print("⚠️ Failed to read .version.code from ZIP: \(error)")
++            }
++        }
++
++        print("❌ No .env or .version.code found in ZIP")
++        return nil
++    }
++
+     private func extractVersionFromEnv(_ envContent: String) -> String? {
+         let lines = envContent.components(separatedBy: .newlines)
+         for line in lines {
+@@ -407,6 +524,19 @@
+         return nil
+     }
+ 
++    private func extractVersionCodeFromEnv(_ envContent: String) -> String? {
++        let lines = envContent.components(separatedBy: .newlines)
++        for line in lines {
++            if line.hasPrefix("NATIVEPHP_APP_VERSION_CODE=") {
++                let versionCode = String(line.dropFirst("NATIVEPHP_APP_VERSION_CODE=".count))
++                let trimmedVersionCode = versionCode.trimmingCharacters(in: .whitespacesAndNewlines)
++                let cleanVersionCode = trimmedVersionCode.trimmingCharacters(in: CharacterSet(charactersIn: "\"'"))
++                return cleanVersionCode
++            }
++        }
++        return nil
++    }
++
+     func receiveUpdate(data: Data, filename: String) -> Bool {
+         let updatePath = updatesPath + "/" + filename
+ 
+@@ -637,6 +767,23 @@
+         }
+     }
+ 
++    private func getBundledAppVersionCodeFast() -> String? {
++        guard let bundlePath = Bundle.main.path(forResource: "bundled", ofType: "version.code") else {
++            print("❌ No bundled.version.code file found")
++            return nil
++        }
++
++        do {
++            let versionCode = try String(contentsOfFile: bundlePath, encoding: .utf8)
++            let trimmedVersionCode = versionCode.trimmingCharacters(in: .whitespacesAndNewlines)
++            print("🔢 Got bundled version code from bundled.version.code: \(trimmedVersionCode)")
++            return trimmedVersionCode
++        } catch {
++            print("❌ Error reading bundled.version.code file: \(error)")
++            return nil
++        }
++    }
++
+     private func getInstalledVersion() -> String? {
+         let installedVersionPath = documentsPath + "/app/installed.version"
+ 
+@@ -656,10 +803,29 @@
+         }
+     }
+ 
++    private func getInstalledVersionCode() -> String? {
++        let installedVersionCodePath = documentsPath + "/app/installed.version.code"
++
++        guard FileManager.default.fileExists(atPath: installedVersionCodePath) else {
++            print("❌ No installed.version.code file found")
++            return nil
++        }
++
++        do {
++            let versionCode = try String(contentsOfFile: installedVersionCodePath, encoding: .utf8)
++            let trimmedVersionCode = versionCode.trimmingCharacters(in: .whitespacesAndNewlines)
++            print("🔢 Got installed version code from installed.version.code: \(trimmedVersionCode)")
++            return trimmedVersionCode
++        } catch {
++            print("❌ Error reading installed.version.code file: \(error)")
++            return nil
++        }
++    }
++
+     private func createInstalledVersionFile() {
+         let installedVersionPath = documentsPath + "/app/installed.version"
++        let installedVersionCodePath = documentsPath + "/app/installed.version.code"
+ 
+-        // Get the version from the extracted app's .env file
+         if let version = getAppVersion() {
+             do {
+                 try version.write(toFile: installedVersionPath, atomically: true, encoding: .utf8)
+@@ -670,6 +836,17 @@
+         } else {
+             print("⚠️ Could not determine app version for installed.version file")
+         }
++
++        if let versionCode = getCurrentVersionCode() {
++            do {
++                try versionCode.write(toFile: installedVersionCodePath, atomically: true, encoding: .utf8)
++                print("📝 Created installed.version.code file: \(versionCode)")
++            } catch {
++                print("❌ Failed to create installed.version.code file: \(error)")
++            }
++        } else {
++            print("⚠️ Could not determine app version code for installed.version.code file")
++        }
+     }
+ 
+     private func runMigrationsAndClearCaches() {

@@ -1,0 +1,40 @@
+--- /Users/binota/Developer/alt-uu/storage/framework/testing/nativephp-patch-ios-be22a232-1959-4032-97dd-a6365005af81/resources/xcode/NativePHP/NativeUI/NativeUIState.swift
++++ /Users/binota/Developer/alt-uu/packages/altuu/plugin-nativephp-patch/resources/patches/ios/NativePHP/NativeUI/NativeUIState.swift
+@@ -8,6 +8,9 @@
+     @Published var components: [NativeComponent] = []
+     @Published var bottomNavData: BottomNavData?
+     @Published var sideNavData: SideNavData?
++
++    // [media-player-patch]
++    @Published var mediaPlayerData: MediaPlayerData?
+     @Published var topBarData: TopBarData?
+ 
+     // Cache to prevent unnecessary updates
+@@ -81,8 +84,18 @@
+             self.topBarData = topBarData
+         } else {
+             print("⚠️ NativeUIState: No top_bar component found")
+-            self.topBarData = nil
++                    self.topBarData = nil
++
++        // Extract media player if present
++        let mediaPlayer = parsedComponents.first { $0.type == "media-player" }
++
++        if mediaPlayer != nil {
++            // mediaPlayerData should be set via MediaPlayer bridge functions, not via native parser yet
++            // This placeholder ensures the app does not clear existing media state when media player is present.
++        } else {
++            self.mediaPlayerData = nil
+         }
++        }
+     }
+ 
+     /// Clear all UI state
+@@ -93,6 +106,7 @@
+         bottomNavData = nil
+         sideNavData = nil
+         topBarData = nil
++        mediaPlayerData = nil
+     }
+ 
+     /// Check if bottom nav should be visible
