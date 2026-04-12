@@ -328,6 +328,13 @@ export const useDiscussStore = defineStore('discuss', () => {
         await loadNodes(courseId, boardId, true);
     }
 
+    function reset(): void {
+        courses.value = [];
+        boardsByCourse.value = {};
+        nodesByBoard.value = {};
+        postsByThread.value = {};
+    }
+
     return {
         courses,
         loadCourses,
@@ -346,5 +353,6 @@ export const useDiscussStore = defineStore('discuss', () => {
         getBoards,
         getNodes,
         getThread,
+        reset,
     };
 });

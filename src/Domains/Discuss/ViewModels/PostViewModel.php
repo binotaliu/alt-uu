@@ -27,5 +27,7 @@ final class PostViewModel extends Resource
         public int $whisperCount = 0,
         public array $whispers = [],
         public array $attachments = [],
+        public bool $isBlocked = false,
+        public ?string $blockedReason = null,
     ) {}
 }

@@ -104,6 +104,8 @@ declare namespace AltUU {
                     poster: string | null;
                     repliesCount: number | null;
                     likesCount: number | null;
+                    isBlocked: boolean;
+                    blockedReason: string | null;
                 };
                 export type PostListViewModel = {
                     courseId: string;
@@ -124,6 +126,8 @@ declare namespace AltUU {
                     whisperCount: number;
                     whispers: AltUU.Domains.Discuss.ViewModels.WhisperViewModel[];
                     attachments: AltUU.Domains.Discuss.ViewModels.AttachmentViewModel[];
+                    isBlocked: boolean;
+                    blockedReason: string | null;
                 };
                 export type WhisperViewModel = {
                     wid: string | null;

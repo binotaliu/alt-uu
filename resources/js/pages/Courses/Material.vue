@@ -237,21 +237,12 @@ function handleResumeDismiss(): void {
     resumePrompt.value = null;
 }
 
-function csrfToken(): string {
-    return (
-        document
-            .querySelector('meta[name="csrf-token"]')
-            ?.getAttribute('content') ?? ''
-    );
-}
-
 async function reloadSession(): Promise<boolean> {
     try {
         const response = await fetch('/api/auth/bootstrap-session', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': csrfToken(),
                 Accept: 'application/json',
             },
             body: JSON.stringify({}),

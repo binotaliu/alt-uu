@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Api\AppConfigController;
 use App\Http\Controllers\Api\AppearanceController;
+use App\Http\Controllers\Api\BlockedUsersModerationController;
+use App\Http\Controllers\Api\BlockUserModerationController;
 use App\Http\Controllers\Api\CourseHomeworksController;
 use App\Http\Controllers\Api\CourseLearningTimesController;
 use App\Http\Controllers\Api\CourseNodeContentController;
@@ -25,8 +27,10 @@ use App\Http\Controllers\Api\NouToolsSchoolCalendarController;
 use App\Http\Controllers\Api\OnboardingPreferenceController;
 use App\Http\Controllers\Api\ParsedMaterialContentController;
 use App\Http\Controllers\Api\PlaybackProgressController;
+use App\Http\Controllers\Api\ReportModerationController;
 use App\Http\Controllers\Api\ScreenReaderPreferenceController;
 use App\Http\Controllers\Api\SetDiscussForumReadController;
+use App\Http\Controllers\Api\SyncModerationController;
 use App\Http\Controllers\Api\UnlikeDiscussPostController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BootstrapSessionController;
@@ -58,6 +62,15 @@ Route::get('/api/preferences/onboarding', [OnboardingPreferenceController::class
     ->name('api.preferences.onboarding');
 Route::post('/api/preferences/onboarding', [OnboardingPreferenceController::class, 'store'])
     ->name('api.preferences.onboarding.store');
+
+Route::prefix('api/moderation')->group(function (): void {
+    Route::post('/sync', SyncModerationController::class)->name('api.moderation.sync');
+    Route::post('/report', ReportModerationController::class)->name('api.moderation.report');
+    Route::post('/block-user', [BlockUserModerationController::class, 'store'])->name('api.moderation.block-user');
+    Route::delete('/block-user', [BlockUserModerationController::class, 'destroy'])->name('api.moderation.unblock-user');
+    Route::get('/blocked-users', BlockedUsersModerationController::class)->name('api.moderation.blocked-users');
+});
+
 Route::get('/api/preferences/live-sessions-timezone', [LiveSessionsTimezonePreferenceController::class, 'show'])
     ->name('api.preferences.live-sessions-timezone');
 Route::post('/api/preferences/live-sessions-timezone', [LiveSessionsTimezonePreferenceController::class, 'store'])

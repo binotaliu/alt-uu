@@ -16,6 +16,9 @@ import { apiFetch } from '@/composables/useApi';
 import { useTitle } from '@/composables/useTitle';
 import router from '@/router';
 import { useAppConfigStore } from '@/stores/appConfig';
+import { useCourseStore } from '@/stores/courses';
+import { useDiscussStore } from '@/stores/discuss';
+import { useModerationStore } from '@/stores/moderation';
 
 useTitle('設定');
 
@@ -28,8 +31,14 @@ async function logout() {
 
     try {
         await apiFetch('/logout', { method: 'POST' });
+    } finally {
+        // Reset all stores
+        configStore.reset();
+        useCourseStore().reset();
+        useModerationStore().reset();
+        useDiscussStore().reset();
+
         router.replace({ name: 'login' });
-    } catch {
         logoutProcessing.value = false;
     }
 }
@@ -110,12 +119,6 @@ async function setAppearance(value: 'system' | 'light' | 'dark') {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN':
-                    (
-                        document.querySelector(
-                            'meta[name="csrf-token"]',
-                        ) as HTMLMetaElement | null
-                    )?.content ?? '',
             },
             body: JSON.stringify({ appearance: value }),
         });
@@ -138,12 +141,6 @@ async function setNouToolsIntegrationEnabled(enabled: boolean) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN':
-                    (
-                        document.querySelector(
-                            'meta[name="csrf-token"]',
-                        ) as HTMLMetaElement | null
-                    )?.content ?? '',
             },
             body: JSON.stringify({ enabled }),
         });
@@ -163,12 +160,6 @@ async function setScreenReaderEnhancedSupportEnabled(enabled: boolean) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN':
-                    (
-                        document.querySelector(
-                            'meta[name="csrf-token"]',
-                        ) as HTMLMetaElement | null
-                    )?.content ?? '',
             },
             body: JSON.stringify({ enabled }),
         });

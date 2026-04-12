@@ -73,14 +73,6 @@ export function useStudyTimer(
         return `${mins}:${secs}`;
     }
 
-    function csrfToken(): string {
-        return (
-            document
-                .querySelector('meta[name="csrf-token"]')
-                ?.getAttribute('content') ?? ''
-        );
-    }
-
     async function sendStudyTime(
         activityId: string,
         url: string,
@@ -134,7 +126,6 @@ export function useStudyTimer(
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': csrfToken(),
                     Accept: 'application/json',
                 },
                 body: JSON.stringify(payload),
@@ -154,7 +145,6 @@ export function useStudyTimer(
         }
 
         const formData = new FormData();
-        formData.append('_token', csrfToken());
         formData.append('cid', cid);
         formData.append('activityId', activityId);
         formData.append('url', url);

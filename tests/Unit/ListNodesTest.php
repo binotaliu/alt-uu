@@ -3,10 +3,12 @@
 use AltUU\Domains\Discuss\Actions\ListNodes;
 use App\Services\UUDiscussClient;
 use App\Services\UUProxyClient;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Mockery as MockeryManager;
 use Tests\TestCase;
 
 uses(TestCase::class);
+uses(RefreshDatabase::class);
 
 it('maps node read state from discuss API response', function () {
     $proxyClient = MockeryManager::mock(UUProxyClient::class);

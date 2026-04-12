@@ -43,11 +43,19 @@ export const useCourseStore = defineStore('courses', () => {
         error.value = null;
     }
 
+    function reset(): void {
+        courses.value = [];
+        error.value = null;
+        isLoading.value = false;
+        inflight = null;
+    }
+
     return {
         courses,
         isLoading,
         error,
         loadCourses,
         clearCourses,
+        reset,
     };
 });

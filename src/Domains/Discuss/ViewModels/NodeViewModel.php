@@ -17,5 +17,7 @@ final class NodeViewModel extends Resource
         public ?string $poster = null,
         public ?int $repliesCount = null,
         public ?int $likesCount = null,
+        public bool $isBlocked = false,
+        public ?string $blockedReason = null,
     ) {}
 }

@@ -4,7 +4,6 @@ use AltUU\Domains\Course\Actions\ParseMaterialContent;
 use AltUU\Domains\Course\Support\MaterialProxyUrl;
 use App\Services\UUCourseClient;
 use App\Services\UUProxyClient;
-use Mockery;
 use Symfony\Component\DomCrawler\Crawler;
 use Tests\TestCase;
 

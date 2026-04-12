@@ -8,6 +8,7 @@ use AltUU\Domains\Discuss\ViewModels\AttachmentViewModel;
 use AltUU\Domains\Discuss\ViewModels\PostListViewModel;
 use AltUU\Domains\Discuss\ViewModels\PostViewModel;
 use AltUU\Domains\Discuss\ViewModels\WhisperViewModel;
+use App\Models\BlockedContent;
 use App\Services\UUDiscussClient;
 use Illuminate\Support\Arr;
 use Mews\Purifier\Facades\Purifier;
@@ -26,8 +27,15 @@ final readonly class ListPosts
             $postsList = [];
         }
 
+        $postNodeIds = array_filter(array_map(
+            fn (array $post) => isset($post['node']) && is_string($post['node']) ? $post['node'] : null,
+            $postsList,
+        ));
+
+        $blockedMap = $this->getBlockedMap($boardId, $postNodeIds);
+
         $posts = array_map(
-            function (array $post, int $index) use ($boardId): PostViewModel {
+            function (array $post, int $index) use ($boardId, $blockedMap): PostViewModel {
                 $postNode = isset($post['node']) && is_string($post['node']) ? $post['node'] : null;
                 $whisperCount = isset($post['whispercnt']) ? (int) $post['whispercnt'] : 0;
 
@@ -35,6 +43,8 @@ final readonly class ListPosts
                 if ($whisperCount > 0 && $postNode !== null) {
                     $whispers = $this->fetchWhispers($boardId, $postNode);
                 }
+
+                $blockedReason = $postNode !== null ? ($blockedMap[$postNode] ?? null) : null;
 
                 return new PostViewModel(
                     floor: (int) ($post['floor'] ?? $index + 1),
@@ -49,6 +59,8 @@ final readonly class ListPosts
                     whisperCount: $whisperCount,
                     whispers: $whispers,
                     attachments: $this->mapAttachments($post),
+                    isBlocked: $blockedReason !== null,
+                    blockedReason: $blockedReason,
                 );
             },
             $postsList,
@@ -61,6 +73,36 @@ final readonly class ListPosts
             nodeId: $nodeId,
             posts: array_values($posts),
         );
+    }
+
+    /**
+     * @param  string[]  $nodeIds
+     * @return array<string, string> nodeId → reason
+     */
+    private function getBlockedMap(string $boardId, array $nodeIds): array
+    {
+        if ($nodeIds === []) {
+            return [];
+        }
+
+        $boardHash = hash('sha256', $boardId);
+        $nodeHashMap = [];
+
+        foreach ($nodeIds as $nodeId) {
+            $nodeHashMap[hash('sha256', $nodeId)] = $nodeId;
+        }
+
+        $blocked = BlockedContent::where('board_hash', $boardHash)
+            ->whereIn('node_hash', array_keys($nodeHashMap))
+            ->get();
+
+        $map = [];
+
+        foreach ($blocked as $item) {
+            $map[$nodeHashMap[$item->node_hash]] = $item->reason;
+        }
+
+        return $map;
     }
 
     /** @return WhisperViewModel[] */

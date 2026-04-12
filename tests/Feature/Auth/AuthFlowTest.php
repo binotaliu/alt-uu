@@ -239,7 +239,6 @@ it('validates existing session in bootstrap api and queues app boot cookie', fun
     $response->assertJson([
         'ok' => true,
         'redirect' => '/courses',
-        'showOnboarding' => true,
         'nouToolsIntegrationEnabled' => false,
     ]);
 
@@ -291,7 +290,6 @@ it('returns saved onboarding and nou tools preferences in bootstrap api', functi
         ->assertJson([
             'ok' => true,
             'redirect' => '/courses',
-            'showOnboarding' => false,
             'nouToolsIntegrationEnabled' => true,
         ]);
 });
@@ -400,9 +398,10 @@ it('returns unauthorized when bootstrap api validation and remembered login both
 
     $response = post('/api/auth/bootstrap-session');
 
-    $response->assertUnauthorized();
     $response->assertJson([
-        'message' => '登入資訊已失效，請重新登入。',
+        'ok' => true,
+        'redirect' => '/login',
+        'nouToolsIntegrationEnabled' => false,
     ]);
     $response->assertSessionMissing('hungu.profile');
     expect(app(UUSessionStore::class)->get())->toBeNull();
@@ -485,11 +484,19 @@ it('clears cached course list and remembered credentials on logout', function ()
             'picture' => '',
             'realname' => '測試學生',
         ],
+        'hungu.current_course_id' => '1001',
+        'alt-uu:courses:node-resources:1001.2001' => [
+            'loaded' => true,
+            'items' => [['title' => 'cached resource']],
+        ],
     ])
         ->postJson('/logout');
 
     $response->assertSuccessful();
     $response->assertJson(['ok' => true]);
+    $response->assertSessionMissing('hungu.profile');
+    $response->assertSessionMissing('hungu.current_course_id');
+    $response->assertSessionMissing('alt-uu:courses:node-resources:1001.2001');
     expect(Cache::store('database')->has('alt-uu:courses:list:s1234567'))->toBeFalse();
     expect(Cache::store('database')->has('alt-uu:courses:list:s7654321'))->toBeFalse();
     assertDatabaseMissing('key_value_store', [

@@ -17,9 +17,16 @@ final readonly class Logout
 
     public function __invoke(Request $request): JsonResponse
     {
-        $this->authClient->logout($request);
+        try {
+            $this->authClient->logout($request);
+        } finally {
+            if ($request->hasSession()) {
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+            }
 
-        DB::table('cache')->delete();
+            DB::table('cache')->delete();
+        }
 
         return response()->json(['ok' => true]);
     }

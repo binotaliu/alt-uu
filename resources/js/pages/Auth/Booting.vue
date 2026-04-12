@@ -72,7 +72,7 @@ const onboardingSlides: OnboardingSlide[] = [
         title: 'NOU 小幫手整合',
         description:
             'Alt UU 支援整合「NOU 小幫手」，開啟後即可看到學校行事曆、視訊面授、以及考古題等資訊。',
-        note: '備註：開啟本功能時，可能會有部分詮釋資料如你所選擇的課程名稱等傳送給「NOU 小幫手」，此資料不會與其他人分享，你可以選擇是否要開啟此功能。',
+        note: '備註：開啟本功能時，將傳送部分詮釋資料（如課程名稱等）給「NOU 小幫手」，此資料不會與其他人分享，你可以選擇是否要開啟此功能。此功能可於稍後在 App 內的「設定」頁中開啟或關閉。',
         accentClass:
             'from-emerald-200 via-teal-100 to-white dark:from-emerald-500/30 dark:via-zinc-900 dark:to-zinc-950',
         panelClass:
@@ -496,7 +496,10 @@ onMounted(() => {
                 </div>
             </div>
 
-            <div v-else-if="errorMessage" class="px-6 py-10 text-center sm:px-8">
+            <div
+                v-else-if="errorMessage"
+                class="px-6 py-10 text-center sm:px-8"
+            >
                 <h1
                     class="text-lg font-semibold tracking-tight text-warm-900 dark:text-zinc-100"
                 >

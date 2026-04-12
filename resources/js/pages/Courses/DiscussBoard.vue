@@ -12,6 +12,7 @@ import DiscussComposeModal from '@/components/DiscussComposeModal.vue';
 import PageHeader from '@/components/PageHeader.vue';
 import { useCourses } from '@/composables/useCourses';
 import { useDiscuss } from '@/composables/useDiscuss';
+import { useModeration } from '@/composables/useModeration';
 import { useTitle } from '@/composables/useTitle';
 import type { CourseItem } from '@/types';
 
@@ -25,6 +26,9 @@ const props = defineProps<{
 
 const { courses, fetchCourses } = useCourses();
 const { data, isLoading, error, fetchDiscuss, createPost } = useDiscuss();
+const { loadBlockedUsers, getReasonLabel } = useModeration();
+
+const revealedNodes = ref<Set<string>>(new Set());
 
 const newPostSubject = ref('');
 const newPostContent = ref('');
@@ -101,6 +105,7 @@ onMounted(async () => {
             includeCourses: false,
             force: true,
         }),
+        loadBlockedUsers(),
     ]);
 });
 </script>
@@ -166,48 +171,72 @@ onMounted(async () => {
                     v-else-if="data && data.nodes.length > 0"
                     class="space-y-2"
                 >
-                    <router-link
-                        v-for="node in data.nodes"
-                        :key="node.node"
-                        :to="nodeLink(node.node)"
-                        class="block w-full rounded-xl border border-warm-200 bg-white px-3 py-2 text-left text-sm text-warm-700 transition hover:border-warm-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
-                    >
-                        <div class="flex items-start justify-between gap-3">
-                            <div class="min-w-0">
-                                <p class="truncate font-medium md:text-lg">
-                                    {{ node.subject || '未命名主題' }}
-                                    <span
-                                        v-if="node.isRead === false"
-                                        class="ml-2 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700 dark:bg-amber-600/95 dark:text-amber-50"
-                                    >
-                                        未讀
-                                    </span>
-                                </p>
-                                <p
-                                    class="flex gap-1 text-sm text-warm-600 md:text-base dark:text-zinc-400"
-                                >
-                                    <span>{{ node.poster ?? '匿名' }}</span>
-                                    <span>·</span>
-                                    <span
-                                        >{{
-                                            node.repliesCount ?? ''
-                                        }}
-                                        則回覆</span
-                                    >
-                                </p>
-                            </div>
-
-                            <span
-                                v-if="node.likesCount && node.likesCount > 0"
-                                class="ml-2 inline-flex items-center gap-1 text-warm-500 md:gap-2 dark:text-zinc-500"
+                    <template v-for="node in data.nodes" :key="node.node">
+                        <div
+                            v-if="
+                                node.isBlocked && !revealedNodes.has(node.node)
+                            "
+                            class="rounded-xl border border-dashed border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200"
+                        >
+                            <p>
+                                本內容經檢舉已在 Alt UU
+                                中隱藏，若有需要請前往其他平台檢視。原因：{{
+                                    getReasonLabel(node.blockedReason ?? '')
+                                }}。
+                            </p>
+                            <button
+                                type="button"
+                                class="mt-1 text-xs font-medium text-amber-600 underline hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-200"
+                                @click="revealedNodes.add(node.node)"
                             >
-                                <HandThumbUpIcon class="size-4 md:size-5" />
-                                <span class="md:text-xl">{{
-                                    node.likesCount
-                                }}</span>
-                            </span>
+                                仍要檢視
+                            </button>
                         </div>
-                    </router-link>
+
+                        <router-link
+                            v-else
+                            :to="nodeLink(node.node)"
+                            class="block w-full rounded-xl border border-warm-200 bg-white px-3 py-2 text-left text-sm text-warm-700 transition hover:border-warm-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
+                        >
+                            <div class="flex items-start justify-between gap-3">
+                                <div class="min-w-0">
+                                    <p class="truncate font-medium md:text-lg">
+                                        {{ node.subject || '未命名主題' }}
+                                        <span
+                                            v-if="node.isRead === false"
+                                            class="ml-2 inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700 dark:bg-amber-600/95 dark:text-amber-50"
+                                        >
+                                            未讀
+                                        </span>
+                                    </p>
+                                    <p
+                                        class="flex gap-1 text-sm text-warm-600 md:text-base dark:text-zinc-400"
+                                    >
+                                        <span>{{ node.poster ?? '匿名' }}</span>
+                                        <span>·</span>
+                                        <span
+                                            >{{
+                                                node.repliesCount ?? ''
+                                            }}
+                                            則回覆</span
+                                        >
+                                    </p>
+                                </div>
+
+                                <span
+                                    v-if="
+                                        node.likesCount && node.likesCount > 0
+                                    "
+                                    class="ml-2 inline-flex items-center gap-1 text-warm-500 md:gap-2 dark:text-zinc-500"
+                                >
+                                    <HandThumbUpIcon class="size-4 md:size-5" />
+                                    <span class="md:text-xl">{{
+                                        node.likesCount
+                                    }}</span>
+                                </span>
+                            </div>
+                        </router-link>
+                    </template>
                 </div>
 
                 <div

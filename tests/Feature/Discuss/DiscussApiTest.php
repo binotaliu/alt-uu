@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\BlockedContent;
 use App\Services\UUSessionStore;
 use Illuminate\Support\Facades\Http;
 use Mockery as MockeryManager;
@@ -220,4 +221,98 @@ it('can create/update/delete/like discuss posts and manage whispers', function (
     Http::assertSent(fn ($request) => str_contains($request->url(), '/mooc/controllers/forum_ajax.php'));
     Http::assertSent(fn ($request) => str_contains($request->url(), 'action=board-whisper-handler'));
     Http::assertSent(fn ($request) => str_contains($request->url(), 'action=set-forum-read'));
+});
+
+it('includes isBlocked and blockedReason in node list response', function () {
+    Http::fake([
+        'https://uu.nou.edu.tw/xmlapi/index.php?action=get-board-node-list*' => Http::response([
+            'code' => 0,
+            'message' => 'success',
+            'data' => [
+                'list' => [
+                    ['node' => 'N-1', 'subject' => '文章一', 'read' => false, 'reply' => 2],
+                    ['node' => 'N-2', 'subject' => '文章二', 'read' => true, 'reply' => 0],
+                ],
+            ],
+        ]),
+    ]);
+
+    BlockedContent::create([
+        'board_hash' => hash('sha256', 'B-1'),
+        'node_hash' => hash('sha256', 'N-1'),
+        'reason' => 'c',
+        'blocked_at' => now(),
+    ]);
+
+    $session = [
+        'base_url' => 'https://uu.nou.edu.tw',
+        'ua' => 'test-agent',
+        'ticket' => 'ticket-1',
+        'session_idx' => 'idx-1',
+        'cookies' => ['WM' => 'cookie'],
+        'profile' => ['display_name' => '測試', 'username' => 's123'],
+    ];
+    $sessionStore = MockeryManager::mock(UUSessionStore::class);
+    $sessionStore->shouldReceive('get')->andReturn($session);
+    $sessionStore->shouldReceive('put');
+    app()->instance(UUSessionStore::class, $sessionStore);
+
+    $response = get('/api/discuss/nodes?cid=1001&bid=B-1', [
+        'Accept' => 'application/json',
+    ]);
+
+    $response->assertSuccessful();
+    $response->assertJsonPath('nodes.0.node', 'N-1');
+    $response->assertJsonPath('nodes.0.isBlocked', true);
+    $response->assertJsonPath('nodes.0.blockedReason', 'c');
+    $response->assertJsonPath('nodes.1.node', 'N-2');
+    $response->assertJsonPath('nodes.1.isBlocked', false);
+    $response->assertJsonPath('nodes.1.blockedReason', null);
+});
+
+it('includes isBlocked and blockedReason in post list response', function () {
+    Http::fake([
+        'https://uu.nou.edu.tw/xmlapi/index.php?action=get-board-reply-list*' => Http::response([
+            'code' => 0,
+            'message' => 'success',
+            'data' => [
+                'list' => [
+                    ['floor' => 1, 'node' => 'P-1', 'content' => 'hello', 'post_date' => '2024-01-01', 'push' => 0, 'whispercnt' => 0],
+                    ['floor' => 2, 'node' => 'P-2', 'content' => 'world', 'post_date' => '2024-01-02', 'push' => 0, 'whispercnt' => 0],
+                ],
+            ],
+        ]),
+    ]);
+
+    BlockedContent::create([
+        'board_hash' => hash('sha256', 'B-1'),
+        'node_hash' => hash('sha256', 'P-2'),
+        'reason' => 'i',
+        'blocked_at' => now(),
+    ]);
+
+    $session = [
+        'base_url' => 'https://uu.nou.edu.tw',
+        'ua' => 'test-agent',
+        'ticket' => 'ticket-1',
+        'session_idx' => 'idx-1',
+        'cookies' => ['WM' => 'cookie'],
+        'profile' => ['display_name' => '測試', 'username' => 's123'],
+    ];
+    $sessionStore = MockeryManager::mock(UUSessionStore::class);
+    $sessionStore->shouldReceive('get')->andReturn($session);
+    $sessionStore->shouldReceive('put');
+    app()->instance(UUSessionStore::class, $sessionStore);
+
+    $response = get('/api/discuss/posts?cid=1001&bid=B-1&nid=N-99', [
+        'Accept' => 'application/json',
+    ]);
+
+    $response->assertSuccessful();
+    $response->assertJsonPath('posts.0.node', 'P-1');
+    $response->assertJsonPath('posts.0.isBlocked', false);
+    $response->assertJsonPath('posts.0.blockedReason', null);
+    $response->assertJsonPath('posts.1.node', 'P-2');
+    $response->assertJsonPath('posts.1.isBlocked', true);
+    $response->assertJsonPath('posts.1.blockedReason', 'i');
 });

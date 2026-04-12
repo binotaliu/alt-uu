@@ -77,7 +77,8 @@ final class EnsureHunguSession
     {
         if ($request->expectsJson()) {
             return response([
-                'message' => '需要先完成啟動驗證。',
+                'code' => 'boot_validation_required',
+                'message' => '請先完成啟動驗證。',
                 'redirect' => route('auth.booting'),
             ], 409);
         }

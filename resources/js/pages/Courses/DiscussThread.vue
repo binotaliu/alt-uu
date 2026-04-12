@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import {
     ChatBubbleLeftRightIcon,
+    ExclamationTriangleIcon,
+    FlagIcon,
+    NoSymbolIcon,
     PaperClipIcon,
     PlusIcon,
 } from '@heroicons/vue/24/outline';
@@ -13,9 +16,11 @@ import AppLayout from '@/components/AppLayout.vue';
 import BackButton from '@/components/BackButton.vue';
 import DiscussComposeModal from '@/components/DiscussComposeModal.vue';
 import PageHeader from '@/components/PageHeader.vue';
+import ReportModal from '@/components/ReportModal.vue';
 import { useCourses } from '@/composables/useCourses';
 import { useDiscuss } from '@/composables/useDiscuss';
 import { useIsDark } from '@/composables/useIsDark';
+import { useModeration } from '@/composables/useModeration';
 import { useTitle } from '@/composables/useTitle';
 import { processHtmlForColorScheme } from '@/lib/htmlColorScheme';
 import { downloadAttachmentWithNativeBridge } from '@/lib/nativeAttachment';
@@ -45,6 +50,16 @@ const {
     // deleteWhisper,
 } = useDiscuss();
 const { isDark } = useIsDark();
+const {
+    loadBlockedUsers,
+    isUserBlocked,
+    getReasonLabel,
+    reportContent,
+    blockUser,
+    unblockUser,
+} = useModeration();
+
+const revealedPosts = ref<Set<string>>(new Set());
 
 function adjustedContent(html: string | null | undefined): string {
     return processHtmlForColorScheme(html ?? '', isDark.value);
@@ -95,6 +110,18 @@ const editingPostId = ref<string | null>(null);
 const editingPostContent = ref('');
 const editingWhisperId = ref<string | null>(null);
 const editingWhisperContent = ref('');
+
+// Moderation state
+const isReportModalOpen = ref(false);
+const reportNodeId = ref<string | null>(null);
+const reportContent_ = ref('');
+const reportType = ref('');
+const isSubmittingReport = ref(false);
+const reportSuccess = ref<boolean | null>(null);
+
+const isBlockConfirmOpen = ref(false);
+const blockTargetPoster = ref('');
+const blockTargetRealname = ref('');
 
 const downloadAttachment = async (url: string, filename?: string | null) => {
     const proxyPath = `/material-proxy/${btoa(url).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')}?cid=${encodeURIComponent(props.cid)}`;
@@ -317,12 +344,67 @@ const submitWhisperEdit = async (nodeId: string) => {
 //     });
 // };
 
+const openReportModal = (nodeId: string, content: string) => {
+    reportNodeId.value = nodeId;
+    reportContent_.value = content;
+    reportType.value = '';
+    reportSuccess.value = null;
+    isReportModalOpen.value = true;
+};
+
+const submitReport = async () => {
+    if (!reportNodeId.value || !reportType.value) {
+        return;
+    }
+
+    try {
+        isSubmittingReport.value = true;
+        const success = await reportContent(
+            props.bid,
+            reportNodeId.value,
+            reportContent_.value,
+            reportType.value,
+        );
+        reportSuccess.value = success;
+
+        if (success) {
+            setTimeout(() => {
+                isReportModalOpen.value = false;
+            }, 1500);
+        }
+    } catch {
+        reportSuccess.value = false;
+    } finally {
+        isSubmittingReport.value = false;
+    }
+};
+
+const openBlockConfirm = (poster: string, realname: string) => {
+    blockTargetPoster.value = poster;
+    blockTargetRealname.value = realname;
+    isBlockConfirmOpen.value = true;
+};
+
+const confirmBlockUser = async () => {
+    if (!blockTargetPoster.value || !blockTargetRealname.value) {
+        return;
+    }
+
+    await blockUser(blockTargetPoster.value, blockTargetRealname.value);
+    isBlockConfirmOpen.value = false;
+};
+
+const handleUnblockUser = async (poster: string, realname: string) => {
+    await unblockUser(poster, realname);
+};
+
 onMounted(async () => {
     await Promise.all([
         fetchCourses(),
         fetchDiscuss(props.boardCid, props.bid, props.nid, {
             includeCourses: false,
         }),
+        loadBlockedUsers(),
     ]);
 
     try {
@@ -398,227 +480,336 @@ onMounted(async () => {
                         :key="post.floor ?? index"
                         class="rounded-xl border border-warm-200 bg-warm-50 px-3 py-3 dark:border-zinc-700 dark:bg-zinc-800"
                     >
-                        <header
-                            class="mb-1 flex items-center justify-between gap-2 text-sm text-warm-600 md:text-base dark:text-zinc-400"
-                        >
-                            <span
-                                >樓層 {{ post.floor ?? index + 1 }} ·
-                                {{ post.realname ?? post.poster ?? '匿名' }} ·
-                                {{ post.postDate ?? '' }}</span
-                            >
-                            <div class="flex items-center gap-2">
-                                <button
-                                    type="button"
-                                    :class="[
-                                        'inline-flex items-center gap-1 rounded border px-2 py-1 text-xs transition',
-                                        post.liked
-                                            ? 'border-warm-800 bg-warm-800 text-white dark:border-warm-700 dark:bg-warm-700 dark:text-zinc-100'
-                                            : 'border-warm-300 bg-white text-warm-700 hover:bg-warm-100 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700',
-                                    ]"
-                                    @click.stop.prevent="
-                                        pushPost(post.node, post.liked)
-                                    "
-                                >
-                                    <component
-                                        :is="
-                                            post.liked
-                                                ? HandThumbUpIconSolid
-                                                : HandThumbUpIconOutline
-                                        "
-                                        class="size-4 md:size-5"
-                                    />
-                                    <span>{{ post.push ?? 0 }}</span>
-                                </button>
-                            </div>
-                        </header>
-                        <div v-if="editingPostId === post.node" class="mt-2">
-                            <textarea
-                                v-model="editingPostContent"
-                                class="w-full rounded border border-warm-300 px-2 py-1 text-sm dark:border-zinc-600 dark:bg-zinc-900"
-                                rows="4"
-                            />
-                            <div class="mt-2 flex gap-2">
-                                <button
-                                    type="button"
-                                    class="rounded-xl bg-warm-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-warm-800 dark:bg-warm-500 dark:hover:bg-warm-600"
-                                    @click="submitPostEdit"
-                                >
-                                    儲存
-                                </button>
-                                <button
-                                    type="button"
-                                    class="rounded-xl border border-warm-300 bg-white px-4 py-2 text-sm font-semibold text-warm-700 transition hover:border-warm-400 hover:bg-warm-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:border-zinc-500"
-                                    @click="
-                                        () => {
-                                            editingPostId = null;
-                                            editingPostContent = '';
-                                        }
-                                    "
-                                >
-                                    取消
-                                </button>
-                            </div>
-                        </div>
+                        <!-- Blocked content -->
                         <div
-                            v-else
-                            class="prose prose-sm mt-1 overflow-auto text-sm prose-warm select-auto md:prose-lg dark:prose-zinc dark:prose-invert"
-                            v-html="
-                                adjustedContent(post.content) || '（無內容）'
-                            "
-                            @click="onPostContentClick"
-                        />
-
-                        <section
                             v-if="
-                                post.attachments && post.attachments.length > 0
+                                post.isBlocked &&
+                                post.node &&
+                                !revealedPosts.has(post.node)
                             "
-                            class="mt-3 rounded-lg border border-warm-200 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900"
+                            class="rounded-lg border border-dashed border-amber-300 bg-amber-50 p-3 text-sm text-amber-800 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200"
                         >
-                            <h4
-                                class="mb-2 text-xs font-semibold text-warm-700 dark:text-zinc-300"
+                            <div class="flex items-center gap-2">
+                                <ExclamationTriangleIcon
+                                    class="size-5 shrink-0"
+                                />
+                                <p>
+                                    本內容經檢舉已在 Alt UU
+                                    中隱藏，若有需要請前往其他平台檢視。原因：{{
+                                        getReasonLabel(
+                                            post.blockedReason ?? '',
+                                        )
+                                    }}。
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                class="mt-2 text-xs font-medium text-amber-600 underline hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-200"
+                                @click="revealedPosts.add(post.node)"
                             >
-                                附件 ({{ post.attachments.length }})
-                            </h4>
-                            <ul class="space-y-1">
-                                <li
-                                    v-for="(attachment, ai) in post.attachments"
-                                    :key="
-                                        attachment.href ??
-                                        attachment.filename ??
-                                        ai
-                                    "
-                                    class="flex items-center gap-2 text-sm text-warm-700 dark:text-zinc-300"
+                                仍要檢視
+                            </button>
+                        </div>
+
+                        <!-- Blocked user -->
+                        <div
+                            v-else-if="
+                                isUserBlocked(post.poster, post.realname)
+                            "
+                            class="rounded-lg border border-dashed border-zinc-300 bg-zinc-50 p-3 text-sm text-zinc-600 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"
+                        >
+                            <p>
+                                由於你封鎖了名稱為「{{
+                                    post.realname
+                                }}」、帳號為「{{
+                                    post.poster
+                                }}」的使用者，因此此內容已隱藏。
+                            </p>
+                            <button
+                                type="button"
+                                class="mt-2 rounded-lg border border-zinc-300 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 transition hover:bg-zinc-100 dark:border-zinc-500 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600"
+                                @click="
+                                    handleUnblockUser(
+                                        post.poster ?? '',
+                                        post.realname ?? '',
+                                    )
+                                "
+                            >
+                                解除封鎖
+                            </button>
+                        </div>
+
+                        <!-- Normal post -->
+                        <template v-else>
+                            <header
+                                class="mb-1 flex items-center justify-between gap-2 text-sm text-warm-600 md:text-base dark:text-zinc-400"
+                            >
+                                <span
+                                    >樓層 {{ post.floor ?? index + 1 }} ·
+                                    {{ post.realname ?? post.poster ?? '匿名' }}
+                                    · {{ post.postDate ?? '' }}</span
                                 >
-                                    <PaperClipIcon
-                                        class="h-4 w-4 shrink-0 text-warm-500 dark:text-zinc-500"
-                                    />
-                                    <a
-                                        v-if="attachment.href"
-                                        :href="attachment.href"
-                                        class="underline hover:text-warm-900 dark:hover:text-zinc-300"
-                                        :download="
-                                            attachment.filename
-                                                ? attachment.filename
-                                                : undefined
+                                <div class="flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        :class="[
+                                            'inline-flex items-center gap-1 rounded border px-2 py-1 text-xs transition',
+                                            post.liked
+                                                ? 'border-warm-800 bg-warm-800 text-white dark:border-warm-700 dark:bg-warm-700 dark:text-zinc-100'
+                                                : 'border-warm-300 bg-white text-warm-700 hover:bg-warm-100 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700',
+                                        ]"
+                                        @click.stop.prevent="
+                                            pushPost(post.node, post.liked)
                                         "
-                                        @click.prevent="
-                                            downloadAttachment(
-                                                attachment.href,
-                                                attachment.filename,
+                                    >
+                                        <component
+                                            :is="
+                                                post.liked
+                                                    ? HandThumbUpIconSolid
+                                                    : HandThumbUpIconOutline
+                                            "
+                                            class="size-4 md:size-5"
+                                        />
+                                        <span>{{ post.push ?? 0 }}</span>
+                                    </button>
+                                </div>
+                            </header>
+                            <div
+                                v-if="editingPostId === post.node"
+                                class="mt-2"
+                            >
+                                <textarea
+                                    v-model="editingPostContent"
+                                    class="w-full rounded border border-warm-300 px-2 py-1 text-sm dark:border-zinc-600 dark:bg-zinc-900"
+                                    rows="4"
+                                />
+                                <div class="mt-2 flex gap-2">
+                                    <button
+                                        type="button"
+                                        class="rounded-xl bg-warm-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-warm-800 dark:bg-warm-500 dark:hover:bg-warm-600"
+                                        @click="submitPostEdit"
+                                    >
+                                        儲存
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="rounded-xl border border-warm-300 bg-white px-4 py-2 text-sm font-semibold text-warm-700 transition hover:border-warm-400 hover:bg-warm-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:border-zinc-500"
+                                        @click="
+                                            () => {
+                                                editingPostId = null;
+                                                editingPostContent = '';
+                                            }
+                                        "
+                                    >
+                                        取消
+                                    </button>
+                                </div>
+                            </div>
+                            <div
+                                v-else
+                                class="prose prose-sm mt-1 overflow-auto text-sm prose-warm select-auto md:prose-lg dark:prose-zinc dark:prose-invert"
+                                v-html="
+                                    adjustedContent(post.content) ||
+                                    '（無內容）'
+                                "
+                                @click="onPostContentClick"
+                            />
+
+                            <section
+                                v-if="
+                                    post.attachments &&
+                                    post.attachments.length > 0
+                                "
+                                class="mt-3 rounded-lg border border-warm-200 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900"
+                            >
+                                <h4
+                                    class="mb-2 text-xs font-semibold text-warm-700 dark:text-zinc-300"
+                                >
+                                    附件 ({{ post.attachments.length }})
+                                </h4>
+                                <ul class="space-y-1">
+                                    <li
+                                        v-for="(
+                                            attachment, ai
+                                        ) in post.attachments"
+                                        :key="
+                                            attachment.href ??
+                                            attachment.filename ??
+                                            ai
+                                        "
+                                        class="flex items-center gap-2 text-sm text-warm-700 dark:text-zinc-300"
+                                    >
+                                        <PaperClipIcon
+                                            class="h-4 w-4 shrink-0 text-warm-500 dark:text-zinc-500"
+                                        />
+                                        <a
+                                            v-if="attachment.href"
+                                            :href="attachment.href"
+                                            class="underline hover:text-warm-900 dark:hover:text-zinc-300"
+                                            :download="
+                                                attachment.filename
+                                                    ? attachment.filename
+                                                    : undefined
+                                            "
+                                            @click.prevent="
+                                                downloadAttachment(
+                                                    attachment.href,
+                                                    attachment.filename,
+                                                )
+                                            "
+                                        >
+                                            {{
+                                                attachment.filename ??
+                                                attachment.href
+                                            }}
+                                        </a>
+                                        <span v-else>
+                                            {{ attachment.filename ?? '檔案' }}
+                                        </span>
+                                    </li>
+                                </ul>
+                            </section>
+
+                            <section
+                                v-if="
+                                    index !== 0 ||
+                                    post.whisperCount ||
+                                    (post.whispers && post.whispers.length > 0)
+                                "
+                                class="mt-3 rounded-lg border border-warm-200 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900"
+                            >
+                                <div
+                                    class="flex items-center justify-between"
+                                    :class="{ 'mb-2': post.whisperCount }"
+                                >
+                                    <h4
+                                        class="text-xs font-semibold text-warm-700 dark:text-zinc-300"
+                                    >
+                                        留言 ({{
+                                            post.whisperCount ??
+                                            post.whispers?.length ??
+                                            0
+                                        }})
+                                    </h4>
+                                    <button
+                                        type="button"
+                                        class="rounded bg-warm-700 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-warm-800 dark:bg-warm-800 dark:hover:bg-warm-600"
+                                        @click="
+                                            openWhisperModal(
+                                                post.node ?? null,
+                                                post.floor ?? index + 1,
                                             )
                                         "
                                     >
-                                        {{
-                                            attachment.filename ??
-                                            attachment.href
-                                        }}
-                                    </a>
-                                    <span v-else>
-                                        {{ attachment.filename ?? '檔案' }}
-                                    </span>
-                                </li>
-                            </ul>
-                        </section>
+                                        新增留言
+                                    </button>
+                                </div>
+                                <div class="space-y-2">
+                                    <article
+                                        v-for="(whisper, wi) in post.whispers ??
+                                        []"
+                                        :key="whisper.wid ?? whisper.sid ?? wi"
+                                        class="rounded-md border border-warm-100 bg-warm-50 px-3 py-2 dark:border-zinc-800 dark:bg-zinc-800"
+                                    >
+                                        <header
+                                            class="mb-1 flex flex-wrap items-center gap-2 text-sm text-warm-600 dark:text-zinc-400"
+                                        >
+                                            <span>{{
+                                                whisper.realname ??
+                                                whisper.creator ??
+                                                '匿名'
+                                            }}</span>
+                                            <span>·</span>
+                                            <span>{{
+                                                whisper.createTime ?? ''
+                                            }}</span>
+                                        </header>
 
-                        <section
-                            v-if="
-                                index !== 0 ||
-                                post.whisperCount ||
-                                (post.whispers && post.whispers.length > 0)
-                            "
-                            class="mt-3 rounded-lg border border-warm-200 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900"
-                        >
+                                        <div
+                                            v-if="
+                                                editingWhisperId === whisper.wid
+                                            "
+                                        >
+                                            <textarea
+                                                v-model="editingWhisperContent"
+                                                class="w-full rounded border border-warm-300 px-2 py-1 text-sm dark:border-zinc-600 dark:bg-zinc-900"
+                                                rows="3"
+                                            />
+                                            <div class="mt-2 flex gap-2">
+                                                <button
+                                                    type="button"
+                                                    class="rounded-xl bg-warm-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-warm-800 dark:bg-warm-500 dark:hover:bg-warm-600"
+                                                    @click="
+                                                        submitWhisperEdit(
+                                                            post.node ?? '',
+                                                        )
+                                                    "
+                                                >
+                                                    儲存
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    class="rounded-xl border border-warm-300 bg-white px-4 py-2 text-sm font-semibold text-warm-700 transition hover:border-warm-400 hover:bg-warm-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:border-zinc-500"
+                                                    @click="
+                                                        () => {
+                                                            editingWhisperId =
+                                                                null;
+                                                            editingWhisperContent =
+                                                                '';
+                                                        }
+                                                    "
+                                                >
+                                                    取消
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <p
+                                            v-else
+                                            class="overflow-auto text-sm whitespace-pre-wrap text-warm-800 select-auto md:text-base dark:text-zinc-200"
+                                        >
+                                            {{
+                                                whisper.content ?? '（無內容）'
+                                            }}
+                                        </p>
+                                    </article>
+                                </div>
+                            </section>
+
+                            <!-- Report / Block actions -->
                             <div
-                                class="flex items-center justify-between"
-                                :class="{ 'mb-2': post.whisperCount }"
+                                class="mt-2 flex items-center gap-2 border-t border-warm-200 pt-2 dark:border-zinc-700"
                             >
-                                <h4
-                                    class="text-xs font-semibold text-warm-700 dark:text-zinc-300"
-                                >
-                                    留言 ({{
-                                        post.whisperCount ??
-                                        post.whispers?.length ??
-                                        0
-                                    }})
-                                </h4>
                                 <button
+                                    v-if="post.node"
                                     type="button"
-                                    class="rounded bg-warm-700 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-warm-800 dark:bg-warm-800 dark:hover:bg-warm-600"
+                                    class="inline-flex items-center gap-1 rounded border border-warm-300 bg-white px-2 py-1 text-xs text-warm-600 transition hover:bg-warm-100 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700"
                                     @click="
-                                        openWhisperModal(
-                                            post.node ?? null,
-                                            post.floor ?? index + 1,
+                                        openReportModal(
+                                            post.node,
+                                            post.content ?? '',
                                         )
                                     "
                                 >
-                                    新增留言
+                                    <FlagIcon class="size-3.5" />
+                                    檢舉
+                                </button>
+                                <button
+                                    v-if="post.poster && post.realname"
+                                    type="button"
+                                    class="inline-flex items-center gap-1 rounded border border-warm-300 bg-white px-2 py-1 text-xs text-warm-600 transition hover:bg-warm-100 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700"
+                                    @click="
+                                        openBlockConfirm(
+                                            post.poster,
+                                            post.realname,
+                                        )
+                                    "
+                                >
+                                    <NoSymbolIcon class="size-3.5" />
+                                    封鎖使用者
                                 </button>
                             </div>
-                            <div class="space-y-2">
-                                <article
-                                    v-for="(whisper, wi) in post.whispers ?? []"
-                                    :key="whisper.wid ?? whisper.sid ?? wi"
-                                    class="rounded-md border border-warm-100 bg-warm-50 px-3 py-2 dark:border-zinc-800 dark:bg-zinc-800"
-                                >
-                                    <header
-                                        class="mb-1 flex flex-wrap items-center gap-2 text-sm text-warm-600 dark:text-zinc-400"
-                                    >
-                                        <span>{{
-                                            whisper.realname ??
-                                            whisper.creator ??
-                                            '匿名'
-                                        }}</span>
-                                        <span>·</span>
-                                        <span>{{
-                                            whisper.createTime ?? ''
-                                        }}</span>
-                                    </header>
-
-                                    <div
-                                        v-if="editingWhisperId === whisper.wid"
-                                    >
-                                        <textarea
-                                            v-model="editingWhisperContent"
-                                            class="w-full rounded border border-warm-300 px-2 py-1 text-sm dark:border-zinc-600 dark:bg-zinc-900"
-                                            rows="3"
-                                        />
-                                        <div class="mt-2 flex gap-2">
-                                            <button
-                                                type="button"
-                                                class="rounded-xl bg-warm-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-warm-800 dark:bg-warm-500 dark:hover:bg-warm-600"
-                                                @click="
-                                                    submitWhisperEdit(
-                                                        post.node ?? '',
-                                                    )
-                                                "
-                                            >
-                                                儲存
-                                            </button>
-                                            <button
-                                                type="button"
-                                                class="rounded-xl border border-warm-300 bg-white px-4 py-2 text-sm font-semibold text-warm-700 transition hover:border-warm-400 hover:bg-warm-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:border-zinc-500"
-                                                @click="
-                                                    () => {
-                                                        editingWhisperId = null;
-                                                        editingWhisperContent =
-                                                            '';
-                                                    }
-                                                "
-                                            >
-                                                取消
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    <p
-                                        v-else
-                                        class="overflow-auto text-sm whitespace-pre-wrap text-warm-800 select-auto md:text-base dark:text-zinc-200"
-                                    >
-                                        {{ whisper.content ?? '（無內容）' }}
-                                    </p>
-                                </article>
-                            </div>
-                        </section>
+                        </template>
                     </article>
                 </div>
 
@@ -670,6 +861,61 @@ onMounted(async () => {
                 placeholder="留言內容"
             />
         </DiscussComposeModal>
+
+        <!-- Report Modal -->
+        <ReportModal
+            :is-open="isReportModalOpen"
+            :report-node-id="reportNodeId"
+            :report-content="reportContent_"
+            :report-type="reportType"
+            :is-submitting="isSubmittingReport"
+            :report-success="reportSuccess"
+            @update:is-open="isReportModalOpen = $event"
+            @update:report-type="reportType = $event"
+            @submit="submitReport"
+        />
+
+        <!-- Block User Confirmation -->
+        <Teleport to="body">
+            <div
+                v-if="isBlockConfirmOpen"
+                class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+                @click.self="isBlockConfirmOpen = false"
+            >
+                <div
+                    class="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl dark:bg-zinc-900"
+                >
+                    <h3
+                        class="mb-3 text-lg font-semibold text-warm-900 dark:text-zinc-100"
+                    >
+                        封鎖使用者
+                    </h3>
+                    <p class="text-sm text-warm-600 dark:text-zinc-400">
+                        確定要封鎖名稱為「{{
+                            blockTargetRealname
+                        }}」、帳號為「{{
+                            blockTargetPoster
+                        }}」的使用者嗎？封鎖後，所有相同名稱使用者的所有貼文將被隱藏。
+                    </p>
+                    <div class="mt-4 flex justify-end gap-2">
+                        <button
+                            type="button"
+                            class="rounded-xl border border-warm-300 bg-white px-4 py-2 text-sm font-semibold text-warm-700 transition hover:bg-warm-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200"
+                            @click="isBlockConfirmOpen = false"
+                        >
+                            取消
+                        </button>
+                        <button
+                            type="button"
+                            class="rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-700 dark:bg-rose-700 dark:hover:bg-rose-600"
+                            @click="confirmBlockUser"
+                        >
+                            確定封鎖
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
 
         <AndroidBottomControlBackground />
     </AppLayout>

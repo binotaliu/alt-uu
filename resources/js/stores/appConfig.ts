@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, watch } from 'vue';
 import { apiFetch } from '@/composables/useApi';
+import { useModerationStore } from '@/stores/moderation';
 
 interface AppConfig {
     appearance: string;
@@ -54,6 +55,12 @@ export const useAppConfigStore = defineStore('appConfig', () => {
                 frameworkVersion.value = data.frameworkVersion;
                 isLoggedIn.value = data.isLoggedIn;
                 isLoaded.value = true;
+
+                // Non-blocking sync of moderation data on boot
+                if (data.isLoggedIn) {
+                    const moderationStore = useModerationStore();
+                    moderationStore.syncBlockedContents();
+                }
             } finally {
                 inflight = null;
             }
@@ -83,6 +90,12 @@ export const useAppConfigStore = defineStore('appConfig', () => {
         { immediate: true },
     );
 
+    function reset(): void {
+        isLoggedIn.value = false;
+        isLoaded.value = false;
+        inflight = null;
+    }
+
     return {
         appearance,
         nouToolsIntegrationEnabled,
@@ -94,5 +107,6 @@ export const useAppConfigStore = defineStore('appConfig', () => {
         isLoggedIn,
         isLoaded,
         loadConfig,
+        reset,
     };
 });

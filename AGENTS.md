@@ -1,7 +1,7 @@
 # Alt UU
 
-- Alt UU is a Laravel 12 + Inertia Vue 3 + NativePHP educational app that integrates with a learning system and classroom APIs. NativePHP is a framework that allows us to build native iOS and Android apps using PHP. NativePHP uses WebView to render frontend and provide a bridge for native device features, while Laravel powers the backend and serves the frontend.
-- Frontend lives under `resources/js` with Vue 3, Inertia, Wayfinder route actions, single-page navigation, and Tailwind v4 UI patterns.
+- Alt UU is a Laravel 12 + Vue 3 + NativePHP educational app that integrates with a learning system and classroom APIs. NativePHP is a framework that allows us to build native iOS and Android apps using PHP. NativePHP uses WebView to render frontend and provide a bridge for native device features, while Laravel powers the backend and serves the frontend.
+- Frontend lives under `resources/js` with Vue 3, single-page navigation, and Tailwind v4 UI patterns.
 - Backend is split between `app/` controllers + middleware, `src/` domain action services, and `database/` model factories/migrations.
 - `src/Domains` is the domain layer following DDD style with per-domain `Actions`, `ViewModels`, and `DataTransferObjects`.
 - Architecture rules enforced by `tests/Feature/ArchTest.php`:
@@ -23,7 +23,6 @@ The Laravel Boost guidelines are specifically curated by Laravel maintainers for
 This application is a Laravel application and its main Laravel ecosystems package & versions are below. You are an expert with them all. Ensure you abide by these specific packages & versions.
 
 - php - 8.4
-- inertiajs/inertia-laravel (INERTIA_LARAVEL) - v3
 - laravel/framework (LARAVEL) - v12
 - laravel/prompts (PROMPTS) - v0
 - laravel/boost (BOOST) - v2
@@ -32,7 +31,6 @@ This application is a Laravel application and its main Laravel ecosystems packag
 - laravel/pint (PINT) - v1
 - pestphp/pest (PEST) - v4
 - phpunit/phpunit (PHPUNIT) - v12
-- @inertiajs/vue3 (INERTIA_VUE) - v3
 - tailwindcss (TAILWINDCSS) - v4
 - vue (VUE) - v3
 - eslint (ESLINT) - v9
@@ -44,7 +42,6 @@ This project has domain-specific skills available. You MUST activate the relevan
 
 - `laravel-best-practices` — Apply this skill whenever writing, reviewing, or refactoring Laravel PHP code. This includes creating or modifying controllers, models, migrations, form requests, policies, jobs, scheduled commands, service classes, and Eloquent queries. Triggers for N+1 and query performance issues, caching strategies, authorization and security patterns, validation, error handling, queue and job configuration, route definitions, and architectural decisions. Also use for Laravel code reviews and refactoring existing Laravel code to follow best practices. Covers any task involving Laravel backend PHP code patterns.
 - `pest-testing` — Use this skill for Pest PHP testing in Laravel projects only. Trigger whenever any test is being written, edited, fixed, or refactored — including fixing tests that broke after a code change, adding assertions, converting PHPUnit to Pest, adding datasets, and TDD workflows. Always activate when the user asks how to write something in Pest, mentions test files or directories (tests/Feature, tests/Unit, tests/Browser), or needs browser testing, smoke testing multiple pages for JS errors, or architecture tests. Covers: it()/expect() syntax, datasets, mocking, browser testing (visit/click/fill), smoke testing, arch(), Livewire component tests, RefreshDatabase, and all Pest 4 features. Do not use for factories, seeders, migrations, controllers, models, or non-test PHP code.
-- `inertia-vue-development` — Develops Inertia.js v3 Vue client-side applications. Activates when creating Vue pages, forms, or navigation; using <Link>, <Form>, useForm, useHttp, setLayoutProps, or router; working with deferred props, prefetching, optimistic updates, instant visits, or polling; or when user mentions Vue with Inertia, Vue pages, Vue forms, or Vue navigation.
 - `tailwindcss-development` — Always invoke when the user's message includes 'tailwind' in any form. Also invoke for: building responsive grid layouts (multi-column card grids, product grids), flex/grid page structures (dashboards with sidebars, fixed topbars, mobile-toggle navs), styling UI components (cards, tables, navbars, pricing sections, forms, inputs, badges), adding dark mode variants, fixing spacing or typography, and Tailwind v3/v4 work. The core use case: writing or fixing Tailwind utility classes in HTML templates (Blade, JSX, Vue). Skip for backend PHP logic, database queries, API routes, JavaScript with no HTML/CSS component, CSS file audits, build tool configuration, and vanilla CSS.
 - `nativephp-mobile` — Builds native iOS and Android apps with PHP & Larvel. Activate when using native device APIs (camera, dialog, biometrics, scanner, geolocation, push notifications), EDGE components (bottom-nav, top-bar, side-nav), `#nativephp` JavaScript imports, native mobile events, NativePHP Artisan commands (native:run, native:install, native:watch), deep links, secure storage, or mobile app deployment.
 - `debugging-output-and-previewing-html-using-ray` — Use when user says "send to Ray," "show in Ray," "debug in Ray," "log to Ray," "display in Ray," or wants to visualize data, debug output, or show diagrams in the Ray desktop application.
@@ -140,29 +137,6 @@ This project has domain-specific skills available. You MUST activate the relevan
 - Every change must be programmatically tested. Write a new test or update an existing test, then run the affected tests to make sure they pass.
 - Run the minimum number of tests needed to ensure code quality and speed. Use `php artisan test --compact` with a specific filename or filter.
 
-=== inertia-laravel/core rules ===
-
-# Inertia
-
-- Inertia creates fully client-side rendered SPAs without modern SPA complexity, leveraging existing server-side patterns.
-- Components live in `resources/js/pages` (unless specified in `vite.config.js`). Use `Inertia::render()` for server-side routing instead of Blade views.
-- ALWAYS use `search-docs` tool for version-specific Inertia documentation and updated code examples.
-- IMPORTANT: Activate `inertia-vue-development` when working with Inertia Vue client-side patterns.
-
-# Inertia v3
-
-- Use all Inertia features from v1, v2, and v3. Check the documentation before making changes to ensure the correct approach.
-- New v3 features: standalone HTTP requests (`useHttp` hook), optimistic updates with automatic rollback, layout props (`useLayoutProps` hook), instant visits, simplified SSR via `@inertiajs/vite` plugin, custom exception handling for error pages.
-- Carried over from v2: deferred props, infinite scroll, merging props, polling, prefetching, once props, flash data.
-- When using deferred props, add an empty state with a pulsing or animated skeleton.
-- Axios has been removed. Use the built-in XHR client with interceptors, or install Axios separately if needed.
-- `Inertia::lazy()` / `LazyProp` has been removed. Use `Inertia::optional()` instead.
-- Prop types (`Inertia::optional()`, `Inertia::defer()`, `Inertia::merge()`) work inside nested arrays with dot-notation paths.
-- SSR works automatically in Vite dev mode with `@inertiajs/vite` - no separate Node.js server needed during development.
-- Event renames: `invalid` is now `httpException`, `exception` is now `networkError`.
-- `router.cancel()` replaced by `router.cancelAll()`.
-- The `future` configuration namespace has been removed - all v2 future options are now always enabled.
-
 === laravel/core rules ===
 
 # Do Things the Laravel Way
@@ -233,14 +207,6 @@ This project has domain-specific skills available. You MUST activate the relevan
 - Run tests: `php artisan test --compact` or filter: `php artisan test --compact --filter=testName`.
 - Do NOT delete tests without approval.
 
-=== inertia-vue/core rules ===
-
-# Inertia + Vue
-
-Vue components must have a single root element.
-
-- IMPORTANT: Activate `inertia-vue-development` when working with Inertia Vue client-side patterns.
-
 === nativephp/mobile rules ===
 
 ## NativePHP Mobile
@@ -266,6 +232,90 @@ Vue components must have a single root element.
 **Always ask which platform before giving any build or run command.** If the user hasn't specified iOS or Android, ask: "Which platform do you want to build/test on — iOS or Android?" Never assume a platform.
 
 When the platform is confirmed, give the relevant command(s) above and tell the user to run it in their terminal. Do not run it yourself.
+</laravel-boost-guidelines>
+
+=== nativephp/mobile-browser rules ===
+
+## nativephp/browser
+
+Open URLs in system browser, in-app browser, and OAuth authentication sessions.
+
+### PHP Usage (Livewire/Blade)
+
+Use the `Browser` facade:
+
+<code-snippet name="Using Browser Facade" lang="php">
+use Native\Mobile\Facades\Browser;
+
+// Open in in-app browser (keeps users in your app)
+Browser::inApp('https://nativephp.com/mobile');
+
+// Open in system browser (leaves your app)
+Browser::open('https://nativephp.com/mobile');
+
+// OAuth authentication with automatic redirect handling
+Browser::auth('https://provider.com/oauth/authorize?client_id=123&redirect_uri=nativephp://127.0.0.1/auth/callback');
+</code-snippet>
+
+### JavaScript Usage (Vue/React/Inertia)
+
+<code-snippet name="Using Browser in JavaScript" lang="javascript">
+import { browser } from '#nativephp';
+
+// Open in in-app browser
+await browser.inApp('https://nativephp.com/mobile');
+
+// Open in system browser
+await browser.open('https://nativephp.com/mobile');
+
+// OAuth authentication
+await browser.auth('https://provider.com/oauth/authorize?client_id=123&redirect_uri=nativephp://127.0.0.1/auth/callback');
+</code-snippet>
+
+### Methods
+
+- `Browser::inApp(string $url)` - Opens in embedded browser (SFSafariViewController/Chrome Custom Tabs)
+- `Browser::open(string $url)` - Opens in device's default browser
+- `Browser::auth(string $url)` - Opens OAuth authentication browser with automatic redirect handling
+
+### When to Use Each Method
+
+- **`inApp()`**: Keep users within your app for documentation, help pages, or related content
+- **`open()`**: Use when full browser features are required for complex web applications
+- **`auth()`**: Implement OAuth authentication flows with secure, automatic redirect handling
+
+=== nativephp/mobile-system rules ===
+
+## nativephp/system
+
+System-level operations for NativePHP Mobile apps.
+
+### PHP Usage (Livewire/Blade)
+
+<code-snippet name="System Operations" lang="php">
+use Native\Mobile\Facades\System;
+
+// Open app settings
+System::openAppSettings();
+</code-snippet>
+
+### JavaScript Usage (Vue/React/Inertia)
+
+<code-snippet name="System Operations in JavaScript" lang="javascript">
+import { system } from '#nativephp';
+
+// Open app settings
+await system.openAppSettings();
+</code-snippet>
+
+### Methods
+
+- `System::openAppSettings()` - Opens app's settings screen in device settings
+
+### Use Cases
+
+Direct users to grant permissions after initial denial, allow users to change notification preferences, enable users to manage app-specific settings.
+
 </laravel-boost-guidelines>
 
 </laravel-boost-guidelines>

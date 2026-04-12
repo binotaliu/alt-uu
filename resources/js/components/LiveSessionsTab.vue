@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { VideoCameraIcon } from '@heroicons/vue/24/outline';
 import { computed, onMounted, ref } from 'vue';
-import type { NouToolsLiveSessionItem } from '@/types';
 import { Browser } from '#nativephp';
+import type { NouToolsLiveSessionItem } from '@/types';
 
 type SessionStatus = 'upcoming' | 'ongoing' | 'ended';
 type DisplayTimezone = 'taiwan' | 'local';
@@ -86,12 +86,6 @@ async function setDisplayTimezone(value: DisplayTimezone): Promise<void> {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN':
-                    (
-                        document.querySelector(
-                            'meta[name="csrf-token"]',
-                        ) as HTMLMetaElement | null
-                    )?.content ?? '',
             },
             body: JSON.stringify({ timezone: value }),
         });
