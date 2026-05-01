@@ -25,7 +25,13 @@ const settingsLabel = props.settingsLabel ?? '設定';
             <slot name="nav" />
         </div>
 
-        <div :class="{ 'pl-(--corner-inset-left,0px)': !$slots.nav }">
+        <div
+            class="pl-(--corner-inset-left,0px)"
+            :class="{
+                // 有 nav 的話在平板上不給 pl，因為這個 Title 會被 Nav 推到下面，不會被 Window Control 擋住
+                'md:pl-0': !$slots.nav,
+            }"
+        >
             <div
                 class="flex items-center justify-between gap-2 px-4 pt-0.5 text-warm-900 dark:text-zinc-100"
             >

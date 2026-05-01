@@ -7,6 +7,8 @@ namespace App\Services;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
+use RuntimeException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class UUProxyClient
@@ -361,6 +363,88 @@ class UUProxyClient
             $status,
             $headers,
         );
+    }
+
+    /**
+     * @return array{status: int, mimeType: string, fileSize: int}
+     */
+    public function downloadMaterialContentToLocalDisk(string $url, string $relativePath): array
+    {
+        $session = $this->currentSession();
+        $baseUrl = $this->normalizeBaseUrl((string) Arr::get($session, 'base_url', ''));
+        $ua = (string) Arr::get($session, 'ua', config('hungu.user_agent'));
+        $cookies = Arr::get($session, 'cookies', []);
+
+        $response = $this->baseHttp($baseUrl, $ua, is_array($cookies) ? $cookies : [])
+            ->withOptions(['stream' => true])
+            ->withHeaders([
+                'accept' => '*/*',
+            ])
+            ->get($url);
+
+        $updatedSession = $session;
+        $updatedSession['cookies'] = $this->mergeCookies(
+            is_array($cookies) ? $cookies : [],
+            $this->extractSetCookies($response),
+        );
+        $this->syncSession($updatedSession);
+
+        if (! $response->successful()) {
+            throw new RuntimeException('下載失敗，HTTP 狀態碼：'.$response->status());
+        }
+
+        $disk = Storage::disk('local');
+        $directory = dirname($relativePath);
+        if ($directory !== '' && $directory !== '.') {
+            $disk->makeDirectory($directory);
+        }
+
+        $absolutePath = $disk->path($relativePath);
+        $fileHandle = fopen($absolutePath, 'wb');
+
+        if ($fileHandle === false) {
+            throw new RuntimeException('無法建立附件暫存檔案。');
+        }
+
+        $stream = $response->toPsrResponse()->getBody();
+        $completed = false;
+        $writtenSize = 0;
+
+        try {
+            if ($stream->isSeekable()) {
+                $stream->rewind();
+            }
+
+            while (! $stream->eof()) {
+                $chunk = $stream->read(8192);
+
+                if ($chunk === '') {
+                    continue;
+                }
+
+                $written = fwrite($fileHandle, $chunk);
+
+                if ($written === false) {
+                    throw new RuntimeException('寫入附件檔案失敗。');
+                }
+
+                $writtenSize += $written;
+            }
+
+            $completed = true;
+        } finally {
+            fclose($fileHandle);
+
+            if (! $completed) {
+                $disk->delete($relativePath);
+            }
+        }
+
+        return [
+            'status' => $response->status(),
+            'mimeType' => (string) $response->header('content-type', 'application/octet-stream'),
+            'fileSize' => $writtenSize,
+        ];
     }
 
     /**

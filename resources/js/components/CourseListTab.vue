@@ -12,6 +12,7 @@ const props = defineProps<{
     tasksLoading: boolean;
     tasksError: string | null;
     isLoading: boolean;
+    hasFetched: boolean;
     error: string | null;
 }>();
 
@@ -59,7 +60,7 @@ function getCourseTasks(course: CourseItem): CourseTasksCount {
 </script>
 
 <template>
-    <div v-if="props.isLoading" class="space-y-6">
+    <div v-if="props.isLoading || !props.hasFetched" class="space-y-6">
         <div v-for="g in 2" :key="g">
             <div
                 class="mb-3 h-5 w-16 animate-pulse rounded bg-warm-200 md:h-6 dark:bg-zinc-700"

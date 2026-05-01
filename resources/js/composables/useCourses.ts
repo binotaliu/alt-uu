@@ -11,6 +11,7 @@ export function useCourses() {
     return {
         courses: computed(() => store.courses),
         isLoading: computed(() => store.isLoading),
+        hasFetched: computed(() => store.hasFetched),
         error: computed(() => store.error),
         fetchCourses,
         clearCourses: store.clearCourses,

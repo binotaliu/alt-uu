@@ -164,6 +164,23 @@ enum AttachmentBridgeFunctions {
             ])
         }
     }
+
+    class OpenLocalFile: BridgeFunction {
+        func execute(parameters: [String: Any]) throws -> [String: Any] {
+            guard let rawPath = parameters["path"] as? String, !rawPath.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                throw NSError(domain: "AttachmentBridge", code: 422, userInfo: [NSLocalizedDescriptionKey: "Missing path parameter"])
+            }
+
+            let mimeType = (parameters["mimeType"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines)
+
+            AttachmentBridgeCoordinator.shared.openLocalFile(path: rawPath, mimeType: mimeType)
+
+            return BridgeResponse.success(data: [
+                "opened": true,
+                "platform": "ios"
+            ])
+        }
+    }
 }
 
 private final class AttachmentBridgeCoordinator: NSObject, QLPreviewControllerDataSource {
@@ -220,6 +237,39 @@ private final class AttachmentBridgeCoordinator: NSObject, QLPreviewControllerDa
                 ],
                 autoClickAttachmentURL: attachmentUrl
             )
+        }
+    }
+
+    func openLocalFile(path: String, mimeType: String?) {
+        let trimmedPath = path.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if trimmedPath.isEmpty {
+            DispatchQueue.main.async {
+                self.presentError(message: "找不到附件檔案。")
+            }
+            return
+        }
+
+        let fileURL: URL
+
+        if trimmedPath.hasPrefix("file://"), let parsed = URL(string: trimmedPath) {
+            fileURL = parsed
+        } else {
+            fileURL = URL(fileURLWithPath: trimmedPath)
+        }
+
+        guard FileManager.default.fileExists(atPath: fileURL.path) else {
+            DispatchQueue.main.async {
+                self.presentError(message: "找不到附件檔案。")
+            }
+            return
+        }
+
+        let resolvedMimeType = (mimeType?.isEmpty == false ? mimeType : nil)
+            ?? mimeTypeFromPath(fileURL.lastPathComponent)
+
+        DispatchQueue.main.async {
+            self.presentActionSheet(fileURL: fileURL, mimeType: resolvedMimeType)
         }
     }
 
@@ -350,59 +400,70 @@ private final class AttachmentBridgeCoordinator: NSObject, QLPreviewControllerDa
         DebugLogger.shared.log("[AttachmentBridge] fetchViaLaravel request: \(request.method) \(request.uri) ?\(request.query)")
         DebugLogger.shared.log("[AttachmentBridge] fetchViaLaravel headers: \(request.headers)")
 
-        guard let rawResponse = NativePHPApp.laravel(request: request) else {
-            DebugLogger.shared.log("[AttachmentBridge] fetchViaLaravel: no response from NativePHPApp.laravel")
-            completion(.failure(AttachmentBridgeError.downloadFailed))
-            return
-        }
+        // Route the PHP call through the dedicated PHP serial queue to prevent concurrent
+        // php_embed_init / TSRM initialization which causes EXC_BAD_ACCESS crashes when
+        // the PHP worker thread is already running (e.g. a scheduled sleep() artisan job).
+        PersistentPHPRuntime.shared.executeOnPHPThreadAsync {
+            let rawResponse: String
+            if PersistentPHPRuntime.shared.isBooted {
+                rawResponse = PersistentPHPRuntime.shared.dispatch(request: request)
+            } else {
+                guard let legacyResponse = NativePHPApp.laravel(request: request) else {
+                    DebugLogger.shared.log("[AttachmentBridge] fetchViaLaravel: no response from NativePHPApp.laravel")
+                    completion(.failure(AttachmentBridgeError.downloadFailed))
+                    return
+                }
+                rawResponse = legacyResponse
+            }
 
-        DebugLogger.shared.log("[AttachmentBridge] fetchViaLaravel: rawResponse length=\(rawResponse.utf8.count)")
+            DebugLogger.shared.log("[AttachmentBridge] fetchViaLaravel: rawResponse length=\(rawResponse.utf8.count)")
 
-        guard let parsedResponse = parseLaravelRawResponse(rawResponse) else {
-            DebugLogger.shared.log("[AttachmentBridge] fetchViaLaravel: parseLaravelRawResponse failed")
-            completion(.failure(AttachmentBridgeError.invalidResponse))
-            return
-        }
+            guard let parsedResponse = self.parseLaravelRawResponse(rawResponse) else {
+                DebugLogger.shared.log("[AttachmentBridge] fetchViaLaravel: parseLaravelRawResponse failed")
+                completion(.failure(AttachmentBridgeError.invalidResponse))
+                return
+            }
 
-        headers = parsedResponse.headers
-        let statusCode = parsedResponse.statusCode
-        let bodyString = parsedResponse.body
+            var responseHeaders = parsedResponse.headers
+            let statusCode = parsedResponse.statusCode
+            let bodyString = parsedResponse.body
 
-        if (300...399).contains(statusCode), let location = headers["location"] {
-            DebugLogger.shared.log("[AttachmentBridge] fetchViaLaravel: redirect \(statusCode) -> \(location)")
-            let nextURL = absoluteLocation(from: location, current: urlString)
-            fetchAttachment(urlString: nextURL, preferredFilename: preferredFilename, redirectCount: redirectCount + 1, completion: completion)
-            return
-        }
+            if (300...399).contains(statusCode), let location = responseHeaders["location"] {
+                DebugLogger.shared.log("[AttachmentBridge] fetchViaLaravel: redirect \(statusCode) -> \(location)")
+                let nextURL = self.absoluteLocation(from: location, current: urlString)
+                self.fetchAttachment(urlString: nextURL, preferredFilename: preferredFilename, redirectCount: redirectCount + 1, completion: completion)
+                return
+            }
 
-        guard (200...299).contains(statusCode) else {
-            completion(.failure(AttachmentBridgeError.downloadFailed))
-            return
-        }
+            guard (200...299).contains(statusCode) else {
+                completion(.failure(AttachmentBridgeError.downloadFailed))
+                return
+            }
 
-        let bodyData: Data
-        if headers["x-body-encoding"] == "base64" {
-            let trimmed = bodyString.trimmingCharacters(in: .whitespacesAndNewlines)
-            bodyData = Data(base64Encoded: trimmed) ?? Data()
-        } else {
-            if bodyString == "\r\n" || bodyString == "\n" {
+            let bodyData: Data
+            if responseHeaders["x-body-encoding"] == "base64" {
+                let trimmed = bodyString.trimmingCharacters(in: .whitespacesAndNewlines)
+                bodyData = Data(base64Encoded: trimmed) ?? Data()
+            } else {
+                if bodyString == "\r\n" || bodyString == "\n" {
+                    completion(.failure(AttachmentBridgeError.emptyBody))
+                    return
+                }
+
+                bodyData = bodyString.data(using: .utf8) ?? Data()
+            }
+
+            if bodyData.isEmpty {
+                DebugLogger.shared.log("[AttachmentBridge] fetchViaLaravel: bodyData empty (status=\(statusCode), headers=\(responseHeaders))")
                 completion(.failure(AttachmentBridgeError.emptyBody))
                 return
             }
 
-            bodyData = bodyString.data(using: .utf8) ?? Data()
+            let filename = self.filenameFromHeaders(responseHeaders, fallbackURL: URL(string: urlString), preferred: preferredFilename)
+            let mimeType = responseHeaders["content-type"] ?? self.mimeTypeFromPath(filename)
+
+            completion(.success(DownloadedAttachment(data: bodyData, filename: filename, mimeType: mimeType)))
         }
-
-        if bodyData.isEmpty {
-            DebugLogger.shared.log("[AttachmentBridge] fetchViaLaravel: bodyData empty (status=\(statusCode), headers=\(headers))")
-            completion(.failure(AttachmentBridgeError.emptyBody))
-            return
-        }
-
-        let filename = filenameFromHeaders(headers, fallbackURL: URL(string: urlString), preferred: preferredFilename)
-        let mimeType = headers["content-type"] ?? mimeTypeFromPath(filename)
-
-        completion(.success(DownloadedAttachment(data: bodyData, filename: filename, mimeType: mimeType)))
     }
 
     private func absoluteLocation(from location: String, current: String) -> String {

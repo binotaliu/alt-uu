@@ -35,6 +35,12 @@
             "ios": "AttachmentBridgeFunctions.OpenTronclass",
             "android": "com.altuu.plugins.attachment_bridge.AttachmentBridgeFunctions.OpenTronclass",
             "description": "Open tronclass:// URL scheme in native app"
+        },
+        {
+            "name": "AttachmentBridge.OpenLocalFile",
+            "ios": "AttachmentBridgeFunctions.OpenLocalFile",
+            "android": "com.altuu.plugins.attachment_bridge.AttachmentBridgeFunctions.OpenLocalFile",
+            "description": "Open a downloaded local file path via native preview or app chooser"
         }
     ],
     "ios": {

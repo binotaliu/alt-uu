@@ -37,6 +37,10 @@ final class ApplyNativeShellPatchCommand extends NativePluginHookCommand
             }
         }
 
+        if ($platform === 'ios' && ! $this->enforceSingleWindowBuildSetting($buildPath)) {
+            return self::FAILURE;
+        }
+
         $this->info("[nativephp-patch] {$platform} patches applied successfully.");
 
         return self::SUCCESS;
@@ -77,7 +81,10 @@ final class ApplyNativeShellPatchCommand extends NativePluginHookCommand
             return true;
         }
 
-        if ($currentHash !== $patch['upstream_hash']) {
+        if (
+            $patch['upstream_hash'] !== '*'
+            && $currentHash !== $patch['upstream_hash']
+        ) {
             $this->warn("[nativephp-patch] Upstream hash mismatch for {$patch['target']}.");
             $this->warn('[nativephp-patch] Refusing to overwrite because the file does not match vendor baseline.');
 
@@ -113,5 +120,74 @@ final class ApplyNativeShellPatchCommand extends NativePluginHookCommand
         $hash = hash_file('sha256', $path);
 
         return $hash === false ? '' : $hash;
+    }
+
+    private function enforceSingleWindowBuildSetting(string $buildPath): bool
+    {
+        $projectPath = $buildPath.'/NativePHP.xcodeproj/project.pbxproj';
+
+        if (! File::exists($projectPath)) {
+            $this->warn("[nativephp-patch] Xcode project file not found: {$projectPath}");
+
+            return false;
+        }
+
+        $content = File::get($projectPath);
+
+        // Step 1: Disable auto-generation of UIApplicationSceneManifest.
+        // When Generation=YES, Xcode detects SwiftUI WindowGroup and rewrites
+        // UIApplicationSupportsMultipleScenes=true, overriding everything else.
+        $updatedContent = preg_replace(
+            '/INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;/',
+            'INFOPLIST_KEY_UIApplicationSceneManifest_Generation = NO;',
+            $content
+        );
+
+        if ($updatedContent === null) {
+            $this->warn('[nativephp-patch] Failed to update scene manifest generation setting.');
+
+            return false;
+        }
+
+        // Step 2: Force UIApplicationSupportsMultipleScenes=NO wherever the key exists.
+        $updatedContent = preg_replace(
+            '/INFOPLIST_KEY_UIApplicationSceneManifest_UIApplicationSupportsMultipleScenes = (YES|NO);/',
+            'INFOPLIST_KEY_UIApplicationSceneManifest_UIApplicationSupportsMultipleScenes = NO;',
+            $updatedContent,
+            -1,
+            $replacementCount
+        );
+
+        if ($updatedContent === null) {
+            $this->warn('[nativephp-patch] Failed to update scene manifest build setting.');
+
+            return false;
+        }
+
+        // Step 3: If the key was absent, inject it after GENERATE_INFOPLIST_FILE = YES.
+        if ($replacementCount === 0) {
+            $updatedContent = preg_replace(
+                '/(GENERATE_INFOPLIST_FILE = YES;)/',
+                "$1\n\t\t\t\tINFOPLIST_KEY_UIApplicationSceneManifest_UIApplicationSupportsMultipleScenes = NO;",
+                $updatedContent,
+                -1,
+                $insertedCount
+            );
+
+            if ($updatedContent === null || ($insertedCount ?? 0) === 0) {
+                $this->warn('[nativephp-patch] Could not inject scene manifest build setting in project.pbxproj.');
+
+                return false;
+            }
+        }
+
+        if ($updatedContent !== $content) {
+            File::put($projectPath, $updatedContent);
+            $this->info('[nativephp-patch] Updated project.pbxproj (search/replace) to disable multiple scenes.');
+        } else {
+            $this->line('[nativephp-patch] project.pbxproj already enforces single-window mode.');
+        }
+
+        return true;
     }
 }

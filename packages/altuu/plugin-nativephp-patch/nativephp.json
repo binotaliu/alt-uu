@@ -14,7 +14,11 @@
         "min_version": 31
     },
     "ios": {
-        "min_version": "18.0"
+        "min_version": "18.0",
+        "info_plist": {
+            "CFBundleDevelopmentRegion": "zh-Hant-TW",
+            "CFBundleLocalizations": ["zh-Hant-TW"]
+        }
     },
     "service_provider": "AltUU\\NativePHPPatch\\NativePHPPatchServiceProvider"
 }

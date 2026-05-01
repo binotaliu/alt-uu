@@ -6,6 +6,7 @@ import type { CourseItem } from '@/types';
 export const useCourseStore = defineStore('courses', () => {
     const courses = ref<CourseItem[]>([]);
     const isLoading = ref(false);
+    const hasFetched = ref(false);
     const error = ref<string | null>(null);
     let inflight: Promise<void> | null = null;
 
@@ -31,6 +32,7 @@ export const useCourseStore = defineStore('courses', () => {
                 throw e;
             } finally {
                 isLoading.value = false;
+                hasFetched.value = true;
                 inflight = null;
             }
         })();
@@ -47,12 +49,14 @@ export const useCourseStore = defineStore('courses', () => {
         courses.value = [];
         error.value = null;
         isLoading.value = false;
+        hasFetched.value = false;
         inflight = null;
     }
 
     return {
         courses,
         isLoading,
+        hasFetched,
         error,
         loadCourses,
         clearCourses,

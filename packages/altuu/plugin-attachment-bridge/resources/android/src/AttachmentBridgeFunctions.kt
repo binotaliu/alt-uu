@@ -1,6 +1,7 @@
 package com.altuu.plugins.attachment_bridge
 
 import android.app.AlertDialog
+import android.app.Activity
 import android.app.Dialog
 import android.content.Intent
 import android.util.Base64
@@ -8,19 +9,26 @@ import android.util.Log
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
+import android.os.Message
 import android.view.Gravity
 import android.view.KeyEvent
 import android.view.ViewGroup
 import android.webkit.CookieManager
 import android.webkit.DownloadListener
+import android.webkit.JsPromptResult
+import android.webkit.JsResult
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.webkit.MimeTypeMap
+import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.FileProvider
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
@@ -221,6 +229,24 @@ object AttachmentBridgeFunctions {
         }
     }
 
+    class OpenLocalFile(private val activity: FragmentActivity) : BridgeFunction {
+        override fun execute(parameters: Map<String, Any>): Map<String, Any> {
+            val path = (parameters["path"] as? String)?.trim()
+                ?: throw BridgeError.InvalidParameters("Missing path parameter")
+
+            val mimeType = (parameters["mimeType"] as? String)?.trim()?.takeIf { it.isNotEmpty() }
+
+            mainHandler.post {
+                openExistingLocalFile(activity, path, mimeType)
+            }
+
+            return BridgeResponse.success(mapOf(
+                "opened" to true,
+                "platform" to "android"
+            ))
+        }
+    }
+
     // endregion
 
     // region Download Helpers
@@ -410,35 +436,119 @@ object AttachmentBridgeFunctions {
             builder.setPositiveButton("檢視") { _, _ -> viewFile(activity, file, mimeType) }
         }
 
-        builder.setNeutralButton("儲存") { _, _ -> shareFile(activity, file, mimeType) }
+        builder.setNeutralButton("儲存") { _, _ -> saveFileWithPicker(activity, file, mimeType) }
         builder.setNegativeButton("取消", null)
         builder.show()
     }
 
+    private fun openExistingLocalFile(activity: FragmentActivity, path: String, mimeType: String?) {
+        val file = File(path)
+
+        if (!file.exists() || !file.isFile) {
+            showError(activity, "找不到附件檔案")
+            return
+        }
+
+        val resolvedMimeType = mimeType ?: guessMimeType(file)
+        viewFile(activity, file, resolvedMimeType)
+    }
+
+    private fun guessMimeType(file: File): String {
+        val extension = file.extension.lowercase()
+
+        if (extension.isEmpty()) {
+            return "application/octet-stream"
+        }
+
+        return MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension)
+            ?: "application/octet-stream"
+    }
+
     private fun viewFile(activity: FragmentActivity, file: File, mimeType: String) {
+        val safeMimeType = mimeType.ifBlank { "application/octet-stream" }
+
         try {
             val uri = FileProvider.getUriForFile(activity, "${activity.packageName}.fileprovider", file)
             val intent = Intent(Intent.ACTION_VIEW).apply {
-                setDataAndType(uri, mimeType)
+                setDataAndType(uri, safeMimeType)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
+            val resolvedActivity = intent.resolveActivity(activity.packageManager)
+            if (resolvedActivity == null) {
+                saveFileWithPicker(activity, file, safeMimeType)
+                return
+            }
+
             activity.startActivity(intent)
         } catch (_: Exception) {
-            shareFile(activity, file, mimeType)
+            saveFileWithPicker(activity, file, safeMimeType)
         }
     }
 
-    private fun shareFile(activity: FragmentActivity, file: File, mimeType: String) {
-        try {
-            val uri = FileProvider.getUriForFile(activity, "${activity.packageName}.fileprovider", file)
-            val intent = Intent(Intent.ACTION_SEND).apply {
-                type = mimeType
-                putExtra(Intent.EXTRA_STREAM, uri)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    private fun saveFileWithPicker(activity: FragmentActivity, file: File, mimeType: String) {
+        val suggestedFileName = file.name.substringAfter("-").ifBlank { "attachment.bin" }
+        val safeMimeType = mimeType.ifBlank { "application/octet-stream" }
+
+        launchCreateDocumentPicker(activity, suggestedFileName, safeMimeType) { destinationUri ->
+            if (destinationUri == null) {
+                return@launchCreateDocumentPicker
             }
-            activity.startActivity(Intent.createChooser(intent, "儲存附件"))
+
+            executor.execute {
+                try {
+                    val resolver = activity.contentResolver
+                    resolver.openOutputStream(destinationUri, "w")?.use { output ->
+                        file.inputStream().use { input ->
+                            input.copyTo(output)
+                        }
+                    } ?: throw IllegalStateException("無法開啟儲存位置")
+
+                    mainHandler.post {
+                        AlertDialog.Builder(activity)
+                            .setTitle("附件已儲存")
+                            .setMessage("已儲存至你選擇的位置")
+                            .setPositiveButton("確定", null)
+                            .show()
+                    }
+                } catch (e: Exception) {
+                    showError(activity, e.localizedMessage ?: "無法儲存檔案")
+                }
+            }
+        }
+    }
+
+    private fun launchCreateDocumentPicker(
+        activity: FragmentActivity,
+        suggestedFileName: String,
+        mimeType: String,
+        onResult: (Uri?) -> Unit
+    ) {
+        val requestKey = "attachment-save-${UUID.randomUUID()}"
+        lateinit var launcher: ActivityResultLauncher<Intent>
+
+        launcher = activity.activityResultRegistry.register(
+            requestKey,
+            ActivityResultContracts.StartActivityForResult()
+        ) { result ->
+            val destinationUri =
+                if (result.resultCode == Activity.RESULT_OK) result.data?.data else null
+
+            onResult(destinationUri)
+            launcher.unregister()
+        }
+
+        val createDocumentIntent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = mimeType.ifBlank { "application/octet-stream" }
+            putExtra(Intent.EXTRA_TITLE, suggestedFileName)
+        }
+
+        try {
+            launcher.launch(createDocumentIntent)
         } catch (_: Exception) {
-            showError(activity, "無法分享檔案")
+            launcher.unregister()
+            onResult(null)
+            showError(activity, "無法開啟儲存位置選擇器")
         }
     }
 
@@ -522,12 +632,111 @@ object AttachmentBridgeFunctions {
             allowFileAccess = true
             loadWithOverviewMode = true
             useWideViewPort = true
+            setSupportMultipleWindows(true)
+            javaScriptCanOpenWindowsAutomatically = true
             userAgentString = HUNGU_USER_AGENT
         }
 
         val webViewUserAgent = webView.settings.userAgentString
 
         CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true)
+
+        webView.webChromeClient = object : WebChromeClient() {
+            override fun onProgressChanged(view: WebView?, newProgress: Int) {
+                progressBar.progress = newProgress
+                progressBar.visibility = if (newProgress in 1..99) android.view.View.VISIBLE else android.view.View.GONE
+            }
+
+            override fun onReceivedTitle(view: WebView?, title: String?) {
+                titleView.text = title?.takeIf { it.isNotBlank() } ?: "App 內瀏覽器"
+            }
+
+            override fun onJsAlert(
+                view: WebView?,
+                url: String?,
+                message: String?,
+                result: JsResult
+            ): Boolean {
+                AlertDialog.Builder(activity)
+                    .setMessage(message ?: "")
+                    .setCancelable(false)
+                    .setPositiveButton("確定") { _, _ ->
+                        result.confirm()
+                    }
+                    .setOnCancelListener {
+                        result.cancel()
+                    }
+                    .show()
+
+                return true
+            }
+
+            override fun onJsConfirm(
+                view: WebView?,
+                url: String?,
+                message: String?,
+                result: JsResult
+            ): Boolean {
+                AlertDialog.Builder(activity)
+                    .setMessage(message ?: "")
+                    .setCancelable(false)
+                    .setPositiveButton("確定") { _, _ ->
+                        result.confirm()
+                    }
+                    .setNegativeButton("取消") { _, _ ->
+                        result.cancel()
+                    }
+                    .setOnCancelListener {
+                        result.cancel()
+                    }
+                    .show()
+
+                return true
+            }
+
+            override fun onJsPrompt(
+                view: WebView?,
+                url: String?,
+                message: String?,
+                defaultValue: String?,
+                result: JsPromptResult
+            ): Boolean {
+                val input = EditText(activity).apply {
+                    setText(defaultValue ?: "")
+                    setSelection(text.length)
+                }
+
+                AlertDialog.Builder(activity)
+                    .setMessage(message ?: "")
+                    .setView(input)
+                    .setCancelable(false)
+                    .setPositiveButton("確定") { _, _ ->
+                        result.confirm(input.text.toString())
+                    }
+                    .setNegativeButton("取消") { _, _ ->
+                        result.cancel()
+                    }
+                    .setOnCancelListener {
+                        result.cancel()
+                    }
+                    .show()
+
+                return true
+            }
+
+            override fun onCreateWindow(
+                view: WebView?,
+                isDialog: Boolean,
+                isUserGesture: Boolean,
+                resultMsg: Message?
+            ): Boolean {
+                val transport = resultMsg?.obj as? WebView.WebViewTransport ?: return false
+                // Route popup/_blank navigations back into the same in-app browser WebView.
+                transport.webView = webView
+                resultMsg.sendToTarget()
+                return true
+            }
+        }
 
         var autoClickAttempts = 0
         webView.webViewClient = object : WebViewClient() {

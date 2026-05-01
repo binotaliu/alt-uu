@@ -1,5 +1,7 @@
 const baseUrl = '/_native/api/call';
 
+import { apiFetch } from '@/composables/useApi';
+
 interface BridgeResult {
     status?: string;
     message?: string;
@@ -20,6 +22,32 @@ interface DiscussAttachmentPayload {
     nid: string;
     attachmentUrl: string;
 }
+
+interface QueueAttachmentDownloadPayload {
+    cid: string;
+    sourceUrl: string;
+    filename?: string | null;
+}
+
+export interface AttachmentDownloadTask {
+    taskId: number;
+    status: string;
+    fileName: string | null;
+    mimeType: string | null;
+    fileSize: number | null;
+    errorMessage: string | null;
+    localFilePath: string | null;
+    expiresAt: string | null;
+}
+
+export interface AttachmentDownloadCleanupResult {
+    ok: boolean;
+    clearedTasks: number;
+    deletedFiles: number;
+}
+
+const COMPLETED_STATUS = 'completed';
+const FAILED_STATUS = 'failed';
 
 async function bridgeCall(
     method: string,
@@ -63,6 +91,83 @@ export async function downloadAttachmentWithNativeBridge(
     const result = await bridgeCall('AttachmentBridge.Download', payload);
 
     return result !== null;
+}
+
+export function isNativeAttachmentBridgeAvailable(): boolean {
+    if (typeof window === 'undefined') {
+        return false;
+    }
+
+    return (
+        document.body.classList.contains('device-android') ||
+        document.body.classList.contains('device-ios')
+    );
+}
+
+export async function openLocalAttachmentWithNativeBridge(
+    localFilePath: string,
+    mimeType?: string | null,
+): Promise<boolean> {
+    const result = await bridgeCall('AttachmentBridge.OpenLocalFile', {
+        path: localFilePath,
+        mimeType: mimeType ?? undefined,
+    });
+
+    return result !== null;
+}
+
+export async function queueAttachmentDownloadTask(
+    payload: QueueAttachmentDownloadPayload,
+): Promise<AttachmentDownloadTask> {
+    return apiFetch<AttachmentDownloadTask>('/api/attachments/download-tasks', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+    });
+}
+
+export async function getAttachmentDownloadTaskStatus(
+    taskId: number,
+): Promise<AttachmentDownloadTask> {
+    return apiFetch<AttachmentDownloadTask>(
+        `/api/attachments/download-tasks/${taskId}`,
+    );
+}
+
+export async function clearDownloadedAttachments(): Promise<AttachmentDownloadCleanupResult> {
+    return apiFetch<AttachmentDownloadCleanupResult>(
+        '/api/attachments/download-tasks/cleanup',
+        {
+            method: 'POST',
+        },
+    );
+}
+
+export async function waitForAttachmentDownloadCompletion(
+    taskId: number,
+    options: {
+        timeoutMs?: number;
+        pollIntervalMs?: number;
+    } = {},
+): Promise<AttachmentDownloadTask> {
+    const timeoutMs = options.timeoutMs ?? 120000;
+    const pollIntervalMs = options.pollIntervalMs ?? 1000;
+    const startedAt = Date.now();
+
+    while (true) {
+        const task = await getAttachmentDownloadTaskStatus(taskId);
+
+        if (task.status === COMPLETED_STATUS || task.status === FAILED_STATUS) {
+            return task;
+        }
+
+        if (Date.now() - startedAt >= timeoutMs) {
+            throw new Error('附件下載逾時，請稍後再試。');
+        }
+
+        await new Promise((resolve) => {
+            window.setTimeout(resolve, pollIntervalMs);
+        });
+    }
 }
 
 export async function openAttachmentInBrowser(url: string): Promise<boolean> {

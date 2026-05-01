@@ -21,7 +21,7 @@ final class CourseHomeworksController
         GetCourseHomeworks $getHomeworks,
         SyncCurrentCourse $syncCourse,
     ): DataCollection {
-        $syncCourse($request, $cid);
+        $syncCourse($request, $cid, force: true);
 
         return $getHomeworks($request);
     }

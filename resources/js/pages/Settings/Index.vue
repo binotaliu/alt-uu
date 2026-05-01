@@ -6,6 +6,7 @@ import {
     ShieldCheckIcon,
     SparklesIcon,
     CodeBracketIcon,
+    TrashIcon,
 } from '@heroicons/vue/24/outline';
 import { ref, onMounted } from 'vue';
 import { Browser } from '#nativephp';
@@ -14,6 +15,7 @@ import AppLayout from '@/components/AppLayout.vue';
 import BackButton from '@/components/BackButton.vue';
 import { apiFetch } from '@/composables/useApi';
 import { useTitle } from '@/composables/useTitle';
+import { clearDownloadedAttachments } from '@/lib/nativeAttachment';
 import router from '@/router';
 import { useAppConfigStore } from '@/stores/appConfig';
 import { useCourseStore } from '@/stores/courses';
@@ -50,6 +52,9 @@ const nouToolsIntegrationEnabled = ref<boolean>(false);
 const isSavingNouToolsIntegration = ref(false);
 const screenReaderEnhancedSupportEnabled = ref<boolean>(false);
 const isSavingScreenReaderEnhancedSupport = ref(false);
+const isClearingDownloadedAttachments = ref(false);
+const attachmentCleanupSummary = ref<string | null>(null);
+const attachmentCleanupError = ref<string | null>(null);
 
 function applyAppearanceToDocument(value: 'system' | 'light' | 'dark') {
     if (value === 'dark') {
@@ -179,6 +184,37 @@ async function openInApp(url: string) {
         }
     } catch {
         window.open(url, '_blank', 'noopener,noreferrer');
+    }
+}
+
+async function clearAttachmentDownloads() {
+    if (isClearingDownloadedAttachments.value) {
+        return;
+    }
+
+    const confirmed = window.confirm(
+        '這會清除目前裝置中 Alt UU 已下載的所有附件檔案。確定要繼續嗎？',
+    );
+
+    if (!confirmed) {
+        return;
+    }
+
+    isClearingDownloadedAttachments.value = true;
+    attachmentCleanupSummary.value = null;
+    attachmentCleanupError.value = null;
+
+    try {
+        const result = await clearDownloadedAttachments();
+
+        attachmentCleanupSummary.value = `已清除 ${result.deletedFiles} 個檔案（共更新 ${result.clearedTasks} 筆下載紀錄）。`;
+    } catch (error) {
+        attachmentCleanupError.value =
+            error instanceof Error
+                ? error.message
+                : '清除附件失敗，請稍後再試。';
+    } finally {
+        isClearingDownloadedAttachments.value = false;
     }
 }
 
@@ -360,6 +396,52 @@ const appearanceOptions = [
                         />
                     </button>
                 </div>
+            </section>
+
+            <section
+                class="rounded-xl border border-warm-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-900"
+            >
+                <div class="flex items-start justify-between gap-3">
+                    <div>
+                        <h3
+                            class="text-sm font-semibold text-warm-900 dark:text-zinc-100"
+                        >
+                            附件下載
+                        </h3>
+                        <p
+                            class="mt-1 text-xs leading-relaxed text-warm-600 dark:text-zinc-400"
+                        >
+                            清除先前下載到本機的附件檔案，釋放裝置儲存空間。
+                        </p>
+                    </div>
+
+                    <button
+                        type="button"
+                        class="inline-flex shrink-0 items-center gap-2 rounded-lg border border-warm-300 bg-warm-50 px-3 py-2 text-sm font-medium text-warm-800 transition hover:border-warm-400 hover:bg-warm-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:border-zinc-500 dark:hover:bg-zinc-700"
+                        :disabled="isClearingDownloadedAttachments"
+                        @click="clearAttachmentDownloads"
+                    >
+                        <TrashIcon class="size-4" />
+                        <span>{{
+                            isClearingDownloadedAttachments
+                                ? '清除中...'
+                                : '清除已下載附件'
+                        }}</span>
+                    </button>
+                </div>
+
+                <p
+                    v-if="attachmentCleanupSummary"
+                    class="mt-3 text-xs text-emerald-700 dark:text-emerald-300"
+                >
+                    {{ attachmentCleanupSummary }}
+                </p>
+                <p
+                    v-if="attachmentCleanupError"
+                    class="mt-3 text-xs text-rose-700 dark:text-rose-300"
+                >
+                    {{ attachmentCleanupError }}
+                </p>
             </section>
 
             <section

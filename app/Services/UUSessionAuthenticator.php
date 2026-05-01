@@ -170,7 +170,7 @@ class UUSessionAuthenticator
     {
         $reviewerUsername = (string) config('hungu.reviewer_username', 'reviewer');
 
-        if (strcasecmp(trim($username), trim($reviewerUsername)) === 0) {
+        if (str_starts_with(trim($username), trim($reviewerUsername))) {
             return (string) config('hungu.reviewer_base_url', 'https://alt-uu-staging.binota.org/xmlapi/index.php');
         }
 

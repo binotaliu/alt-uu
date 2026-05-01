@@ -3,9 +3,6 @@ package com.altuu.plugins.media_player
 import android.media.MediaMetadata
 import android.media.session.MediaSession
 import android.media.session.PlaybackState
-import android.app.PendingIntent
-import android.content.Context
-import android.graphics.Bitmap
 import android.os.Handler
 import android.os.Looper
 import androidx.fragment.app.FragmentActivity
@@ -16,7 +13,6 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.ui.PlayerNotificationManager
 import com.nativephp.mobile.bridge.BridgeError
 import com.nativephp.mobile.bridge.BridgeFunction
 import com.nativephp.mobile.bridge.BridgeResponse
@@ -67,13 +63,8 @@ data class MediaPlayerSessionContext(
 // region Media Player Manager
 
 object MediaPlayerManager {
-    private const val NOTIFICATION_ID = 1007
-    private const val NOTIFICATION_CHANNEL_ID = "altuu_media_playback"
-
     private var player: ExoPlayer? = null
     private var mediaSession: MediaSession? = null
-    private var notificationManager: PlayerNotificationManager? = null
-    private var appContext: Context? = null
     private var currentUrl: String? = null
     private var currentType: String = "audio"
     private var currentFrame: MediaPlayerFrame = MediaPlayerFrame()
@@ -97,7 +88,6 @@ object MediaPlayerManager {
     ) {
         val normalizedType = type.lowercase()
         val isSameSource = currentUrl == url && currentType == normalizedType && player != null
-        appContext = activity.applicationContext
 
         android.util.Log.d("MediaPlayer", "setPlayer: url=$url type=$normalizedType frame=(${frame.x},${frame.y},${frame.width}x${frame.height}) courseName=$courseName materialName=$materialName isSameSource=$isSameSource")
 
@@ -110,7 +100,6 @@ object MediaPlayerManager {
             currentSessionContext = sessionContext
             syncNativeUIState()
             updateMediaSessionMetadata()
-            updateNotificationActionConfig()
             return
         }
 
@@ -128,8 +117,6 @@ object MediaPlayerManager {
         android.util.Log.d("MediaPlayer", "setPlayer: after releasePlayer - frame=(${currentFrame.x},${currentFrame.y},${currentFrame.width}x${currentFrame.height}) courseName=$currentCourseName materialName=$currentMaterialName")
 
         val exoPlayer = ExoPlayer.Builder(activity)
-            .setSeekBackIncrementMs(10_000)
-            .setSeekForwardIncrementMs(10_000)
             .build()
             .apply {
                 setAudioAttributes(
@@ -147,7 +134,6 @@ object MediaPlayerManager {
                             isPrepared = true
                             applyPlaybackSpeed(playbackSpeed)
                             ensureMediaSession(activity)
-                            ensureNotificationManager(activity)
                             updateMediaSessionMetadata()
                             syncNativeUIState()
                             return
@@ -179,8 +165,6 @@ object MediaPlayerManager {
 
         player = exoPlayer
         currentUrl = url
-        ensureNotificationManager(activity)
-        updateNotificationActionConfig()
         syncNativeUIState()
     }
 
@@ -278,9 +262,6 @@ object MediaPlayerManager {
     }
 
     private fun releasePlayer() {
-        notificationManager?.setPlayer(null)
-        notificationManager = null
-
         player?.release()
         player = null
         isPrepared = false
@@ -338,86 +319,16 @@ object MediaPlayerManager {
                 mainHandler.post { seek(pos.toInt()) }
             }
 
-            override fun onRewind() {
-                mainHandler.post { skipBy(-10.0) }
+            override fun onSkipToNext() {
+                mainHandler.post { skipBy(10.0) }
             }
 
-            override fun onFastForward() {
-                mainHandler.post { skipBy(10.0) }
+            override fun onSkipToPrevious() {
+                mainHandler.post { skipBy(-10.0) }
             }
         })
         session.isActive = true
         mediaSession = session
-        notificationManager?.setMediaSessionToken(session.sessionToken)
-    }
-
-    private fun ensureNotificationManager(activity: FragmentActivity) {
-        val existingManager = notificationManager
-        if (existingManager != null) {
-            mediaSession?.let { existingManager.setMediaSessionToken(it.sessionToken) }
-            existingManager.setPlayer(player)
-            return
-        }
-
-        val manager = PlayerNotificationManager.Builder(
-            activity,
-            NOTIFICATION_ID,
-            NOTIFICATION_CHANNEL_ID,
-        )
-            .setMediaDescriptionAdapter(object : PlayerNotificationManager.MediaDescriptionAdapter {
-                override fun getCurrentContentTitle(player: Player): CharSequence {
-                    return currentMaterialName ?: "語音課程"
-                }
-
-                override fun createCurrentContentIntent(player: Player): PendingIntent? {
-                    val context = appContext ?: return null
-                    val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)
-                        ?: return null
-
-                    return PendingIntent.getActivity(
-                        context,
-                        0,
-                        launchIntent,
-                        PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
-                    )
-                }
-
-                override fun getCurrentContentText(player: Player): CharSequence? {
-                    return currentCourseName
-                }
-
-                override fun getCurrentLargeIcon(
-                    player: Player,
-                    callback: PlayerNotificationManager.BitmapCallback,
-                ): Bitmap? {
-                    return null
-                }
-            })
-            .build()
-
-        manager.setPriority(androidx.core.app.NotificationCompat.PRIORITY_HIGH)
-        manager.setUsePreviousAction(false)
-        manager.setUsePreviousActionInCompactView(false)
-        manager.setUseNextAction(false)
-        manager.setUseNextActionInCompactView(false)
-        manager.setUseStopAction(false)
-        manager.setUseChronometer(true)
-
-        mediaSession?.let { manager.setMediaSessionToken(it.sessionToken) }
-
-        notificationManager = manager
-        updateNotificationActionConfig()
-        manager.setPlayer(player)
-    }
-
-    private fun updateNotificationActionConfig() {
-        val manager = notificationManager ?: return
-        val showSeekActions = currentType == "audio"
-
-        manager.setUseRewindAction(showSeekActions)
-        manager.setUseRewindActionInCompactView(showSeekActions)
-        manager.setUseFastForwardAction(showSeekActions)
-        manager.setUseFastForwardActionInCompactView(showSeekActions)
     }
 
     private fun updateMediaSessionMetadata() {
@@ -462,8 +373,8 @@ object MediaPlayerManager {
                     PlaybackState.ACTION_STOP or
                     PlaybackState.ACTION_SEEK_TO or
                     PlaybackState.ACTION_PLAY_PAUSE or
-                    PlaybackState.ACTION_REWIND or
-                    PlaybackState.ACTION_FAST_FORWARD,
+                    PlaybackState.ACTION_SKIP_TO_NEXT or
+                    PlaybackState.ACTION_SKIP_TO_PREVIOUS,
             )
             .setState(state, position, playbackSpeed)
 

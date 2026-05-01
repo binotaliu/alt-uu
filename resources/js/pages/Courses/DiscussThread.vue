@@ -23,7 +23,12 @@ import { useIsDark } from '@/composables/useIsDark';
 import { useModeration } from '@/composables/useModeration';
 import { useTitle } from '@/composables/useTitle';
 import { processHtmlForColorScheme } from '@/lib/htmlColorScheme';
-import { downloadAttachmentWithNativeBridge } from '@/lib/nativeAttachment';
+import {
+    isNativeAttachmentBridgeAvailable,
+    openLocalAttachmentWithNativeBridge,
+    queueAttachmentDownloadTask,
+    waitForAttachmentDownloadCompletion,
+} from '@/lib/nativeAttachment';
 import type { CourseItem } from '@/types';
 
 const props = defineProps<{
@@ -122,18 +127,128 @@ const reportSuccess = ref<boolean | null>(null);
 const isBlockConfirmOpen = ref(false);
 const blockTargetPoster = ref('');
 const blockTargetRealname = ref('');
+const downloadingAttachmentKeys = ref<Set<string>>(new Set());
+const pendingAttachmentDownload = ref<{
+    url: string;
+    filename: string | null;
+} | null>(null);
+const isAttachmentConfirmOpen = ref(false);
+const isAttachmentDownloadInProgress = ref(false);
+const attachmentDownloadStatus = ref('');
+const attachmentDownloadError = ref<string | null>(null);
 
-const downloadAttachment = async (url: string, filename?: string | null) => {
+function buildProxyUrl(url: string): string {
     const proxyPath = `/material-proxy/${btoa(url).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')}?cid=${encodeURIComponent(props.cid)}`;
-    const proxyUrl = new URL(proxyPath, window.location.origin).toString();
 
-    const handled = await downloadAttachmentWithNativeBridge(
-        proxyUrl,
-        filename,
-    );
+    return new URL(proxyPath, window.location.origin).toString();
+}
 
-    if (!handled) {
-        window.open(proxyUrl, '_blank', 'noopener,noreferrer');
+const closeAttachmentConfirm = () => {
+    attachmentDownloadError.value = null;
+
+    if (isAttachmentDownloadInProgress.value) {
+        return;
+    }
+
+    isAttachmentConfirmOpen.value = false;
+    pendingAttachmentDownload.value = null;
+};
+
+const requestAttachmentDownload = (url: string, filename?: string | null) => {
+    attachmentDownloadError.value = null;
+
+    if (isAttachmentDownloadInProgress.value) {
+        return;
+    }
+
+    pendingAttachmentDownload.value = {
+        url,
+        filename: filename ?? null,
+    };
+    isAttachmentConfirmOpen.value = true;
+};
+
+const performAttachmentDownload = async (
+    url: string,
+    filename?: string | null,
+) => {
+    const attachmentKey = `${url}::${filename ?? ''}`;
+
+    if (downloadingAttachmentKeys.value.has(attachmentKey)) {
+        return;
+    }
+
+    downloadingAttachmentKeys.value.add(attachmentKey);
+    isAttachmentDownloadInProgress.value = true;
+
+    try {
+        if (!isNativeAttachmentBridgeAvailable()) {
+            const proxyUrl = buildProxyUrl(url);
+            window.open(proxyUrl, '_blank', 'noopener,noreferrer');
+
+            return;
+        }
+
+        attachmentDownloadStatus.value = '正在下載附件，請稍候…';
+
+        const queuedTask = await queueAttachmentDownloadTask({
+            cid: props.cid,
+            sourceUrl: url,
+            filename,
+        });
+
+        const completedTask = await waitForAttachmentDownloadCompletion(
+            queuedTask.taskId,
+        );
+
+        if (
+            completedTask.status === 'completed' &&
+            completedTask.localFilePath
+        ) {
+            attachmentDownloadStatus.value = '下載完成，正在開啟附件…';
+
+            const opened = await openLocalAttachmentWithNativeBridge(
+                completedTask.localFilePath,
+                completedTask.mimeType,
+            );
+
+            if (opened) {
+                return;
+            }
+        }
+
+        if (completedTask.status === 'failed' && completedTask.errorMessage) {
+            attachmentDownloadError.value = completedTask.errorMessage;
+        }
+    } catch {
+        // Fallback to legacy bridge flow for compatibility when task APIs are unavailable.
+    } finally {
+        downloadingAttachmentKeys.value.delete(attachmentKey);
+    }
+
+    isAttachmentDownloadInProgress.value = false;
+    attachmentDownloadStatus.value = '';
+};
+
+const closeAttachmentDownloadError = () => {
+    attachmentDownloadError.value = null;
+};
+
+const confirmAttachmentDownload = async () => {
+    const target = pendingAttachmentDownload.value;
+
+    if (!target) {
+        return;
+    }
+
+    isAttachmentConfirmOpen.value = false;
+    pendingAttachmentDownload.value = null;
+
+    try {
+        await performAttachmentDownload(target.url, target.filename);
+    } finally {
+        isAttachmentDownloadInProgress.value = false;
+        attachmentDownloadStatus.value = '';
     }
 };
 
@@ -652,7 +767,7 @@ onMounted(async () => {
                                                     : undefined
                                             "
                                             @click.prevent="
-                                                downloadAttachment(
+                                                requestAttachmentDownload(
                                                     attachment.href,
                                                     attachment.filename,
                                                 )
@@ -875,6 +990,75 @@ onMounted(async () => {
             @submit="submitReport"
         />
 
+        <Teleport to="body">
+            <div
+                v-if="isAttachmentConfirmOpen"
+                class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+                @click.self="closeAttachmentConfirm"
+            >
+                <div
+                    class="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl dark:bg-zinc-900"
+                >
+                    <h3
+                        class="mb-3 text-lg font-semibold text-warm-900 dark:text-zinc-100"
+                    >
+                        下載附件
+                    </h3>
+                    <p class="text-sm text-warm-600 dark:text-zinc-400">
+                        確定要下載並開啟「{{
+                            pendingAttachmentDownload?.filename ?? '此附件'
+                        }}」嗎？
+                    </p>
+                    <div class="mt-4 flex justify-end gap-2">
+                        <button
+                            type="button"
+                            class="rounded-xl border border-warm-300 bg-white px-4 py-2 text-sm font-semibold text-warm-700 transition hover:bg-warm-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200"
+                            @click="closeAttachmentConfirm"
+                        >
+                            取消
+                        </button>
+                        <button
+                            type="button"
+                            class="rounded-xl bg-warm-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-warm-800 dark:bg-warm-800 dark:hover:bg-warm-700"
+                            @click="confirmAttachmentDownload"
+                        >
+                            確認下載
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
+
+        <Teleport to="body">
+            <div
+                v-if="isAttachmentDownloadInProgress"
+                class="fixed inset-0 z-[70] flex items-center justify-center bg-zinc-950/50 p-6 backdrop-blur-sm"
+            >
+                <div
+                    class="w-full max-w-xs rounded-2xl border border-warm-200 bg-white/95 px-5 py-4 shadow-xl dark:border-zinc-700 dark:bg-zinc-900/95"
+                >
+                    <div class="flex items-center gap-3">
+                        <span
+                            class="inline-block h-6 w-6 animate-spin rounded-full border-2 border-warm-600 border-r-transparent dark:border-zinc-100 dark:border-r-transparent"
+                            aria-hidden="true"
+                        />
+                        <div>
+                            <p
+                                class="text-sm font-semibold text-warm-900 dark:text-zinc-100"
+                            >
+                                正在處理附件
+                            </p>
+                            <p
+                                class="mt-1 text-xs text-warm-600 dark:text-zinc-400"
+                            >
+                                {{ attachmentDownloadStatus }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
+
         <!-- Block User Confirmation -->
         <Teleport to="body">
             <div
@@ -911,6 +1095,37 @@ onMounted(async () => {
                             @click="confirmBlockUser"
                         >
                             確定封鎖
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </Teleport>
+
+        <!-- Attachment Download Error -->
+        <Teleport to="body">
+            <div
+                v-if="attachmentDownloadError"
+                class="fixed inset-0 z-80 flex items-center justify-center bg-black/40 p-4"
+                @click.self="closeAttachmentDownloadError"
+            >
+                <div
+                    class="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl dark:bg-zinc-900"
+                >
+                    <h3
+                        class="mb-3 text-lg font-semibold text-warm-900 dark:text-zinc-100"
+                    >
+                        下載失敗
+                    </h3>
+                    <p class="text-sm text-warm-600 dark:text-zinc-400">
+                        {{ attachmentDownloadError }}
+                    </p>
+                    <div class="mt-4 flex justify-end">
+                        <button
+                            type="button"
+                            class="rounded-xl bg-warm-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-warm-800 dark:bg-warm-800 dark:hover:bg-warm-700"
+                            @click="closeAttachmentDownloadError"
+                        >
+                            確定
                         </button>
                     </div>
                 </div>

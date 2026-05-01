@@ -8,24 +8,63 @@ import { computed, ref, watch } from 'vue';
 
 const props = defineProps<{
     activeTab: 'courses' | 'live-sessions' | 'school-calendar';
+    nouToolsEnabled?: boolean;
 }>();
 
 const localActiveTab = ref<
     'courses' | 'live-sessions' | 'school-calendar' | null
 >(null);
 const isNavigationLocked = ref(false);
+const showNouToolsModal = ref(false);
 
 const activeTab = computed(() => localActiveTab.value ?? props.activeTab);
 
-const activateTab = (
+const onTabClick = (
+    event: MouseEvent,
     target: 'courses' | 'live-sessions' | 'school-calendar',
 ) => {
     if (isNavigationLocked.value) {
+        event.preventDefault();
+
+        return;
+    }
+
+    // Check if NOU Tools is enabled for non-courses tabs
+    if (target !== 'courses' && !props.nouToolsEnabled) {
+        event.preventDefault();
+        showNouToolsModal.value = true;
+
         return;
     }
 
     localActiveTab.value = target;
     isNavigationLocked.value = true;
+};
+
+const enableNouTools = async () => {
+    try {
+        const response = await fetch('/api/preferences/nou-tools', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ enabled: true }),
+        });
+
+        if (response.ok) {
+            showNouToolsModal.value = false;
+            // Reload the page to reflect the change
+            window.location.reload();
+        } else {
+            alert('啟用失敗，請稍後重試');
+        }
+    } catch {
+        alert('啟用失敗，請稍後重試');
+    }
+};
+
+const closeModal = () => {
+    showNouToolsModal.value = false;
 };
 
 watch(
@@ -47,7 +86,7 @@ watch(
         <div class="mx-auto grid max-w-xl grid-cols-3 gap-2">
             <router-link
                 to="/courses"
-                @click="activateTab('courses')"
+                @click="onTabClick($event, 'courses')"
                 class="inline-flex flex-col items-center gap-1 rounded-xl px-3 py-2 text-xs font-semibold transition md:text-sm"
                 :class="{
                     'bg-warm-800 text-white dark:bg-zinc-600':
@@ -61,9 +100,14 @@ watch(
                 我的課程
             </router-link>
 
-            <router-link
-                to="/courses/live-sessions"
-                @click="activateTab('live-sessions')"
+            <component
+                :is="props.nouToolsEnabled ? 'router-link' : 'button'"
+                v-bind="
+                    props.nouToolsEnabled
+                        ? { to: '/courses/live-sessions' }
+                        : {}
+                "
+                @click="onTabClick($event, 'live-sessions')"
                 class="inline-flex flex-col items-center gap-1 rounded-xl px-3 py-2 text-xs font-semibold transition md:text-sm"
                 :class="{
                     'bg-warm-800 text-white dark:bg-zinc-600':
@@ -75,11 +119,16 @@ watch(
             >
                 <VideoCameraIcon class="size-6" />
                 視訊面授
-            </router-link>
+            </component>
 
-            <router-link
-                to="/courses/school-calendar"
-                @click="activateTab('school-calendar')"
+            <component
+                :is="props.nouToolsEnabled ? 'router-link' : 'button'"
+                v-bind="
+                    props.nouToolsEnabled
+                        ? { to: '/courses/school-calendar' }
+                        : {}
+                "
+                @click="onTabClick($event, 'school-calendar')"
                 class="inline-flex flex-col items-center gap-1 rounded-xl px-3 py-2 text-xs font-semibold transition md:text-sm"
                 :class="{
                     'bg-warm-800 text-white dark:bg-zinc-600':
@@ -91,7 +140,41 @@ watch(
             >
                 <CalendarDaysIcon class="size-6" />
                 學校行事曆
-            </router-link>
+            </component>
         </div>
     </nav>
+
+    <!-- NOU Tools disabled modal -->
+    <teleport to="body" v-if="showNouToolsModal">
+        <div
+            class="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black"
+        >
+            <div
+                class="mx-4 rounded-2xl bg-white p-6 shadow-lg dark:bg-zinc-800"
+            >
+                <h3
+                    class="mb-2 text-lg font-semibold text-warm-900 dark:text-white"
+                >
+                    開啟 NOU 小幫手整合
+                </h3>
+                <p class="mb-6 text-sm text-warm-700 dark:text-zinc-300">
+                    此功能需要開啟 NOU 小幫手整合才可使用。
+                </p>
+                <div class="flex gap-3">
+                    <button
+                        @click="closeModal"
+                        class="flex-1 rounded-lg border border-warm-300 px-4 py-2 text-sm font-medium text-warm-700 transition hover:bg-warm-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-700"
+                    >
+                        取消
+                    </button>
+                    <button
+                        @click="enableNouTools"
+                        class="flex-1 rounded-lg bg-warm-800 px-4 py-2 text-sm font-medium text-white transition hover:bg-warm-900 dark:bg-zinc-600 dark:hover:bg-zinc-500"
+                    >
+                        開啟
+                    </button>
+                </div>
+            </div>
+        </div>
+    </teleport>
 </template>

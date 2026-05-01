@@ -453,12 +453,15 @@ watch(activeNodeIdentifier, async (scoid) => {
     }
 
     await loadNodeData(scoid);
+    const isNativeRestore = restoredStartedAt.value !== null;
     startTracking(!!activeNodeHref.value, consumeRestoredStartedAt());
     resumePrompt.value = null;
     // Reload learning times when active node changes (update sidebar durations)
     fetchLearningTimes();
 
-    await checkPlaybackProgress(scoid);
+    if (!isNativeRestore) {
+        await checkPlaybackProgress(scoid);
+    }
 });
 
 watch(activeNodeHref, (href) => {
@@ -489,9 +492,10 @@ onMounted(async () => {
 
     if (props.scoid) {
         await loadNodeData(props.scoid);
+        const isNativeRestore = restoredStartedAt.value !== null;
         startTracking(!!activeNodeHref.value, consumeRestoredStartedAt());
 
-        if (activeNodeHref.value) {
+        if (activeNodeHref.value && !isNativeRestore) {
             void checkPlaybackProgress(props.scoid);
         }
     }
@@ -538,7 +542,7 @@ onUnmounted(() => {
             </template>
         </PageHeader>
 
-        <div class="px-3 pt-4 pb-24 sm:px-4">
+        <div class="px-3 pt-4 pb-24 sm:px-4 md:pb-6">
             <div
                 class="grid gap-4 md:grid-cols-[20rem_minmax(0,1fr)] xl:grid-cols-[22rem_minmax(0,1fr)]"
             >
@@ -621,7 +625,7 @@ onUnmounted(() => {
                     >
                         <div class="flex items-center gap-3">
                             <span
-                                class="inline-block h-6 w-6 animate-spin rounded-full border-2 border-warm-600 border-r-transparent dark:border-zinc-100"
+                                class="inline-block h-6 w-6 animate-spin rounded-full border-2 border-warm-600 border-r-transparent dark:border-zinc-100 dark:border-r-transparent"
                                 aria-hidden="true"
                             />
                             <div class="text-left">
@@ -647,7 +651,7 @@ onUnmounted(() => {
                         class="absolute inset-0 bg-black/45 backdrop-blur-xs"
                     />
                     <div
-                        class="relative z-10 flex h-full items-end justify-center px-4 pb-8 sm:items-center"
+                        class="relative z-10 flex h-full items-end justify-center px-4 pb-[max(var(--inset-bottom,0px),1.5rem)]"
                     >
                         <div
                             class="w-full max-w-sm rounded-2xl border border-warm-200 bg-white px-5 py-5 shadow-xl dark:border-zinc-700 dark:bg-zinc-900"

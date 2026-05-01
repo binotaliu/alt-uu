@@ -45,7 +45,7 @@ function onBackClick(): void {
                         </p>
                         <div
                             v-if="subtitle"
-                            class="mt-1 flex h-6 max-w-full items-center overflow-hidden"
+                            class="mt-1 flex h-6 max-w-full items-center overflow-hidden md:mt-2 md:h-7"
                         >
                             <p
                                 class="w-fit max-w-full truncate text-sm text-warm-700 [view-transition-name:page-header-subtitle] md:mt-2 md:h-7 md:text-sm dark:text-zinc-300"

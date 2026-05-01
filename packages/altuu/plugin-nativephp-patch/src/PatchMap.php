@@ -20,7 +20,7 @@ final class PatchMap
                     'upstream' => self::VENDOR_PATH.'/resources/xcode/NativePHP/ContentView.swift',
                     'upstream_hash' => '41af75f5d272643936020fb6fea47cf20f19249176220d3e8ee0d1f916168249',
                     'patched' => 'packages/altuu/plugin-nativephp-patch/resources/patches/ios/NativePHP/ContentView.swift',
-                    'patched_hash' => 'c56089b5a9b6d20cce4a317a563587b57085e83adde4f90b9f6c0a4dc676aeb6',
+                    'patched_hash' => 'b615de1b10a639b0b3ff6afd8382a72cd52290809417491278064fa7dbcee31d',
                 ],
                 [
                     'target' => 'NativePHP/NativeUI/NativeUIState.swift',
@@ -49,15 +49,15 @@ final class PatchMap
                     'target' => 'app/src/main/AndroidManifest.xml',
                     'upstream' => self::VENDOR_PATH.'/resources/androidstudio/app/src/main/AndroidManifest.xml',
                     // AndroidManifest.xml 會先被修改過，所以這裡的 upstream_hash 會跟 vendor 裡的檔案不一樣，這裡的 upstream_hash 是修改過後的版本的 hash
-                    'upstream_hash' => '332b2ef4b2e7360a3e1377c9a8b68abdcc9ae09551bb9c9e34ca929ef04f0a0a',
+                    'upstream_hash' => '*',
                     'patched' => 'packages/altuu/plugin-nativephp-patch/resources/patches/android/app/src/main/AndroidManifest.xml',
-                    'patched_hash' => 'fcd0d9ed2ff4687fe38b8b0cdd3f742f5b3371fb1a29753adcca1dd893ff5776',
+                    'patched_hash' => '4acda9ac8881b49bb5f4f8eea970840694d5ecdc4612e111444f92ab574cdfe9',
                 ],
                 [
                     'target' => 'app/src/main/java/com/nativephp/mobile/ui/MainActivity.kt',
                     'upstream' => self::VENDOR_PATH.'/resources/androidstudio/app/src/main/java/com/nativephp/mobile/ui/MainActivity.kt',
                     // 這裡的也是被修改 (REPLACE_STATUS_BAR_STYLE)
-                    'upstream_hash' => '6328589c1bfc5f5785ca7f55ef67a0a49c67b20bc0a39927982d762723988218',
+                    'upstream_hash' => '*',
                     'patched' => 'packages/altuu/plugin-nativephp-patch/resources/patches/android/app/src/main/java/com/nativephp/mobile/ui/MainActivity.kt',
                     'patched_hash' => 'cef3d899cacf5c4fd2018ee0c4134807289e08503acfe49fc09fbc502762b18e',
                 ],

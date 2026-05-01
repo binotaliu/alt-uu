@@ -254,16 +254,26 @@ struct WebView: UIViewRepresentable {
             injectSafeAreaInsets(webView)
         }
 
-        private func injectSafeAreaInsets(_ webView: WKWebView) {
+        // [ipad-corner-plugin]
+        func injectSafeAreaInsets(_ webView: WKWebView) {
             // Get insets from window scene (more reliable than webView.window which can be nil)
             let windowScene = UIApplication.shared.connectedScenes
                 .compactMap { $0 as? UIWindowScene }
                 .first
 
-            let insets = windowScene?.windows.first?.safeAreaInsets ?? webView.window?.safeAreaInsets ?? .zero
+            let targetWindow = windowScene?.windows.first ?? webView.window
+            let insets = targetWindow?.safeAreaInsets ?? .zero
+
+            let cornerInsets: UIEdgeInsets = {
+                guard #available(iOS 26.0, *), let window = targetWindow else {
+                    return .zero
+                }
+
+                return window.edgeInsets(for: .margins(cornerAdaptation: .horizontal))
+            }()
 
             // Also get color scheme for CSS variable
-            let isDarkMode = windowScene?.windows.first?.traitCollection.userInterfaceStyle == .dark
+            let isDarkMode = targetWindow?.traitCollection.userInterfaceStyle == .dark
             let colorScheme = isDarkMode ? "dark" : "light"
 
             let js = """
@@ -274,6 +284,15 @@ struct WebView: UIViewRepresentable {
                     document.documentElement.style.setProperty('--inset-right', '\(insets.right)px');
                     document.documentElement.style.setProperty('--inset-bottom', '\(insets.bottom)px');
                     document.documentElement.style.setProperty('--inset-left', '\(insets.left)px');
+                    document.documentElement.style.setProperty('--corner-inset-top', '\(cornerInsets.top)px');
+                    document.documentElement.style.setProperty('--corner-inset-right', '\(cornerInsets.right)px');
+                    document.documentElement.style.setProperty('--corner-inset-bottom', '\(cornerInsets.bottom)px');
+                    document.documentElement.style.setProperty('--corner-inset-left', '\(cornerInsets.left)px');
+                    // Backward-compatible aliases used by older layouts/plugins.
+                    document.documentElement.style.setProperty('--corner-adaptation-margin-top', '\(cornerInsets.top)px');
+                    document.documentElement.style.setProperty('--corner-adaptation-margin-right', '\(cornerInsets.right)px');
+                    document.documentElement.style.setProperty('--corner-adaptation-margin-bottom', '\(cornerInsets.bottom)px');
+                    document.documentElement.style.setProperty('--corner-adaptation-margin-left', '\(cornerInsets.left)px');
                     document.documentElement.style.setProperty('--native-color-scheme', '\(colorScheme)');
                 }
             })();
@@ -574,7 +593,7 @@ struct WebView: UIViewRepresentable {
         let safeAreaCSS = """
         (function() {
             var style = document.createElement('style');
-            style.textContent = ':root{--inset-top:env(safe-area-inset-top,0px);--inset-right:env(safe-area-inset-right,0px);--inset-bottom:env(safe-area-inset-bottom,0px);--inset-left:env(safe-area-inset-left,0px)}@media(orientation:landscape){.nativephp-safe-area{padding-right:var(--inset-right);padding-left:var(--inset-left)}}@media(orientation:portrait){.nativephp-safe-area{padding-top:var(--inset-top);padding-bottom:var(--inset-bottom)}}';
+            style.textContent = ':root{--inset-top:env(safe-area-inset-top,0px);--inset-right:env(safe-area-inset-right,0px);--inset-bottom:env(safe-area-inset-bottom,0px);--inset-left:env(safe-area-inset-left,0px);--corner-inset-top:0px;--corner-inset-right:0px;--corner-inset-bottom:0px;--corner-inset-left:0px;--corner-adaptation-margin-top:0px;--corner-adaptation-margin-right:0px;--corner-adaptation-margin-bottom:0px;--corner-adaptation-margin-left:0px}@media(orientation:landscape){.nativephp-safe-area{padding-right:var(--inset-right);padding-left:var(--inset-left)}}@media(orientation:portrait){.nativephp-safe-area{padding-top:var(--inset-top);padding-bottom:var(--inset-bottom)}}';
             (document.head || document.documentElement).appendChild(style);
         })();
         """
@@ -631,8 +650,8 @@ struct WebView: UIViewRepresentable {
     }
 
     func updateUIView(_ uiView: WKWebView, context: Context) {
-        // No manual insets needed - safeAreaInset handles topbar automatically
-        // Bottom nav uses its own safeAreaInset in WebViewLayoutContainer
+        // Keep CSS vars in sync when iPad window shape/control geometry changes.
+        context.coordinator.injectSafeAreaInsets(uiView)
     }
 }
 

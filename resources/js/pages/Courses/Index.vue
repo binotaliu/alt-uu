@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { BriefcaseIcon } from '@heroicons/vue/24/outline';
 import { onMounted, computed, ref } from 'vue';
-import AndroidBottomControlBackground from '@/components/AndroidBottomControlBackground.vue';
 import AppLayout from '@/components/AppLayout.vue';
 import CourseListTab from '@/components/CourseListTab.vue';
 import CoursesBottomNav from '@/components/CoursesBottomNav.vue';
@@ -16,7 +15,7 @@ import type { CourseTasksCount } from '@/types';
 
 useTitle('我的課程');
 
-const { courses, isLoading, error, fetchCourses } = useCourses();
+const { courses, isLoading, hasFetched, error, fetchCourses } = useCourses();
 const configStore = useAppConfigStore();
 const nouToolsEnabled = computed(() =>
     Boolean(configStore.nouToolsIntegrationEnabled),
@@ -82,11 +81,14 @@ onMounted(async () => {
                 :tasks-loading="tasksLoading"
                 :tasks-error="tasksError"
                 :is-loading="isLoading"
+                :has-fetched="hasFetched"
                 :error="error"
             />
         </div>
 
-        <CoursesBottomNav active-tab="courses" v-if="nouToolsEnabled" />
-        <AndroidBottomControlBackground v-else />
+        <CoursesBottomNav
+            active-tab="courses"
+            :nou-tools-enabled="nouToolsEnabled"
+        />
     </AppLayout>
 </template>

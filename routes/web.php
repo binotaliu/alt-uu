@@ -2,8 +2,10 @@
 
 use App\Http\Controllers\Api\AppConfigController;
 use App\Http\Controllers\Api\AppearanceController;
+use App\Http\Controllers\Api\AttachmentDownloadStatusController;
 use App\Http\Controllers\Api\BlockedUsersModerationController;
 use App\Http\Controllers\Api\BlockUserModerationController;
+use App\Http\Controllers\Api\ClearAttachmentDownloadsController;
 use App\Http\Controllers\Api\CourseHomeworksController;
 use App\Http\Controllers\Api\CourseLearningTimesController;
 use App\Http\Controllers\Api\CourseNodeContentController;
@@ -27,6 +29,7 @@ use App\Http\Controllers\Api\NouToolsSchoolCalendarController;
 use App\Http\Controllers\Api\OnboardingPreferenceController;
 use App\Http\Controllers\Api\ParsedMaterialContentController;
 use App\Http\Controllers\Api\PlaybackProgressController;
+use App\Http\Controllers\Api\QueueAttachmentDownloadController;
 use App\Http\Controllers\Api\ReportModerationController;
 use App\Http\Controllers\Api\ScreenReaderPreferenceController;
 use App\Http\Controllers\Api\SetDiscussForumReadController;
@@ -126,6 +129,14 @@ Route::middleware([EnsureHunguSession::class])->group(function (): void {
 
         Route::get('/playback-progress/{cid}/{activityId}', [PlaybackProgressController::class, 'show'])
             ->name('api.playback-progress.show');
+
+        Route::post('/attachments/download-tasks', QueueAttachmentDownloadController::class)
+            ->name('api.attachments.download-tasks.queue');
+        Route::post('/attachments/download-tasks/cleanup', ClearAttachmentDownloadsController::class)
+            ->name('api.attachments.download-tasks.cleanup');
+        Route::get('/attachments/download-tasks/{taskId}', AttachmentDownloadStatusController::class)
+            ->whereNumber('taskId')
+            ->name('api.attachments.download-tasks.status');
 
         Route::get('/hungu-cookies', static function (): JsonResponse {
             $session = app(UUSessionStore::class)->get();
