@@ -1,5 +1,62 @@
 declare namespace AltUU {
     namespace Domains {
+        namespace AppPreference {
+            namespace DataTransferObjects {
+                export type SetAppearanceInputData = {
+                    appearance: string;
+                };
+                export type SetLiveSessionsTimezoneInputData = {
+                    timezone: string;
+                };
+                export type SetNouToolsIntegrationEnabledInputData = {
+                    enabled: boolean;
+                };
+                export type SetOnboardingCompletedInputData = {
+                    completed: boolean;
+                };
+                export type SetScreenReaderEnhancedSupportEnabledInputData = {
+                    enabled: boolean;
+                };
+            }
+            namespace ViewModels {
+                export type AppearancePreferenceViewModel = {
+                    appearance: string;
+                };
+                export type LiveSessionsTimezonePreferenceViewModel = {
+                    timezone: string;
+                };
+                export type NouToolsIntegrationPreferenceViewModel = {
+                    enabled: boolean;
+                };
+                export type OnboardingPreferenceViewModel = {
+                    completed: boolean;
+                };
+                export type ScreenReaderEnhancedSupportPreferenceViewModel = {
+                    enabled: boolean;
+                };
+            }
+        }
+        namespace AttachmentDownload {
+            namespace DataTransferObjects {
+                export type QueueAttachmentDownloadInputData = {
+                    cid: string;
+                    sourceUrl: string;
+                    filename: string | null;
+                };
+            }
+            namespace ViewModels {
+                export type AttachmentDownloadTaskViewModel = {
+                    taskId: number;
+                    status: string;
+                    fileName: string | null;
+                    mimeType: string | null;
+                    fileSize: number | null;
+                    errorMessage: string | null;
+                    localFilePath: string | null;
+                    expiresAt: string | null;
+                };
+            }
+        }
         namespace Auth {
             namespace DataTransferObjects {
                 export type LoginInputData = {
@@ -73,6 +130,16 @@ declare namespace AltUU {
                     pendingHomeworks: number;
                     unreadArticles: number;
                 };
+                export type ParsedMaterialContentViewModel = {
+                    videoUrl: string | null;
+                    subtitleUrl: string | null;
+                    downloadUrl: string | null;
+                    downloadProxyUrl: string | null;
+                    downloadFileName: string | null;
+                    downloadFileExtension: string | null;
+                    isPdf: boolean;
+                    htmlContent: string | null;
+                };
             }
         }
         namespace Discuss {
@@ -138,6 +205,26 @@ declare namespace AltUU {
                     createTime: string | null;
                     createTimeDescription: string | null;
                     canDelete: boolean | null;
+                };
+            }
+        }
+        namespace MaterialPreference {
+            namespace DataTransferObjects {
+                export type SetMaterialFontScaleInputData = {
+                    scale: number;
+                };
+            }
+            namespace ViewModels {
+                export type MaterialFontScalePreferenceViewModel = {
+                    scale: number;
+                };
+            }
+        }
+        namespace Moderation {
+            namespace ViewModels {
+                export type BlockedUserViewModel = {
+                    poster: string;
+                    realname: string;
                 };
             }
         }

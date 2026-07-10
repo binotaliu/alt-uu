@@ -149,3 +149,146 @@ it('returns mapped nou tools live sessions, school calendar, and course info', f
 
     Http::assertSent(fn ($request) => str_contains($request->url(), 'term=2025A'));
 });
+
+it('falls back to the undivided 不分班 class when no class code matches and the course title has no class suffix', function () {
+    KeyValueStore::query()->updateOrCreate(
+        ['key' => 'preference:nou-tools-integration'],
+        ['value' => json_encode(['enabled' => true], JSON_THROW_ON_ERROR)],
+    );
+
+    Http::fake([
+        'https://uu.nou.edu.tw/xmlapi/index.php?action=my-course-list*' => Http::response([
+            'code' => 0,
+            'message' => 'success',
+            'data' => [
+                'list' => [
+                    [
+                        'course_id' => '2002',
+                        'title' => '(115暑)通識課程',
+                    ],
+                ],
+            ],
+        ]),
+        'https://nou-tools.binota.org/api/v1/courses/5678' => Http::response([
+            'id' => 5678,
+            'name' => '通識課程',
+            'term' => '2026C',
+            'previousExams' => [],
+            'classes' => [
+                [
+                    'id' => 9001,
+                    'code' => '不分班',
+                    'type' => 'full_remote',
+                    'typeLabel' => '不分班',
+                    'startTime' => '19:00:00+08:00',
+                    'endTime' => '21:00:00+08:00',
+                    'teacherName' => '李老師',
+                    'link' => 'https://meet.example.com/undivided-room',
+                    'backupClassroomUrl' => 'https://meet.example.com/backup-room',
+                    'sessions' => [
+                        [
+                            'date' => '2026-07-20',
+                            'startTime' => '19:00:00+08:00',
+                            'endTime' => '21:00:00+08:00',
+                        ],
+                    ],
+                ],
+            ],
+        ]),
+        'https://nou-tools.binota.org/api/v1/courses?term=2026C' => Http::response([
+            ['id' => 5678, 'name' => '通識課程', 'term' => '2026C'],
+        ]),
+    ]);
+
+    $sessionStore = MockeryManager::mock(UUSessionStore::class);
+    $sessionStore->shouldReceive('get')->andReturn([
+        'base_url' => 'https://uu.nou.edu.tw',
+        'ua' => 'test-agent',
+        'ticket' => 'ticket-1',
+        'session_idx' => 'idx-1',
+        'cookies' => ['WM' => 'cookie'],
+        'profile' => ['display_name' => '測試', 'username' => 's123'],
+    ]);
+    $sessionStore->shouldReceive('put');
+    app()->instance(UUSessionStore::class, $sessionStore);
+
+    getJson('/api/nou-tools/live-sessions')
+        ->assertOk()
+        ->assertJsonCount(1)
+        ->assertJsonPath('0.courseId', '2002')
+        ->assertJsonPath('0.className', '不分班')
+        ->assertJsonPath('0.classCode', '不分班')
+        ->assertJsonPath('0.link', 'https://meet.example.com/undivided-room')
+        ->assertJsonPath('0.backupClassroomUrl', 'https://meet.example.com/backup-room')
+        ->assertJsonPath('0.sessions.0.date', '2026-07-20');
+});
+
+it('displays 不分班 instead of the UU-provided class name when the matched class is undivided', function () {
+    KeyValueStore::query()->updateOrCreate(
+        ['key' => 'preference:nou-tools-integration'],
+        ['value' => json_encode(['enabled' => true], JSON_THROW_ON_ERROR)],
+    );
+
+    Http::fake([
+        'https://uu.nou.edu.tw/xmlapi/index.php?action=my-course-list*' => Http::response([
+            'code' => 0,
+            'message' => 'success',
+            'data' => [
+                'list' => [
+                    [
+                        'course_id' => '2003',
+                        'title' => '(115暑)通識課程-ZZZ999班',
+                    ],
+                ],
+            ],
+        ]),
+        'https://nou-tools.binota.org/api/v1/courses/5679' => Http::response([
+            'id' => 5679,
+            'name' => '通識課程',
+            'term' => '2026C',
+            'previousExams' => [],
+            'classes' => [
+                [
+                    'id' => 9002,
+                    'code' => '不分班',
+                    'type' => 'full_remote',
+                    'typeLabel' => '全遠距',
+                    'startTime' => '19:00:00+08:00',
+                    'endTime' => '21:00:00+08:00',
+                    'teacherName' => '李老師',
+                    'link' => 'https://meet.example.com/undivided-room',
+                    'backupClassroomUrl' => null,
+                    'sessions' => [
+                        [
+                            'date' => '2026-07-20',
+                            'startTime' => '19:00:00+08:00',
+                            'endTime' => '21:00:00+08:00',
+                        ],
+                    ],
+                ],
+            ],
+        ]),
+        'https://nou-tools.binota.org/api/v1/courses?term=2026C' => Http::response([
+            ['id' => 5679, 'name' => '通識課程', 'term' => '2026C'],
+        ]),
+    ]);
+
+    $sessionStore = MockeryManager::mock(UUSessionStore::class);
+    $sessionStore->shouldReceive('get')->andReturn([
+        'base_url' => 'https://uu.nou.edu.tw',
+        'ua' => 'test-agent',
+        'ticket' => 'ticket-1',
+        'session_idx' => 'idx-1',
+        'cookies' => ['WM' => 'cookie'],
+        'profile' => ['display_name' => '測試', 'username' => 's123'],
+    ]);
+    $sessionStore->shouldReceive('put');
+    app()->instance(UUSessionStore::class, $sessionStore);
+
+    getJson('/api/nou-tools/live-sessions')
+        ->assertOk()
+        ->assertJsonCount(1)
+        ->assertJsonPath('0.courseId', '2003')
+        ->assertJsonPath('0.className', '不分班')
+        ->assertJsonPath('0.classCode', '不分班');
+});

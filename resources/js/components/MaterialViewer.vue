@@ -5,8 +5,11 @@ import { apiFetch } from '@/composables/useApi';
 import { useIsDark } from '@/composables/useIsDark';
 import { processHtmlForColorScheme } from '@/lib/htmlColorScheme';
 import {
-    downloadAttachmentWithNativeBridge,
+    isNativeAttachmentBridgeAvailable,
+    openLocalAttachmentWithNativeBridge,
     openUrlInNativeBrowser,
+    queueAttachmentDownloadTask,
+    waitForAttachmentDownloadCompletion,
 } from '@/lib/nativeAttachment';
 import {
     isNativeMediaBridgeAvailable,
@@ -24,7 +27,11 @@ import type { MaterialResource } from '@/types';
 const props = defineProps<{
     videoUrl: string | null;
     subtitleUrl: string | null;
-    pdfUrl: string | null;
+    downloadUrl: string | null;
+    downloadProxyUrl: string | null;
+    downloadFileName: string | null;
+    downloadFileExtension: string | null;
+    isPdf: boolean;
     htmlContent: string | null;
     isAudioCourse: boolean;
     resources: MaterialResource[];
@@ -50,10 +57,11 @@ const FONT_SCALE_ENDPOINT = '/api/preferences/material-font-scale';
 const fontScale = ref(FONT_SCALE_DEFAULT);
 const isSavingFontScale = ref(false);
 const isOpeningInAppBrowser = ref(false);
-const isDownloadingPdf = ref(false);
+const isDownloadingFile = ref(false);
+const downloadError = ref<string | null>(null);
 const trimmedHtmlContent = computed(() => (props.htmlContent ?? '').trim());
 const hasHtmlContent = computed(() => trimmedHtmlContent.value !== '');
-const hasPdfContent = computed(() => !!props.pdfUrl);
+const hasDownloadableContent = computed(() => !!props.downloadUrl);
 const { isDark } = useIsDark();
 const processedHtmlContent = computed(() =>
     processHtmlForColorScheme(trimmedHtmlContent.value, isDark.value),
@@ -168,40 +176,86 @@ async function handleOpenInAppBrowser(): Promise<void> {
     }
 }
 
-function buildPdfFilename(): string {
+function buildDownloadFilename(): string {
+    if (props.downloadFileName) {
+        return props.downloadFileName;
+    }
+
     const title = props.activeNodeText.trim();
+    const extension =
+        props.downloadFileExtension ?? (props.isPdf ? 'pdf' : 'bin');
 
     if (title === '') {
-        return 'material.pdf';
+        return `material.${extension}`;
     }
 
     const normalized = title.replace(/[\\/:*?"<>|]/g, '_').replace(/\s+/g, ' ');
 
-    if (normalized.toLowerCase().endsWith('.pdf')) {
+    if (normalized.toLowerCase().endsWith(`.${extension}`)) {
         return normalized;
     }
 
-    return `${normalized}.pdf`;
+    return `${normalized}.${extension}`;
 }
 
-async function handleDownloadPdf(): Promise<void> {
-    if (!props.pdfUrl || isDownloadingPdf.value) {
+function openDownloadFallback(): void {
+    const url = props.downloadProxyUrl ?? props.downloadUrl;
+
+    if (url) {
+        window.open(url, '_blank', 'noopener,noreferrer');
+    }
+}
+
+async function handleDownloadFile(): Promise<void> {
+    if (!props.downloadUrl || isDownloadingFile.value) {
         return;
     }
 
-    isDownloadingPdf.value = true;
+    isDownloadingFile.value = true;
+    downloadError.value = null;
 
     try {
-        const handled = await downloadAttachmentWithNativeBridge(
-            props.pdfUrl,
-            buildPdfFilename(),
+        if (!isNativeAttachmentBridgeAvailable()) {
+            openDownloadFallback();
+
+            return;
+        }
+
+        const queuedTask = await queueAttachmentDownloadTask({
+            cid: props.selectedCid,
+            sourceUrl: props.downloadUrl,
+            filename: buildDownloadFilename(),
+        });
+
+        const completedTask = await waitForAttachmentDownloadCompletion(
+            queuedTask.taskId,
         );
 
-        if (!handled) {
-            window.open(props.pdfUrl, '_blank', 'noopener,noreferrer');
+        if (
+            completedTask.status === 'completed' &&
+            completedTask.localFilePath
+        ) {
+            const opened = await openLocalAttachmentWithNativeBridge(
+                completedTask.localFilePath,
+                completedTask.mimeType,
+            );
+
+            if (!opened) {
+                openDownloadFallback();
+            }
+
+            return;
         }
+
+        if (completedTask.status === 'failed') {
+            downloadError.value =
+                completedTask.errorMessage ?? '下載失敗，請稍後再試。';
+        }
+    } catch (error) {
+        downloadError.value =
+            error instanceof Error ? error.message : '下載失敗，請稍後再試。';
     } finally {
-        isDownloadingPdf.value = false;
+        isDownloadingFile.value = false;
     }
 }
 
@@ -609,7 +663,7 @@ defineExpose({ getCurrentTime, seekTo, closePlayer });
         </div>
 
         <div
-            v-if="props.inAppUrl || hasHtmlContent || hasPdfContent"
+            v-if="props.inAppUrl || hasHtmlContent || hasDownloadableContent"
             class="space-y-3"
         >
             <div
@@ -625,14 +679,14 @@ defineExpose({ getCurrentTime, seekTo, closePlayer });
                 </button>
 
                 <button
-                    v-if="hasPdfContent"
+                    v-if="hasDownloadableContent"
                     type="button"
                     class="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg border border-warm-200 bg-white px-3 text-sm font-semibold transition hover:border-warm-400 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-100 dark:hover:border-zinc-400"
-                    :disabled="!props.pdfUrl || isDownloadingPdf"
-                    @click="handleDownloadPdf"
+                    :disabled="!props.downloadUrl || isDownloadingFile"
+                    @click="handleDownloadFile"
                 >
                     <svg
-                        v-if="isDownloadingPdf"
+                        v-if="isDownloadingFile"
                         class="h-4 w-4 motion-safe:animate-spin"
                         viewBox="0 0 24 24"
                         fill="none"
@@ -655,7 +709,11 @@ defineExpose({ getCurrentTime, seekTo, closePlayer });
                         />
                     </svg>
                     <span>{{
-                        isDownloadingPdf ? '下載中...' : '下載 PDF'
+                        isDownloadingFile
+                            ? '下載中...'
+                            : props.isPdf
+                              ? '下載 PDF'
+                              : '下載檔案'
                     }}</span>
                 </button>
 
@@ -691,7 +749,7 @@ defineExpose({ getCurrentTime, seekTo, closePlayer });
             </div>
 
             <article
-                v-if="hasHtmlContent && !hasPdfContent"
+                v-if="hasHtmlContent && !hasDownloadableContent"
                 class="prose prose-sm max-w-none rounded-2xl border border-warm-200 bg-white px-4 py-5 text-warm-800 shadow-sm prose-warm sm:px-6 md:prose-base dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:prose-zinc dark:prose-invert"
                 :style="fontScaleStyle"
                 @click="handleContentClick"
@@ -699,18 +757,30 @@ defineExpose({ getCurrentTime, seekTo, closePlayer });
             />
 
             <div
-                v-else-if="hasPdfContent"
+                v-else-if="hasDownloadableContent"
                 class="rounded-2xl border border-warm-200 bg-white p-5 text-sm text-warm-900 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
             >
                 <p class="mb-3">
-                    本教材為 PDF 檔案，您可以下載後以其他 App
-                    開啟或使用內建瀏覽器檢視。
+                    <template v-if="props.isPdf">
+                        本教材為 PDF 檔案，您可以下載後以其他 App
+                        開啟或使用內建瀏覽器檢視。
+                    </template>
+                    <template v-else>
+                        本教材為可下載檔案（{{
+                            props.downloadFileExtension
+                                ? `.${props.downloadFileExtension}`
+                                : ''
+                        }}），請下載後以其他 App 開啟。
+                    </template>
+                </p>
+                <p v-if="downloadError" class="text-red-600 dark:text-red-400">
+                    {{ downloadError }}
                 </p>
             </div>
         </div>
 
         <p
-            v-if="!videoUrl && !hasHtmlContent && !hasPdfContent"
+            v-if="!videoUrl && !hasHtmlContent && !hasDownloadableContent"
             class="rounded-xl border border-dashed border-warm-300 bg-warm-50 p-4 text-sm text-warm-700"
         >
             此節點沒有可顯示的教材內容。

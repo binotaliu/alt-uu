@@ -16,6 +16,7 @@ type FlattenedLiveSession = {
     typeLabel: string | null;
     teacherName: string | null;
     link: string | null;
+    backupClassroomUrl: string | null;
     date: string;
     startTime: string;
     endTime: string;
@@ -254,6 +255,7 @@ const flattenedSessions = computed<FlattenedLiveSession[]>(() => {
                     typeLabel: session.typeLabel,
                     teacherName: session.teacherName,
                     link: session.link,
+                    backupClassroomUrl: session.backupClassroomUrl,
                     date: item.date,
                     startTime: item.startTime,
                     endTime: item.endTime,
@@ -586,19 +588,42 @@ const openLink = async (url: string) => {
                                                         }}
                                                     </p>
                                                 </div>
-                                                <a
-                                                    v-if="session.link"
-                                                    @click.prevent="
-                                                        openLink(session.link)
-                                                    "
-                                                    :href="session.link"
-                                                    class="inline-flex shrink-0 items-center gap-1 rounded-lg border border-warm-300 px-3 py-1.5 text-base font-medium text-warm-700 transition hover:bg-warm-50 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                                                <div
+                                                    class="flex shrink-0 flex-col items-end gap-1"
                                                 >
-                                                    <VideoCameraIcon
-                                                        class="size-5"
-                                                    />
-                                                    進入教室
-                                                </a>
+                                                    <a
+                                                        v-if="session.link"
+                                                        @click.prevent="
+                                                            openLink(
+                                                                session.link,
+                                                            )
+                                                        "
+                                                        :href="session.link"
+                                                        class="inline-flex shrink-0 items-center gap-1 rounded-lg border border-warm-300 px-3 py-1.5 text-base font-medium text-warm-700 transition hover:bg-warm-50 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                                                    >
+                                                        <VideoCameraIcon
+                                                            class="size-5"
+                                                        />
+                                                        進入教室
+                                                    </a>
+                                                    <a
+                                                        v-if="
+                                                            session.backupClassroomUrl
+                                                        "
+                                                        @click.prevent="
+                                                            openLink(
+                                                                session.backupClassroomUrl!,
+                                                            )
+                                                        "
+                                                        :href="
+                                                            session.backupClassroomUrl
+                                                        "
+                                                        title="主教室人數已滿時可改用此備用連結"
+                                                        class="inline-flex shrink-0 items-center gap-1 rounded-lg px-3 py-1 text-xs font-medium text-warm-500 transition hover:text-warm-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+                                                    >
+                                                        備用教室
+                                                    </a>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>

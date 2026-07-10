@@ -260,7 +260,7 @@ function processElement(el: Element, isDark: boolean): void {
     const styleAttr = el.getAttribute('style');
 
     if (styleAttr) {
-        const adjusted = styleAttr.replace(
+        let adjusted = styleAttr.replace(
             STYLE_DECL_RE,
             (_, prop: string, val: string) => {
                 const p = prop.trim().toLowerCase();
@@ -273,6 +273,16 @@ function processElement(el: Element, isDark: boolean): void {
                 return `${prop}: ${val}`;
             },
         );
+
+        // If the element has only background color set, and it's in dark mode, we should also add a text color definition to ensure the text is visible.
+        if (isDark && adjusted !== styleAttr) {
+            if (
+                adjusted.match(/background(-color)?\s*:/i) &&
+                !adjusted.match(/color\s*:/i)
+            ) {
+                adjusted = `${adjusted}; color: ${adjustColourForDark('black', 'color')}`;
+            }
+        }
 
         if (adjusted !== styleAttr) {
             el.setAttribute('style', adjusted);

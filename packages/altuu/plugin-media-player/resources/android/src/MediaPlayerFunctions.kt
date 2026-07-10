@@ -205,9 +205,19 @@ object MediaPlayerManager {
     }
 
     fun getCurrentTimeSeconds(): Double {
-        val currentPosition = player?.currentPosition ?: return 0.0
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            val currentPosition = player?.currentPosition ?: return 0.0
+            return currentPosition.coerceAtLeast(0L).toDouble() / 1000.0
+        }
 
-        return currentPosition.coerceAtLeast(0L).toDouble() / 1000.0
+        var result = 0.0
+        val latch = java.util.concurrent.CountDownLatch(1)
+        mainHandler.post {
+            result = player?.currentPosition?.coerceAtLeast(0L)?.toDouble()?.div(1000.0) ?: 0.0
+            latch.countDown()
+        }
+        latch.await()
+        return result
     }
 
     fun setPlaybackSpeed(speed: Float) {
@@ -221,16 +231,40 @@ object MediaPlayerManager {
     fun getPlayer(): ExoPlayer? = player
 
     fun getDurationSeconds(): Double {
-        val duration = player?.duration ?: return 0.0
-        if (duration == C.TIME_UNSET || duration < 0) {
-            return 0.0
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            val duration = player?.duration ?: return 0.0
+            if (duration == C.TIME_UNSET || duration < 0) return 0.0
+            return duration.toDouble() / 1000.0
         }
 
-        return duration.toDouble() / 1000.0
+        var result = 0.0
+        val latch = java.util.concurrent.CountDownLatch(1)
+        mainHandler.post {
+            val duration = player?.duration
+            result = if (duration != null && duration != C.TIME_UNSET && duration >= 0) {
+                duration.toDouble() / 1000.0
+            } else {
+                0.0
+            }
+            latch.countDown()
+        }
+        latch.await()
+        return result
     }
 
     fun isPlaying(): Boolean {
-        return player?.isPlaying == true
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            return player?.isPlaying == true
+        }
+
+        var result = false
+        val latch = java.util.concurrent.CountDownLatch(1)
+        mainHandler.post {
+            result = player?.isPlaying == true
+            latch.countDown()
+        }
+        latch.await()
+        return result
     }
 
     fun getState(): Map<String, Any> {

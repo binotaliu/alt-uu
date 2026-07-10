@@ -14,7 +14,11 @@ final class ParsedMaterialContentViewModel extends Resource
     public function __construct(
         public ?string $videoUrl,
         public ?string $subtitleUrl,
-        public ?string $pdfUrl,
+        public ?string $downloadUrl,
+        public ?string $downloadProxyUrl,
+        public ?string $downloadFileName,
+        public ?string $downloadFileExtension,
+        public bool $isPdf,
         public ?string $htmlContent,
     ) {}
 
@@ -23,7 +27,11 @@ final class ParsedMaterialContentViewModel extends Resource
         return new self(
             videoUrl: $result->videoUrl,
             subtitleUrl: $result->subtitleUrl,
-            pdfUrl: $result->pdfUrl,
+            downloadUrl: $result->downloadUrl,
+            downloadProxyUrl: $result->downloadProxyUrl,
+            downloadFileName: $result->downloadFileName,
+            downloadFileExtension: $result->downloadFileExtension,
+            isPdf: $result->isPdf,
             htmlContent: $result->htmlContent,
         );
     }
@@ -33,7 +41,11 @@ final class ParsedMaterialContentViewModel extends Resource
         return new self(
             videoUrl: null,
             subtitleUrl: null,
-            pdfUrl: null,
+            downloadUrl: null,
+            downloadProxyUrl: null,
+            downloadFileName: null,
+            downloadFileExtension: null,
+            isPdf: false,
             htmlContent: null,
         );
     }

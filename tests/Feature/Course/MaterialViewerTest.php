@@ -27,7 +27,7 @@ it('parses html content and rewrites same-host resources into material proxy URL
 
     expect($parsed->videoUrl)->toBeNull();
     expect($parsed->subtitleUrl)->toBeNull();
-    expect($parsed->pdfUrl)->toBeNull();
+    expect($parsed->downloadUrl)->toBeNull();
     expect($parsed->htmlContent)->toContain('第一章內容');
 
     $expectedProxyUrl = route('material.content', [
@@ -61,7 +61,7 @@ it('extracts video and subtitle URLs when flowplayer payload exists', function (
     $parsed = $action('https://uu.nou.edu.tw/material/lesson-2.html', 'uu.nou.edu.tw');
 
     expect($parsed->videoUrl)->toBe('https://uu.nou.edu.tw/videos/lesson-2.mp4');
-    expect($parsed->pdfUrl)->toBeNull();
+    expect($parsed->downloadUrl)->toBeNull();
 
     $expectedSubtitleProxy = route('material.content', [
         'encodedUrl' => MaterialProxyUrl::encode('https://uu.nou.edu.tw/subs/lesson-2.vtt'),

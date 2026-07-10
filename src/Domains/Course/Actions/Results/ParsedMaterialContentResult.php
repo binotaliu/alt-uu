@@ -9,7 +9,11 @@ final readonly class ParsedMaterialContentResult
     public function __construct(
         public ?string $videoUrl,
         public ?string $subtitleUrl,
-        public ?string $pdfUrl,
+        public ?string $downloadUrl,
+        public ?string $downloadProxyUrl,
+        public ?string $downloadFileName,
+        public ?string $downloadFileExtension,
+        public bool $isPdf,
         public string $htmlContent,
     ) {}
 }

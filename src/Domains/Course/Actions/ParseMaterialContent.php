@@ -5,46 +5,75 @@ declare(strict_types=1);
 namespace AltUU\Domains\Course\Actions;
 
 use AltUU\Domains\Course\Actions\Results\ParsedMaterialContentResult;
+use AltUU\Domains\Course\Support\DownloadClassification;
+use AltUU\Domains\Course\Support\MaterialDownloadClassifier;
 use AltUU\Domains\Course\Support\MaterialProxyUrl;
+use AltUU\Domains\Course\Support\VideoExtractors\ExtractedVideo;
+use AltUU\Domains\Course\Support\VideoExtractors\FlowplayerJsConfigVideoExtractor;
+use AltUU\Domains\Course\Support\VideoExtractors\Html5SourceVideoExtractor;
+use AltUU\Domains\Course\Support\VideoExtractors\MaterialVideoExtractor;
 use App\Services\UUCourseClient;
 use Mews\Purifier\Facades\Purifier;
 use Symfony\Component\DomCrawler\Crawler;
 
 final readonly class ParseMaterialContent
 {
-    public function __construct(private UUCourseClient $courseClient) {}
+    /** @var list<MaterialVideoExtractor> */
+    private array $videoExtractors;
+
+    public function __construct(private UUCourseClient $courseClient)
+    {
+        $this->videoExtractors = [
+            new FlowplayerJsConfigVideoExtractor,
+            new Html5SourceVideoExtractor,
+        ];
+    }
 
     public function __invoke(string $url, string $baseHost): ParsedMaterialContentResult
     {
+        $extensionClassification = MaterialDownloadClassifier::classifyDownloadable($url, '');
+
+        if ($extensionClassification !== null) {
+            return $this->toDownloadResult($url, $extensionClassification);
+        }
+
+        $extension = MaterialDownloadClassifier::extractExtension($url);
+
+        if (! MaterialDownloadClassifier::isHtmlExtension($extension)) {
+            $headContentType = $this->probeContentTypeSafely($url);
+
+            if ($headContentType !== null) {
+                $headClassification = MaterialDownloadClassifier::classifyDownloadable($url, $headContentType);
+
+                if ($headClassification !== null) {
+                    return $this->toDownloadResult($url, $headClassification);
+                }
+            }
+        }
+
         $materialResult = $this->courseClient->fetchMaterialContent($url);
         $contentType = strtolower((string) ($materialResult['headers']['content-type'] ?? ''));
 
-        if ($this->isPdfMaterial($url, $contentType)) {
-            return new ParsedMaterialContentResult(
-                videoUrl: null,
-                subtitleUrl: null,
-                pdfUrl: route('material.content', ['encodedUrl' => MaterialProxyUrl::encode($url)]),
-                htmlContent: '',
-            );
+        $classification = MaterialDownloadClassifier::classifyDownloadable($url, $contentType);
+
+        if ($classification !== null) {
+            return $this->toDownloadResult($url, $classification);
         }
 
         $html = $this->ensureUtf8((string) ($materialResult['body'] ?? ''));
 
-        $videoUrl = $this->extractVideoUrl($html);
+        $extracted = $this->extractVideo($html);
+        $videoUrl = $extracted->videoUrl !== null ? $this->resolveRelativeUrl($url, $extracted->videoUrl) : null;
         $subtitleUrl = null;
 
-        if ($videoUrl !== null) {
-            $rawSubtitleSrc = $this->extractSubtitleSrc($html);
+        if ($videoUrl !== null && $extracted->subtitleUrl !== null) {
+            $resolvedSubtitleUrl = $this->resolveRelativeUrl($url, $extracted->subtitleUrl);
 
-            if ($rawSubtitleSrc !== null) {
-                $resolvedSubtitleUrl = $this->resolveRelativeUrl($url, $rawSubtitleSrc);
+            if ($resolvedSubtitleUrl !== null) {
+                $subtitleHost = parse_url($resolvedSubtitleUrl, PHP_URL_HOST);
 
-                if ($resolvedSubtitleUrl !== null) {
-                    $subtitleHost = parse_url($resolvedSubtitleUrl, PHP_URL_HOST);
-
-                    if (is_string($subtitleHost) && $subtitleHost === $baseHost) {
-                        $subtitleUrl = route('material.content', ['encodedUrl' => MaterialProxyUrl::encode($resolvedSubtitleUrl)]);
-                    }
+                if (is_string($subtitleHost) && $subtitleHost === $baseHost) {
+                    $subtitleUrl = route('material.content', ['encodedUrl' => MaterialProxyUrl::encode($resolvedSubtitleUrl)]);
                 }
             }
         }
@@ -54,44 +83,71 @@ final readonly class ParseMaterialContent
         return new ParsedMaterialContentResult(
             videoUrl: $videoUrl,
             subtitleUrl: $subtitleUrl,
-            pdfUrl: null,
+            downloadUrl: null,
+            downloadProxyUrl: null,
+            downloadFileName: null,
+            downloadFileExtension: null,
+            isPdf: false,
             htmlContent: $this->ensureUtf8($htmlContent),
         );
     }
 
-    private function isPdfMaterial(string $url, string $contentType): bool
+    private function toDownloadResult(string $url, DownloadClassification $classification): ParsedMaterialContentResult
     {
-        if (str_contains($contentType, 'application/pdf')) {
-            return true;
-        }
-
-        $path = (string) (parse_url($url, PHP_URL_PATH) ?? '');
-
-        return str_ends_with(strtolower($path), '.pdf');
+        return new ParsedMaterialContentResult(
+            videoUrl: null,
+            subtitleUrl: null,
+            downloadUrl: $url,
+            downloadProxyUrl: route('material.content', ['encodedUrl' => MaterialProxyUrl::encode($url)]),
+            downloadFileName: $this->buildDownloadFileName($url, $classification),
+            downloadFileExtension: $classification->extension !== '' ? $classification->extension : null,
+            isPdf: $classification->isPdf,
+            htmlContent: '',
+        );
     }
 
-    private function extractVideoUrl(string $html): ?string
+    private function buildDownloadFileName(string $url, DownloadClassification $classification): string
     {
-        if (! preg_match('/flowplayer\s*\(/i', $html)) {
+        $path = (string) (parse_url($url, PHP_URL_PATH) ?? '');
+        $basename = basename($path);
+
+        if ($basename !== '' && $basename !== '.' && $basename !== '/' && str_contains($basename, '.')) {
+            return $basename;
+        }
+
+        $extension = $classification->extension !== '' ? $classification->extension : ($classification->isPdf ? 'pdf' : 'bin');
+
+        return "download.{$extension}";
+    }
+
+    private function probeContentTypeSafely(string $url): ?string
+    {
+        try {
+            $probe = $this->courseClient->probeContentType($url);
+        } catch (\Throwable) {
             return null;
         }
 
-        // Match src: "https://..." (absolute URL only — skips relative subtitle paths)
-        if (preg_match('/\bsrc\s*:\s*["\'](https?:\/\/[^"\']+)["\']/', $html, $matches)) {
-            return $matches[1];
+        if ($probe['status'] < 200 || $probe['status'] >= 300) {
+            return null;
         }
 
-        return null;
+        $contentType = trim((string) ($probe['contentType'] ?? ''));
+
+        return $contentType !== '' ? $contentType : null;
     }
 
-    private function extractSubtitleSrc(string $html): ?string
+    private function extractVideo(string $html): ExtractedVideo
     {
-        // Match subtitles: { tracks: [{ src: "...", ... }] }
-        if (preg_match('/subtitles\s*:\s*\{[^{}]*tracks\s*:\s*\[\s*\{[^}]*\bsrc\s*:\s*["\']([^"\']+)["\']/', $html, $matches)) {
-            return $matches[1];
+        foreach ($this->videoExtractors as $extractor) {
+            $extracted = $extractor->extract($html);
+
+            if ($extracted?->videoUrl !== null) {
+                return $extracted;
+            }
         }
 
-        return null;
+        return ExtractedVideo::none();
     }
 
     private function resolveRelativeUrl(string $base, string $relative): ?string
@@ -165,7 +221,7 @@ final readonly class ParseMaterialContent
         $crawler = new Crawler($html);
 
         // Remove script, style, link, and player elements
-        $crawler->filterXPath('//script | //style | //link | //*[@id="player"]')->each(function (Crawler $node) {
+        $crawler->filterXPath('//script | //style | //link | //*[@id="player"] | //*[contains(concat(" ", normalize-space(@class), " "), " flowplayer ")]')->each(function (Crawler $node) {
             $node->getNode(0)?->parentNode?->removeChild($node->getNode(0));
         });
 

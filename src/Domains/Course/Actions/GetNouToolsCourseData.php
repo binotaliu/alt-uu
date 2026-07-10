@@ -11,6 +11,8 @@ use Spatie\LaravelData\DataCollection;
 
 final readonly class GetNouToolsCourseData
 {
+    public const UNDIVIDED_CLASS_CODE = '不分班';
+
     public function __construct(private NouToolsClient $nouToolsClient) {}
 
     /**
@@ -133,10 +135,7 @@ final readonly class GetNouToolsCourseData
         }
 
         $expectedCode = $this->resolveClassCode($className);
-
-        if ($expectedCode === null) {
-            return null;
-        }
+        $undividedClass = null;
 
         foreach ($detail['classes'] as $classItem) {
             if (! is_array($classItem)) {
@@ -147,12 +146,16 @@ final readonly class GetNouToolsCourseData
                 ? strtoupper(trim($classItem['code']))
                 : '';
 
-            if ($classCode === $expectedCode) {
+            if ($expectedCode !== null && $classCode === $expectedCode) {
                 return $classItem;
+            }
+
+            if ($classCode === self::UNDIVIDED_CLASS_CODE) {
+                $undividedClass = $classItem;
             }
         }
 
-        return null;
+        return $undividedClass;
     }
 
     private function resolveClassCode(?string $className): ?string

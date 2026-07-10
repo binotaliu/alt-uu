@@ -80,6 +80,14 @@ final class UUCourseClient
     }
 
     /**
+     * @return array{status: int, contentType: string, contentLength: ?string}
+     */
+    public function probeContentType(string $url): array
+    {
+        return $this->proxyClient->probeContentType($url);
+    }
+
+    /**
      * @return array{status: int, body: string, headers: array<string, mixed>}
      */
     public function fetchPendingHomeworkPage(): array

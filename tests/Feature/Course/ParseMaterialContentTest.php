@@ -66,15 +66,62 @@ it('returns video url and cleaned html for video content', function () {
 
     $response->assertOk();
     $response->assertJsonPath('videoUrl', 'https://example.com/video/playlist.m3u8');
-    $response->assertJsonStructure(['videoUrl', 'subtitleUrl', 'pdfUrl', 'htmlContent']);
+    $response->assertJsonStructure(['videoUrl', 'subtitleUrl', 'downloadUrl', 'downloadProxyUrl', 'downloadFileName', 'downloadFileExtension', 'isPdf', 'htmlContent']);
 
     $data = $response->json();
     $expectedSubtitleUrl = route('material.content', ['encodedUrl' => MaterialProxyUrl::encode('https://example.com/01.vtt')]);
     expect($data['subtitleUrl'])->toBe($expectedSubtitleUrl);
-    expect($data['pdfUrl'])->toBeNull();
+    expect($data['downloadUrl'])->toBeNull();
     expect($data['htmlContent'])->not->toContain('<script');
     expect($data['htmlContent'])->not->toContain('flowplayer');
     expect($data['htmlContent'])->not->toContain('id="player"');
+    expect($data['htmlContent'])->toContain('測試影片內容');
+
+    Http::assertNotSent(fn ($request) => $request->method() === 'HEAD');
+});
+
+it('returns video url and cleaned html for declarative html5 flowplayer content', function () {
+    $videoHtml = <<<'HTML'
+        <!doctype html>
+        <html>
+        <head>
+        <meta charset="utf-8" />
+        <link rel="stylesheet" href="https://uu.nou.edu.tw/fplayer/skin/skin.css" />
+        <script src="https://uu.nou.edu.tw/fplayer/flowplayer.min.js"></script>
+        <title>1-0 課程內容</title>
+        </head>
+        <body>
+        <div id="video" class="flowplayer no-toggle" data-share="false" data-key="$519606731317810">
+            <video data-title="" poster="../images/780042.jpg">
+                <source type="application/x-mpegurl" src="https://lodm.nou.edu.tw/vod/_definst_/780042/01/01.mp4/playlist.m3u8">
+            </video>
+        </div>
+        <div id="wrapper">
+        <h2>測試影片內容</h2>
+        </div>
+        </body>
+        </html>
+    HTML;
+
+    Http::fake([
+        'https://example.com/page.html' => Http::response(
+            $videoHtml,
+            200,
+            ['content-type' => 'text/html; charset=utf-8'],
+        ),
+    ]);
+
+    $response = getJson('/materials/content/parsed?url=https://example.com/page.html');
+
+    $response->assertOk();
+    $response->assertJsonPath('videoUrl', 'https://lodm.nou.edu.tw/vod/_definst_/780042/01/01.mp4/playlist.m3u8');
+    $response->assertJsonPath('subtitleUrl', null);
+    $response->assertJsonPath('downloadUrl', null);
+
+    $data = $response->json();
+    expect($data['htmlContent'])->not->toContain('<script');
+    expect($data['htmlContent'])->not->toContain('flowplayer');
+    expect($data['htmlContent'])->not->toContain('<video');
     expect($data['htmlContent'])->toContain('測試影片內容');
 });
 
@@ -105,22 +152,14 @@ it('returns null video url for html-only content', function () {
     $response->assertOk();
     $response->assertJsonPath('videoUrl', null);
     $response->assertJsonPath('subtitleUrl', null);
-    $response->assertJsonPath('pdfUrl', null);
+    $response->assertJsonPath('downloadUrl', null);
 
     $data = $response->json();
     expect($data['htmlContent'])->toContain('課程概覽');
 });
 
-it('returns pdf url for pdf material links', function () {
-    $pdfBody = '%PDF-1.7 fake';
-
-    Http::fake([
-        'https://example.com/content/files/lesson.pdf' => Http::response(
-            $pdfBody,
-            200,
-            ['content-type' => 'application/pdf'],
-        ),
-    ]);
+it('returns a download result for pdf material links without fetching the body', function () {
+    Http::fake();
 
     $url = 'https://example.com/content/files/lesson.pdf';
     $response = getJson('/materials/content/parsed?url='.rawurlencode($url));
@@ -128,12 +167,105 @@ it('returns pdf url for pdf material links', function () {
     $response->assertOk();
 
     $data = $response->json();
-    $expectedPdfUrl = route('material.content', ['encodedUrl' => MaterialProxyUrl::encode($url)]);
+    $expectedProxyUrl = route('material.content', ['encodedUrl' => MaterialProxyUrl::encode($url)]);
 
     expect($data['videoUrl'])->toBeNull();
     expect($data['subtitleUrl'])->toBeNull();
-    expect($data['pdfUrl'])->toBe($expectedPdfUrl);
+    expect($data['downloadUrl'])->toBe($url);
+    expect($data['downloadProxyUrl'])->toBe($expectedProxyUrl);
+    expect($data['downloadFileExtension'])->toBe('pdf');
+    expect($data['isPdf'])->toBeTrue();
     expect($data['htmlContent'])->toBe('');
+
+    Http::assertNothingSent();
+});
+
+it('returns a download result for zip material links without fetching the body', function () {
+    Http::fake();
+
+    $url = 'https://example.com/content/files/w00/example.zip';
+    $response = getJson('/materials/content/parsed?url='.rawurlencode($url));
+
+    $response->assertOk();
+
+    $data = $response->json();
+    $expectedProxyUrl = route('material.content', ['encodedUrl' => MaterialProxyUrl::encode($url)]);
+
+    expect($data['downloadUrl'])->toBe($url);
+    expect($data['downloadProxyUrl'])->toBe($expectedProxyUrl);
+    expect($data['downloadFileName'])->toBe('example.zip');
+    expect($data['downloadFileExtension'])->toBe('zip');
+    expect($data['isPdf'])->toBeFalse();
+    expect($data['htmlContent'])->toBe('');
+
+    Http::assertNothingSent();
+});
+
+it('classifies an ambiguous extension as a download using a HEAD content-type probe', function () {
+    $url = 'https://example.com/download?id=1';
+
+    Http::fake([
+        $url => Http::sequence()
+            ->push('', 200, ['content-type' => 'application/zip']),
+    ]);
+
+    $response = getJson('/materials/content/parsed?url='.rawurlencode($url));
+
+    $response->assertOk();
+
+    $data = $response->json();
+
+    expect($data['downloadUrl'])->toBe($url);
+    expect($data['downloadFileExtension'])->toBe('zip');
+    expect($data['isPdf'])->toBeFalse();
+
+    Http::assertSent(fn ($request) => $request->method() === 'HEAD');
+    Http::assertNotSent(fn ($request) => $request->method() === 'GET');
+});
+
+it('falls back to fetching and parsing html when the HEAD probe is inconclusive', function () {
+    $url = 'https://example.com/legacy/page?id=1';
+
+    Http::fake([
+        $url => Http::sequence()
+            ->push('', 204, [])
+            ->push('<html><body><h2>舊版頁面</h2></body></html>', 200, ['content-type' => 'text/html; charset=utf-8']),
+    ]);
+
+    $response = getJson('/materials/content/parsed?url='.rawurlencode($url));
+
+    $response->assertOk();
+
+    $data = $response->json();
+
+    expect($data['downloadUrl'])->toBeNull();
+    expect($data['htmlContent'])->toContain('舊版頁面');
+
+    Http::assertSent(fn ($request) => $request->method() === 'HEAD');
+    Http::assertSent(fn ($request) => $request->method() === 'GET');
+});
+
+it('does not classify plain text content as a download', function () {
+    $url = 'https://example.com/notes/summary?id=1';
+
+    Http::fake([
+        $url => Http::sequence()
+            ->push('', 200, ['content-type' => 'text/plain; charset=utf-8'])
+            ->push('plain text body', 200, ['content-type' => 'text/plain; charset=utf-8']),
+    ]);
+
+    $response = getJson('/materials/content/parsed?url='.rawurlencode($url));
+
+    $response->assertOk();
+
+    $data = $response->json();
+
+    // The HEAD probe says "text/plain", which is parseable-ish, so we fall
+    // through to the normal fetch+parse pipeline instead of a download result.
+    expect($data['downloadUrl'])->toBeNull();
+
+    Http::assertSent(fn ($request) => $request->method() === 'HEAD');
+    Http::assertSent(fn ($request) => $request->method() === 'GET');
 });
 
 it('rewrites relative src and anchor href attributes in parsed html', function () {

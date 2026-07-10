@@ -43,7 +43,11 @@ export type StudyTimeResult =
 export interface ParsedContent {
     videoUrl: string | null;
     subtitleUrl: string | null;
-    pdfUrl: string | null;
+    downloadUrl: string | null;
+    downloadProxyUrl: string | null;
+    downloadFileName: string | null;
+    downloadFileExtension: string | null;
+    isPdf: boolean;
     htmlContent: string | null;
 }
 
@@ -98,6 +102,7 @@ export interface NouToolsLiveSessionItem {
     typeLabel: string | null;
     teacherName: string | null;
     link: string | null;
+    backupClassroomUrl: string | null;
     startTime: string | null;
     endTime: string | null;
     sessions: NouToolsClassSession[];

@@ -303,7 +303,10 @@ class UUProxyClient
         $this->reauthenticationHandler = $handler;
     }
 
-    public function streamMaterialContent(string $url): StreamedResponse
+    /**
+     * @return array{status: int, contentType: string, contentLength: ?string}
+     */
+    public function probeContentType(string $url): array
     {
         $session = $this->currentSession();
         $baseUrl = $this->normalizeBaseUrl((string) Arr::get($session, 'base_url', ''));
@@ -324,15 +327,32 @@ class UUProxyClient
         );
         $this->syncSession($updatedSession);
 
-        $status = $headResponse->status();
-        $contentType = (string) $headResponse->header('content-type') ?: 'application/octet-stream';
         $contentLength = $headResponse->header('content-length');
+
+        return [
+            'status' => $headResponse->status(),
+            'contentType' => (string) $headResponse->header('content-type', ''),
+            'contentLength' => is_string($contentLength) && trim($contentLength) !== '' ? $contentLength : null,
+        ];
+    }
+
+    public function streamMaterialContent(string $url): StreamedResponse
+    {
+        $session = $this->currentSession();
+        $baseUrl = $this->normalizeBaseUrl((string) Arr::get($session, 'base_url', ''));
+        $ua = (string) Arr::get($session, 'ua', config('hungu.user_agent'));
+        $cookies = Arr::get($session, 'cookies', []);
+
+        $probe = $this->probeContentType($url);
+
+        $status = $probe['status'];
+        $contentType = $probe['contentType'] !== '' ? $probe['contentType'] : 'application/octet-stream';
         $headers = [
             'content-type' => $contentType,
         ];
 
-        if (is_string($contentLength) && trim($contentLength) !== '') {
-            $headers['content-length'] = $contentLength;
+        if ($probe['contentLength'] !== null) {
+            $headers['content-length'] = $probe['contentLength'];
         }
 
         return new StreamedResponse(

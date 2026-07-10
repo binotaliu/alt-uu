@@ -9,6 +9,10 @@ CONCURRENTLY := npx concurrently
 
 UUID ?=
 
+# App Store releases must be built with stable Xcode, never Xcode-beta (which
+# may be selected via xcode-select for testing against beta iOS devices).
+STABLE_DEVELOPER_DIR := /Applications/Xcode.app/Contents/Developer
+
 help:
 	@echo "Usage: make <target> [UUID=<uuid>]"
 	@echo ""
@@ -55,6 +59,7 @@ watch-i:
 	$(NPM) install && $(NPM) run build -- --mode=ios
 	$(ARTISAN) native:run i $(UUID) --watch
 
+release-i: export DEVELOPER_DIR := $(STABLE_DEVELOPER_DIR)
 release-i:
 	$(MAKE) ensure-composer-dev-deps
 	$(MAKE) reset-nativephp

@@ -26,6 +26,9 @@ test('it removes empty heading and paragraph tags with no attributes', function 
 HTML;
 
     $proxyClient = Mockery::mock(UUProxyClient::class);
+    $proxyClient->expects('probeContentType')
+        ->with('https://example.com/page')
+        ->andReturn(['status' => 200, 'contentType' => 'text/html; charset=utf-8', 'contentLength' => null]);
     $proxyClient->expects('fetchMaterialContent')
         ->with('https://example.com/page')
         ->andReturn(['body' => $html]);
@@ -55,6 +58,9 @@ test('it removes tags containing only ideographic or non-breaking spaces', funct
 HTML;
 
     $proxyClient = Mockery::mock(UUProxyClient::class);
+    $proxyClient->expects('probeContentType')
+        ->with('https://example.com/page')
+        ->andReturn(['status' => 200, 'contentType' => 'text/html; charset=utf-8', 'contentLength' => null]);
     $proxyClient->expects('fetchMaterialContent')
         ->with('https://example.com/page')
         ->andReturn(['body' => $html]);
