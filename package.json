@@ -41,7 +41,7 @@
         "@heroicons/vue": "^2.2.0",
         "@tailwindcss/typography": "^0.5.19",
         "@vitejs/plugin-vue": "^6.0.5",
-        "axios": "^1.14.0",
+        "axios": "^1.16.0",
         "laravel-vite-plugin": "^2.0.0",
         "pinia": "^3.0.4",
         "tailwindcss": "^4.1.1",
