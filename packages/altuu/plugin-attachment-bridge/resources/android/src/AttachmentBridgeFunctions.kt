@@ -60,8 +60,6 @@ object AttachmentBridgeFunctions {
     private val executor = Executors.newSingleThreadExecutor()
     private val mainHandler = Handler(Looper.getMainLooper())
 
-    private fun ts(): String = System.currentTimeMillis().toString()
-
     private fun normalizeBridgeValue(value: Any?): Any? {
         return when (value) {
             null, JSONObject.NULL -> null
@@ -160,20 +158,16 @@ object AttachmentBridgeFunctions {
                 getObjectParameter(parameters, "postForm")
             } else null
 
+            val css = parameters["css"] as? String
+
             mainHandler.post {
-                showInAppBrowser(activity, url, cookies, postForm)
+                showInAppBrowser(activity, url, cookies, postForm, css = css)
             }
 
             return BridgeResponse.success(mapOf(
                 "opened" to true,
                 "platform" to "android"
             ))
-        }
-    }
-
-    class OpenInBrowser(private val activity: FragmentActivity) : BridgeFunction {
-        override fun execute(parameters: Map<String, Any>): Map<String, Any> {
-            return OpenURL(activity).execute(parameters)
         }
     }
 
@@ -189,37 +183,6 @@ object AttachmentBridgeFunctions {
                 } catch (_: Exception) {
                     // tronclass app not installed
                 }
-            }
-
-            return BridgeResponse.success(mapOf(
-                "opened" to true,
-                "platform" to "android"
-            ))
-        }
-    }
-
-    class OpenDiscussAttachment(private val activity: FragmentActivity) : BridgeFunction {
-        override fun execute(parameters: Map<String, Any>): Map<String, Any> {
-            val cid = parameters["cid"] as? String
-                ?: throw BridgeError.InvalidParameters("Missing cid parameter")
-            val bid = parameters["bid"] as? String
-                ?: throw BridgeError.InvalidParameters("Missing bid parameter")
-            val nid = parameters["nid"] as? String
-                ?: throw BridgeError.InvalidParameters("Missing nid parameter")
-            val attachmentUrl = parameters["attachmentUrl"] as? String
-                ?: throw BridgeError.InvalidParameters("Missing attachmentUrl parameter")
-
-            if (cid.isEmpty() || bid.isEmpty() || nid.isEmpty() || attachmentUrl.isEmpty()) {
-                throw BridgeError.InvalidParameters("Parameters must not be empty")
-            }
-
-            val cookies = getObjectListParameter(parameters, "cookies")
-
-            val threadUrl = "https://uu.nou.edu.tw/forum/m_node_chain.php"
-            val postForm = mapOf<String, Any>("cid" to cid, "bid" to bid, "nid" to nid)
-
-            mainHandler.post {
-                showInAppBrowser(activity, threadUrl, cookies, postForm, attachmentUrl)
             }
 
             return BridgeResponse.success(mapOf(
@@ -561,7 +524,7 @@ object AttachmentBridgeFunctions {
         urlString: String,
         cookiesPayload: List<Map<String, Any>>,
         postForm: Map<String, Any>? = null,
-        autoClickAttachmentUrl: String? = null
+        css: String? = null
     ) {
         val dialog = Dialog(activity, android.R.style.Theme_DeviceDefault_NoActionBar)
 
@@ -630,14 +593,16 @@ object AttachmentBridgeFunctions {
             javaScriptEnabled = true
             domStorageEnabled = true
             allowFileAccess = true
-            loadWithOverviewMode = true
-            useWideViewPort = true
+            // These legacy pages ship no viewport meta tag. loadWithOverviewMode +
+            // useWideViewPort renders them at desktop width and zooms out to fit,
+            // making everything tiny. When we're injecting our own responsive CSS
+            // (css != null), lay out at device width instead so it takes effect.
+            loadWithOverviewMode = css.isNullOrEmpty()
+            useWideViewPort = css.isNullOrEmpty()
             setSupportMultipleWindows(true)
             javaScriptCanOpenWindowsAutomatically = true
             userAgentString = HUNGU_USER_AGENT
         }
-
-        val webViewUserAgent = webView.settings.userAgentString
 
         CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true)
 
@@ -738,7 +703,6 @@ object AttachmentBridgeFunctions {
             }
         }
 
-        var autoClickAttempts = 0
         webView.webViewClient = object : WebViewClient() {
             override fun shouldInterceptRequest(view: WebView?, request: WebResourceRequest?): WebResourceResponse? {
                 return super.shouldInterceptRequest(view, request)
@@ -747,9 +711,8 @@ object AttachmentBridgeFunctions {
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
 
-                if (!autoClickAttachmentUrl.isNullOrEmpty() && autoClickAttempts < 3) {
-                    autoClickAttempts++
-                    autoClickLink(view, autoClickAttachmentUrl)
+                if (!css.isNullOrEmpty()) {
+                    injectCss(view, css)
                 }
             }
         }
@@ -861,21 +824,6 @@ object AttachmentBridgeFunctions {
                     // Ensure WebView operations happen on main thread; add a small delay to avoid timing races
                     mainHandler.postDelayed({
                         cookieManager.flush()
-
-                        // Log cookies for various domains to aid debugging
-                        try {
-                            val uri = Uri.parse(urlString)
-                            val host = uri.host ?: ""
-                            val httpForHost = "http://$host"
-                            val httpsForHost = "https://$host"
-
-                            val cookiesForRequestUrl = cookieManager.getCookie(urlString)
-                            val cookiesForHttpHost = cookieManager.getCookie(httpForHost)
-                            val cookiesForHttpsHost = cookieManager.getCookie(httpsForHost)
-
-                        } catch (e: Exception) {
-                            Log.w(TAG, "InAppBrowser: Failed to log cookie snapshots: ${e.message}")
-                        }
 
                         loadBrowserRequest(webView, urlString, postForm, cookiesPayload)
                     }, 200L)
@@ -1023,25 +971,24 @@ object AttachmentBridgeFunctions {
         }
     }
 
-    private fun autoClickLink(webView: WebView?, targetUrl: String) {
+    private fun injectCss(webView: WebView?, css: String) {
         if (webView == null) return
 
-        val escaped = targetUrl
-            .replace("\\", "\\\\")
-            .replace("'", "\\'")
-            .replace("\n", "\\n")
-            .replace("\r", "\\r")
+        val encoded = Base64.encodeToString(css.toByteArray(Charsets.UTF_8), Base64.NO_WRAP)
 
         val script = """
-            (function() {
-                var target = '$escaped';
-                function dec(v) { try { return decodeURIComponent(v||''); } catch(e) { return v; } }
-                var decoded = dec(target);
-                var links = document.querySelectorAll('a[href]');
-                for (var i = 0; i < links.length; i++) {
-                    var h = links[i].getAttribute('href') || '';
-                    if (h === target || dec(h) === decoded) { links[i].click(); return; }
-                }
+            (function () {
+                try {
+                    var bytes = Uint8Array.from(atob('$encoded'), function (c) { return c.charCodeAt(0); });
+                    var css = new TextDecoder('utf-8').decode(bytes);
+                    var style = document.getElementById('__altuu_attachment_css__');
+                    if (!style) {
+                        style = document.createElement('style');
+                        style.id = '__altuu_attachment_css__';
+                        (document.head || document.documentElement).appendChild(style);
+                    }
+                    style.textContent = css;
+                } catch (e) {}
             })();
         """.trimIndent()
 

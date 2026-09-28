@@ -73,11 +73,50 @@ struct NativeMediaPlayerView: View {
     }
 }
 
+/// `AVPlayerViewController` owns its own internal transport-chrome child controller, which
+/// answers `childForStatusBarHidden`/`childForStatusBarStyle` before UIKit ever consults an
+/// override placed directly on an `AVPlayerViewController` subclass — that chrome child always
+/// reports light-content (white) status bar text, which reads as invisible against a light-mode
+/// status bar even though the bar itself is still shown. To stop that chrome child from winning
+/// the negotiation, `AVPlayerViewController` must be embedded as a *child* of a separate wrapper
+/// controller that refuses to defer (`childForStatusBar... -> nil`), so the wrapper's own
+/// `.default` style (which adapts to the actual system/app appearance) is used instead.
+private final class InlinePlayerContainerViewController: UIViewController {
+    let playerViewController = AVPlayerViewController()
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+
+        addChild(playerViewController)
+        playerViewController.view.frame = view.bounds
+        playerViewController.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        view.addSubview(playerViewController.view)
+        playerViewController.didMove(toParent: self)
+    }
+
+    override var childForStatusBarHidden: UIViewController? {
+        nil
+    }
+
+    override var childForStatusBarStyle: UIViewController? {
+        nil
+    }
+
+    override var prefersStatusBarHidden: Bool {
+        false
+    }
+
+    override var preferredStatusBarStyle: UIStatusBarStyle {
+        .default
+    }
+}
+
 private struct NativeVideoPlayerContainer: UIViewControllerRepresentable {
     let player: AVPlayer
 
-    func makeUIViewController(context: Context) -> AVPlayerViewController {
-        let controller = AVPlayerViewController()
+    func makeUIViewController(context: Context) -> InlinePlayerContainerViewController {
+        let container = InlinePlayerContainerViewController()
+        let controller = container.playerViewController
         controller.player = player
         controller.showsPlaybackControls = true
         controller.videoGravity = .resizeAspect
@@ -88,17 +127,27 @@ private struct NativeVideoPlayerContainer: UIViewControllerRepresentable {
 
         MediaPlayerManager.shared.registerPlayerViewController(controller)
 
-        return controller
+        return container
     }
 
-    func updateUIViewController(_ uiViewController: AVPlayerViewController, context: Context) {
-        if uiViewController.player !== player {
-            uiViewController.player = player
+    func updateUIViewController(_ uiViewController: InlinePlayerContainerViewController, context: Context) {
+        let controller = uiViewController.playerViewController
+        if controller.player !== player {
+            controller.player = player
         }
     }
 
-    static func dismantleUIViewController(_ uiViewController: AVPlayerViewController, coordinator: Void) {
-        uiViewController.player?.pause()
+    static func dismantleUIViewController(_ uiViewController: InlinePlayerContainerViewController, coordinator: Void) {
+        let controller = uiViewController.playerViewController
+        controller.player?.pause()
+
+        // Detach from the manager and break the child-VC link before UIKit deallocates
+        // the container, so AVKit has no dangling controller to update now-playing info
+        // for from an in-flight async block (see crash: objc_retain in
+        // AVNowPlayingInfoController setPlayerController:).
+        MediaPlayerManager.shared.unregisterPlayerViewController(controller)
+        controller.willMove(toParent: nil)
+        controller.removeFromParent()
     }
 }
 
@@ -120,14 +169,10 @@ private struct NativeAudioPlayerControls: View {
     @StateObject private var uiState = NativeAudioPlayerControlsState()
 
     @Environment(\.colorScheme) private var colorScheme
+    @ObservedObject private var accentPalette = AccentPalette.shared
 
     private var themeColor: Color {
-        if colorScheme == .dark {
-            // Dark mode accent color: deeper/muted orange for better readability
-            return Color(red: 0.76, green: 0.34, blue: 0.20)
-        }
-
-        return Color(red: 0.94, green: 0.50, blue: 0.34)
+        AccentPalette.color(for: accentPalette.accentId, isDark: colorScheme == .dark)
     }
 
     private var subtitleColor: Color {
@@ -213,6 +258,14 @@ private struct NativeAudioPlayerControls: View {
             }
 
             HStack(spacing: 10) {
+                Button(action: { skip(by: -10) }) {
+                    Image(systemName: "gobackward.10")
+                        .font(.callout)
+                        .foregroundColor(themeColor)
+                        .frame(width: 24, height: 24)
+                }
+                .buttonStyle(.plain)
+
                 Button(action: togglePlayback) {
                     Image(systemName: isPlaying ? "pause.fill" : "play.fill")
                         .font(.callout.weight(.semibold))
@@ -225,6 +278,14 @@ private struct NativeAudioPlayerControls: View {
                             Circle()
                                 .stroke(buttonBorderColor, lineWidth: 1)
                         )
+                }
+                .buttonStyle(.plain)
+
+                Button(action: { skip(by: 10) }) {
+                    Image(systemName: "goforward.10")
+                        .font(.callout)
+                        .foregroundColor(themeColor)
+                        .frame(width: 24, height: 24)
                 }
                 .buttonStyle(.plain)
 
@@ -281,6 +342,11 @@ private struct NativeAudioPlayerControls: View {
             MediaPlayerManager.shared.play()
         }
 
+        refreshState()
+    }
+
+    private func skip(by delta: Double) {
+        MediaPlayerManager.shared.skip(by: delta)
         refreshState()
     }
 

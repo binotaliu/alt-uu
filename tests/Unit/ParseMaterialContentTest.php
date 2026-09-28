@@ -2,6 +2,7 @@
 
 use AltUU\Domains\Course\Actions\ParseMaterialContent;
 use AltUU\Domains\Course\Support\MaterialProxyUrl;
+use App\Services\AccountActiveProfile;
 use App\Services\UUCourseClient;
 use App\Services\UUProxyClient;
 use Symfony\Component\DomCrawler\Crawler;
@@ -33,7 +34,7 @@ HTML;
         ->with('https://example.com/page')
         ->andReturn(['body' => $html]);
 
-    $courseClient = new UUCourseClient($proxyClient);
+    $courseClient = new UUCourseClient($proxyClient, new AccountActiveProfile);
     $parser = new ParseMaterialContent($courseClient);
     $result = $parser('https://example.com/page', 'example.com');
 
@@ -65,7 +66,7 @@ HTML;
         ->with('https://example.com/page')
         ->andReturn(['body' => $html]);
 
-    $courseClient = new UUCourseClient($proxyClient);
+    $courseClient = new UUCourseClient($proxyClient, new AccountActiveProfile);
     $parser = new ParseMaterialContent($courseClient);
     $result = $parser('https://example.com/page', 'example.com');
 
@@ -88,7 +89,7 @@ HTML;
         ->with('https://example.com/course/unit/page.html')
         ->andReturn(['body' => $html]);
 
-    $courseClient = new UUCourseClient($proxyClient);
+    $courseClient = new UUCourseClient($proxyClient, new AccountActiveProfile);
     $parser = new ParseMaterialContent($courseClient);
     $result = $parser('https://example.com/course/unit/page.html', 'example.com');
 
@@ -113,7 +114,7 @@ test('it preserves same-host src after purification in nativephp context', funct
         ->with('https://example.com/page.html')
         ->andReturn(['body' => $html]);
 
-    $courseClient = new UUCourseClient($proxyClient);
+    $courseClient = new UUCourseClient($proxyClient, new AccountActiveProfile);
     $parser = new ParseMaterialContent($courseClient);
     $result = $parser('https://example.com/page.html', 'example.com');
 

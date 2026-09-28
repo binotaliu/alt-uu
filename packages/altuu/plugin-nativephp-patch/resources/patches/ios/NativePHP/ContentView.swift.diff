@@ -1,0 +1,166 @@
+--- /Users/binota/Developer/alt-uu-internal/vendor/nativephp/mobile/resources/xcode/NativePHP/ContentView.swift
++++ /Users/binota/Developer/alt-uu-internal/packages/altuu/plugin-nativephp-patch/resources/patches/ios/NativePHP/ContentView.swift
+@@ -13,13 +13,29 @@
+ 
+     var body: some View {
+         NativeSideNavigation(onNavigate: handleNavigation) {
+-            WebViewLayoutContainer(onTabSelected: handleNavigation)
+-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+-                .safeAreaInset(edge: .top, spacing: 0) {
+-                    if uiState.hasTopBar() {
+-                        NativeTopBar(onNavigate: handleNavigation)
++            ZStack(alignment: .topLeading) {
++                WebViewLayoutContainer(onTabSelected: handleNavigation)
++                    .frame(maxWidth: .infinity, maxHeight: .infinity)
++                    .safeAreaInset(edge: .top, spacing: 0) {
++                        if uiState.hasTopBar() {
++                            NativeTopBar(onNavigate: handleNavigation)
++                        }
+                     }
++
++                // [media-player-content-patch]
++                // Media Player Overlay
++                if let mediaPlayerData = uiState.mediaPlayerData {
++                    NativeMediaPlayerView(data: mediaPlayerData)
++                        .position(
++                            x: mediaPlayerData.frame.x + mediaPlayerData.frame.width / 2,
++                            y: mediaPlayerData.frame.y + mediaPlayerData.frame.height / 2
++                        )
++                        .frame(
++                            width: mediaPlayerData.frame.width,
++                            height: mediaPlayerData.frame.height
++                        )
+                 }
++            }
+         }
+     }
+ 
+@@ -203,8 +219,18 @@
+                 return
+             }
+ 
++            // Let subframe navigation (e.g. an <iframe src="https://...">) load inside the
++            // WebView itself. Without this, iOS intercepts the subframe's own navigation as
++            // if it were a top-level link tap — e.g. an embedded YouTube iframe gets bounced
++            // out to the native YouTube app via Universal Links instead of rendering in place.
++            // Only genuine top-level navigation (main frame, or no target frame — e.g. a
++            // target="_blank" link/window.open) should be handed off to the system.
++            let isSubframeNavigation = navigationAction.targetFrame != nil
++                && !navigationAction.targetFrame!.isMainFrame
++
+             // Open external URLs and system schemes with the system handler
+-            if ["http", "https", "tel", "mailto", "sms", "facetime", "facetime-audio"].contains(scheme) {
++            if !isSubframeNavigation,
++               ["http", "https", "tel", "mailto", "sms", "facetime", "facetime-audio"].contains(scheme) {
+                 UIApplication.shared.open(url)
+                 decisionHandler(.cancel)
+             } else {
+@@ -238,18 +264,39 @@
+             injectSafeAreaInsets(webView)
+         }
+ 
+-        private func injectSafeAreaInsets(_ webView: WKWebView) {
++        // [ipad-corner-plugin]
++        func injectSafeAreaInsets(_ webView: WKWebView) {
+             // Get insets from window scene (more reliable than webView.window which can be nil)
+             let windowScene = UIApplication.shared.connectedScenes
+                 .compactMap { $0 as? UIWindowScene }
+                 .first
+ 
+-            let insets = windowScene?.windows.first?.safeAreaInsets ?? webView.window?.safeAreaInsets ?? .zero
++            let targetWindow = windowScene?.windows.first ?? webView.window
++            let insets = targetWindow?.safeAreaInsets ?? .zero
+ 
+-            // Also get color scheme for CSS variable
+-            let isDarkMode = windowScene?.windows.first?.traitCollection.userInterfaceStyle == .dark
++            let cornerInsets: UIEdgeInsets = {
++                guard #available(iOS 26.0, *), let window = targetWindow else {
++                    return .zero
++                }
++
++                return window.edgeInsets(for: .margins(cornerAdaptation: .horizontal))
++            }()
++
++            // Also get color scheme for CSS variable
++            let isDarkMode = targetWindow?.traitCollection.userInterfaceStyle == .dark
+             let colorScheme = isDarkMode ? "dark" : "light"
+ 
++            // Derive a text-scale multiplier from Dynamic Type. iOS has no raw float like
++            // Android's Configuration.fontScale, so use the standard trick: compare the
++            // preferred body font size (which responds to the window's trait collection)
++            // against its size at the standard/default content size category (17pt).
++            let traitCollection = targetWindow?.traitCollection ?? UITraitCollection.current
++            let scaledBodyPointSize = UIFont.preferredFont(
++                forTextStyle: .body,
++                compatibleWith: traitCollection
++            ).pointSize
++            let textScale = scaledBodyPointSize / 17.0
++
+             let js = """
+             (function() {
+                 // Set CSS variables directly on documentElement for immediate availability
+@@ -258,7 +305,17 @@
+                     document.documentElement.style.setProperty('--inset-right', '\(insets.right)px');
+                     document.documentElement.style.setProperty('--inset-bottom', '\(insets.bottom)px');
+                     document.documentElement.style.setProperty('--inset-left', '\(insets.left)px');
++                    document.documentElement.style.setProperty('--corner-inset-top', '\(cornerInsets.top)px');
++                    document.documentElement.style.setProperty('--corner-inset-right', '\(cornerInsets.right)px');
++                    document.documentElement.style.setProperty('--corner-inset-bottom', '\(cornerInsets.bottom)px');
++                    document.documentElement.style.setProperty('--corner-inset-left', '\(cornerInsets.left)px');
++                    // Backward-compatible aliases used by older layouts/plugins.
++                    document.documentElement.style.setProperty('--corner-adaptation-margin-top', '\(cornerInsets.top)px');
++                    document.documentElement.style.setProperty('--corner-adaptation-margin-right', '\(cornerInsets.right)px');
++                    document.documentElement.style.setProperty('--corner-adaptation-margin-bottom', '\(cornerInsets.bottom)px');
++                    document.documentElement.style.setProperty('--corner-adaptation-margin-left', '\(cornerInsets.left)px');
+                     document.documentElement.style.setProperty('--native-color-scheme', '\(colorScheme)');
++                    document.documentElement.style.setProperty('--text-scale', '\(textScale)');
+                 }
+             })();
+             """
+@@ -403,6 +460,11 @@
+             let js = "document.body.classList.remove('keyboard-visible');"
+             self.webView?.evaluateJavaScript(js, completionHandler: nil)
+         }
++
++        @objc func contentSizeCategoryDidChange(_ notification: Notification) {
++            guard let webView = self.webView else { return }
++            injectSafeAreaInsets(webView)
++        }
+     }
+ 
+     func makeUIView(context: Context) -> WKWebView {
+@@ -522,6 +584,14 @@
+             object: nil
+         )
+ 
++        // Re-inject --text-scale when the OS text-size (Dynamic Type) preference changes
++        NotificationCenter.default.addObserver(
++            context.coordinator,
++            selector: #selector(Coordinator.contentSizeCategoryDidChange),
++            name: UIContentSizeCategory.didChangeNotification,
++            object: nil
++        )
++
+         return webView
+     }
+ 
+@@ -557,7 +627,7 @@
+         let safeAreaCSS = """
+         (function() {
+             var style = document.createElement('style');
+-            style.textContent = ':root{--inset-top:env(safe-area-inset-top,0px);--inset-right:env(safe-area-inset-right,0px);--inset-bottom:env(safe-area-inset-bottom,0px);--inset-left:env(safe-area-inset-left,0px)}@media(orientation:landscape){.nativephp-safe-area{padding-right:var(--inset-right);padding-left:var(--inset-left)}}@media(orientation:portrait){.nativephp-safe-area{padding-top:var(--inset-top);padding-bottom:var(--inset-bottom)}}';
++            style.textContent = ':root{--inset-top:env(safe-area-inset-top,0px);--inset-right:env(safe-area-inset-right,0px);--inset-bottom:env(safe-area-inset-bottom,0px);--inset-left:env(safe-area-inset-left,0px);--corner-inset-top:0px;--corner-inset-right:0px;--corner-inset-bottom:0px;--corner-inset-left:0px;--corner-adaptation-margin-top:0px;--corner-adaptation-margin-right:0px;--corner-adaptation-margin-bottom:0px;--corner-adaptation-margin-left:0px}@media(orientation:landscape){.nativephp-safe-area{padding-right:var(--inset-right);padding-left:var(--inset-left)}}@media(orientation:portrait){.nativephp-safe-area{padding-top:var(--inset-top);padding-bottom:var(--inset-bottom)}}';
+             (document.head || document.documentElement).appendChild(style);
+         })();
+         """
+@@ -614,8 +684,8 @@
+     }
+ 
+     func updateUIView(_ uiView: WKWebView, context: Context) {
+-        // No manual insets needed - safeAreaInset handles topbar automatically
+-        // Bottom nav uses its own safeAreaInset in WebViewLayoutContainer
++        // Keep CSS vars in sync when iPad window shape/control geometry changes.
++        context.coordinator.injectSafeAreaInsets(uiView)
+     }
+ }
+ 

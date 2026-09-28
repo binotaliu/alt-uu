@@ -12,21 +12,27 @@ import {
     waitForAttachmentDownloadCompletion,
 } from '@/lib/nativeAttachment';
 import {
+    captureNativeMediaFrame,
+    isNativeFrameCaptureAvailable,
     isNativeMediaBridgeAvailable,
     setNativeMediaPlayer,
     stopNativeMediaPlayer,
     getNativeMediaCurrentTime,
+    getNativeMediaDuration,
 } from '@/lib/nativeMediaPlayer';
 import type {
     NativeMediaSessionContext,
     NativeAppearanceMode,
     NativeMediaType,
 } from '@/lib/nativeMediaPlayer';
+import { useAccountsStore } from '@/stores/accounts';
 import type { MaterialResource } from '@/types';
 
 const props = defineProps<{
     videoUrl: string | null;
     subtitleUrl: string | null;
+    videoProvider: 'native' | 'youtube';
+    embedVideoUrl: string | null;
     downloadUrl: string | null;
     downloadProxyUrl: string | null;
     downloadFileName: string | null;
@@ -41,6 +47,7 @@ const props = defineProps<{
     inAppUrl: string | null;
     nativeSessionContext: NativeMediaSessionContext | null;
     preferWebPlayer: boolean;
+    reloadContent?: () => Promise<boolean>;
 }>();
 
 const emit = defineEmits<{
@@ -62,6 +69,23 @@ const downloadError = ref<string | null>(null);
 const trimmedHtmlContent = computed(() => (props.htmlContent ?? '').trim());
 const hasHtmlContent = computed(() => trimmedHtmlContent.value !== '');
 const hasDownloadableContent = computed(() => !!props.downloadUrl);
+const isYoutubeEmbed = computed(
+    () => props.videoProvider === 'youtube' && !!props.embedVideoUrl,
+);
+const youtubeIframeRef = ref<HTMLIFrameElement | null>(null);
+const youtubeCurrentTime = ref(0);
+const youtubeDuration = ref(0);
+const youtubeOrigin = computed(() => {
+    if (!props.embedVideoUrl) {
+        return null;
+    }
+
+    try {
+        return new URL(props.embedVideoUrl).origin;
+    } catch {
+        return null;
+    }
+});
 const { isDark } = useIsDark();
 const processedHtmlContent = computed(() =>
     processHtmlForColorScheme(trimmedHtmlContent.value, isDark.value),
@@ -73,6 +97,22 @@ const canZoomIn = computed(() => fontScale.value < FONT_SCALE_MAX - 1e-6);
 const nativePlayerHost = ref<HTMLElement | null>(null);
 const usesNativeMediaPlayer = ref(false);
 const nativePlayerError = ref<string | null>(null);
+const accountsStore = useAccountsStore();
+const isCapturingFrame = ref(false);
+const captureError = ref<string | null>(null);
+const canCaptureFrame = computed(
+    () =>
+        usesNativeMediaPlayer.value &&
+        !props.isAudioCourse &&
+        !isYoutubeEmbed.value &&
+        isNativeFrameCaptureAvailable(),
+);
+
+const isReloading = ref(false);
+const reloadError = ref<string | null>(null);
+const canReloadMedia = computed(
+    () => !!props.videoUrl && !isYoutubeEmbed.value,
+);
 
 let nativePlayerSyncTimer: ReturnType<typeof setTimeout> | null = null;
 let systemAppearanceChangeMediaQuery: MediaQueryList | null = null;
@@ -300,7 +340,7 @@ function buildNativePlayerFrame(): {
     };
 }
 
-async function syncNativePlayer(): Promise<void> {
+async function syncNativePlayer(force = false): Promise<void> {
     if (!usesNativeMediaPlayer.value || !props.videoUrl) {
         return;
     }
@@ -319,6 +359,7 @@ async function syncNativePlayer(): Promise<void> {
         materialName: props.activeNodeText,
         appearance: getCurrentAppearanceMode(),
         sessionContext: props.nativeSessionContext,
+        force,
     });
 
     nativePlayerError.value = ok
@@ -395,6 +436,38 @@ function destroyPlayer() {
     }
 }
 
+function handleYoutubeMessage(event: MessageEvent): void {
+    if (!isYoutubeEmbed.value) {
+        return;
+    }
+
+    const data = event.data as
+        | { source?: string; currentTime?: number; duration?: number }
+        | null
+        | undefined;
+
+    if (!data || data.source !== 'altuu-youtube-embed') {
+        return;
+    }
+
+    if (
+        typeof data.currentTime === 'number' &&
+        Number.isFinite(data.currentTime)
+    ) {
+        youtubeCurrentTime.value = data.currentTime;
+    }
+
+    if (
+        typeof data.duration === 'number' &&
+        Number.isFinite(data.duration) &&
+        data.duration > 0
+    ) {
+        youtubeDuration.value = data.duration;
+    }
+
+    emit('nowPlayingUpdate', youtubeCurrentTime.value, 1);
+}
+
 function handleContentClick(event: MouseEvent) {
     const link = (event.target as HTMLElement)?.closest('a[href]');
 
@@ -423,9 +496,9 @@ function handleContentClick(event: MouseEvent) {
 
 watch(
     () => props.videoUrl,
-    async (nextUrl) => {
+    async (nextUrl, previousUrl) => {
         if (usesNativeMediaPlayer.value) {
-            await stopNativeMediaPlayer();
+            await stopNativeMediaPlayer(previousUrl ?? undefined);
 
             if (nextUrl) {
                 nextTick(() => {
@@ -438,6 +511,14 @@ watch(
 
         destroyPlayer();
         nextTick(() => setupPlayer());
+    },
+);
+
+watch(
+    () => props.embedVideoUrl,
+    () => {
+        youtubeCurrentTime.value = 0;
+        youtubeDuration.value = 0;
     },
 );
 
@@ -469,7 +550,7 @@ watch(
     async (preferWebPlayer) => {
         if (preferWebPlayer) {
             if (usesNativeMediaPlayer.value) {
-                await stopNativeMediaPlayer();
+                await stopNativeMediaPlayer(props.videoUrl ?? undefined);
                 usesNativeMediaPlayer.value = false;
                 nativePlayerError.value = null;
                 nextTick(() => setupPlayer());
@@ -493,6 +574,7 @@ watch(
 
 onMounted(() => {
     window.addEventListener('resize', scheduleNativePlayerSync);
+    window.addEventListener('message', handleYoutubeMessage);
     systemAppearanceChangeMediaQuery = window.matchMedia(
         '(prefers-color-scheme: dark)',
     );
@@ -522,6 +604,7 @@ onUnmounted(() => {
     }
 
     window.removeEventListener('resize', scheduleNativePlayerSync);
+    window.removeEventListener('message', handleYoutubeMessage);
     systemAppearanceChangeMediaQuery?.removeEventListener(
         'change',
         onSystemAppearanceChange,
@@ -529,7 +612,7 @@ onUnmounted(() => {
     systemAppearanceChangeMediaQuery = null;
 
     if (usesNativeMediaPlayer.value) {
-        void stopNativeMediaPlayer();
+        void stopNativeMediaPlayer(props.videoUrl ?? undefined);
 
         return;
     }
@@ -537,7 +620,114 @@ onUnmounted(() => {
     destroyPlayer();
 });
 
+function reloadWebPlayer(): void {
+    const el = mediaEl.value;
+
+    if (!el) {
+        return;
+    }
+
+    const resumeAt = el.currentTime;
+    const wasPlaying = !el.paused;
+
+    el.addEventListener(
+        'loadedmetadata',
+        () => {
+            if (resumeAt > 0) {
+                el.currentTime = resumeAt;
+            }
+
+            if (wasPlaying) {
+                void el.play().catch(() => undefined);
+            }
+        },
+        { once: true },
+    );
+    el.load();
+}
+
+async function handleReload(): Promise<void> {
+    if (isReloading.value) {
+        return;
+    }
+
+    isReloading.value = true;
+    reloadError.value = null;
+
+    const urlBefore = props.videoUrl;
+
+    try {
+        const refreshed = props.reloadContent
+            ? await props.reloadContent()
+            : true;
+
+        if (!refreshed) {
+            reloadError.value = '重新載入失敗，請稍後再試。';
+        }
+
+        await nextTick();
+
+        // A changed URL is already handled by the videoUrl watcher.
+        if (props.videoUrl !== urlBefore) {
+            return;
+        }
+
+        if (usesNativeMediaPlayer.value) {
+            await syncNativePlayer(true);
+        } else {
+            reloadWebPlayer();
+        }
+    } catch (error) {
+        reloadError.value =
+            error instanceof Error && error.message
+                ? error.message
+                : '重新載入失敗，請稍後再試。';
+    } finally {
+        isReloading.value = false;
+    }
+}
+
+async function handleCaptureFrame(): Promise<void> {
+    if (isCapturingFrame.value) {
+        return;
+    }
+
+    isCapturingFrame.value = true;
+    captureError.value = null;
+
+    try {
+        await accountsStore.loadAccounts();
+
+        const studentId = accountsStore.accounts.find(
+            (account) => account.isActive,
+        )?.username;
+
+        if (!studentId) {
+            captureError.value = '找不到目前的帳號，無法產生截圖。';
+
+            return;
+        }
+
+        await captureNativeMediaFrame({
+            studentId,
+            courseName: props.courseTitle,
+            materialName: props.activeNodeText,
+        });
+    } catch (error) {
+        captureError.value =
+            error instanceof Error && error.message
+                ? error.message
+                : '截圖失敗，請稍後再試。';
+    } finally {
+        isCapturingFrame.value = false;
+    }
+}
+
 async function getCurrentTime(): Promise<number> {
+    if (isYoutubeEmbed.value) {
+        return youtubeCurrentTime.value;
+    }
+
     if (usesNativeMediaPlayer.value) {
         return getNativeMediaCurrentTime();
     }
@@ -547,7 +737,36 @@ async function getCurrentTime(): Promise<number> {
     return el ? el.currentTime : 0;
 }
 
+async function getDuration(): Promise<number> {
+    if (isYoutubeEmbed.value) {
+        return youtubeDuration.value;
+    }
+
+    if (usesNativeMediaPlayer.value) {
+        return getNativeMediaDuration();
+    }
+
+    const duration = mediaEl.value?.duration;
+
+    return typeof duration === 'number' && Number.isFinite(duration)
+        ? duration
+        : 0;
+}
+
 async function seekTo(seconds: number): Promise<void> {
+    if (isYoutubeEmbed.value) {
+        const contentWindow = youtubeIframeRef.value?.contentWindow;
+
+        if (contentWindow && youtubeOrigin.value) {
+            contentWindow.postMessage(
+                { source: 'altuu-app', type: 'seek', time: seconds },
+                youtubeOrigin.value,
+            );
+        }
+
+        return;
+    }
+
     if (usesNativeMediaPlayer.value) {
         try {
             const { BridgeCall } = await import('#nativephp');
@@ -590,7 +809,7 @@ async function seekTo(seconds: number): Promise<void> {
 
 async function closePlayer(): Promise<void> {
     if (usesNativeMediaPlayer.value) {
-        await stopNativeMediaPlayer();
+        await stopNativeMediaPlayer(props.videoUrl ?? undefined);
     }
 
     const el = mediaEl.value;
@@ -603,17 +822,40 @@ async function closePlayer(): Promise<void> {
     }
 }
 
-defineExpose({ getCurrentTime, seekTo, closePlayer });
+defineExpose({ getCurrentTime, getDuration, seekTo, closePlayer });
 </script>
 
 <template>
     <section class="space-y-4">
         <div
-            v-if="videoUrl"
+            v-if="videoUrl || isYoutubeEmbed"
             class="sticky top-[calc(var(--inset-top,0px)+4.75rem)] md:static"
         >
             <div
-                v-if="usesNativeMediaPlayer"
+                v-if="isYoutubeEmbed"
+                class="overflow-hidden rounded-2xl border border-theme-200 bg-black dark:border-zinc-700"
+            >
+                <iframe
+                    ref="youtubeIframeRef"
+                    class="aspect-video w-full"
+                    :src="embedVideoUrl ?? undefined"
+                    :title="activeNodeText"
+                    allow="
+                        accelerometer;
+                        autoplay;
+                        clipboard-write;
+                        encrypted-media;
+                        gyroscope;
+                        picture-in-picture;
+                        web-share;
+                    "
+                    allowfullscreen
+                    frameborder="0"
+                />
+            </div>
+
+            <div
+                v-else-if="usesNativeMediaPlayer"
                 ref="nativePlayerHost"
                 class="overflow-hidden rounded-2xl opacity-0"
                 :class="isAudioCourse ? 'h-32' : 'aspect-video'"
@@ -623,7 +865,7 @@ defineExpose({ getCurrentTime, seekTo, closePlayer });
 
             <div
                 v-else
-                class="overflow-hidden rounded-2xl border border-warm-200 bg-white dark:border-zinc-700 dark:bg-zinc-900"
+                class="overflow-hidden rounded-2xl border border-theme-200 bg-white dark:border-zinc-700 dark:bg-zinc-900"
             >
                 <audio
                     v-if="isAudioCourse"
@@ -655,23 +897,35 @@ defineExpose({ getCurrentTime, seekTo, closePlayer });
             </div>
 
             <p
-                v-if="nativePlayerError"
-                class="border-t border-warm-700/30 bg-warm-900/90 px-3 py-2 text-xs text-warm-100"
+                v-if="nativePlayerError && !isYoutubeEmbed"
+                class="border-t border-theme-700/30 bg-theme-900/90 px-3 py-2 text-xs text-theme-100"
             >
                 {{ nativePlayerError }}
             </p>
         </div>
 
         <div
-            v-if="props.inAppUrl || hasHtmlContent || hasDownloadableContent"
+            v-if="
+                props.inAppUrl ||
+                hasHtmlContent ||
+                hasDownloadableContent ||
+                canCaptureFrame ||
+                canReloadMedia
+            "
             class="space-y-3"
         >
+            <p v-if="captureError" class="px-1 text-xs text-red-600">
+                {{ captureError }}
+            </p>
+            <p v-if="reloadError" class="px-1 text-xs text-red-600">
+                {{ reloadError }}
+            </p>
             <div
-                class="flex flex-row items-stretch justify-between gap-2 rounded-2xl border border-warm-200 bg-white/90 px-4 py-3 text-xs font-medium text-warm-700 shadow-sm sm:px-6 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
+                class="flex flex-row items-stretch justify-between gap-2 rounded-2xl border border-theme-200 bg-white/90 px-4 py-3 text-xs font-medium text-theme-700 shadow-sm sm:px-6 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
             >
                 <button
                     type="button"
-                    class="h-10 w-full truncate rounded-lg border border-warm-200 bg-white px-3 text-sm font-medium text-warm-900 transition hover:border-warm-400 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-100 dark:hover:border-zinc-400"
+                    class="h-10 w-full min-w-0 truncate rounded-lg border border-theme-200 bg-white px-3 text-sm font-medium text-theme-900 transition hover:border-theme-400 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-100 dark:hover:border-zinc-400"
                     :disabled="!props.inAppUrl || isOpeningInAppBrowser"
                     @click="handleOpenInAppBrowser"
                 >
@@ -679,9 +933,84 @@ defineExpose({ getCurrentTime, seekTo, closePlayer });
                 </button>
 
                 <button
+                    v-if="canReloadMedia"
+                    type="button"
+                    class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-theme-200 bg-white text-theme-900 transition hover:border-theme-400 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-100 dark:hover:border-zinc-400"
+                    :disabled="isReloading"
+                    aria-label="重新載入教材"
+                    @click="handleReload"
+                >
+                    <svg
+                        class="h-5 w-5"
+                        :class="{ 'motion-safe:animate-spin': isReloading }"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.8"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        xmlns="http://www.w3.org/2000/svg"
+                        aria-hidden="true"
+                    >
+                        <path d="M20 12a8 8 0 1 1-2.34-5.66" />
+                        <path d="M20 4v4.5h-4.5" />
+                    </svg>
+                </button>
+
+                <button
+                    v-if="canCaptureFrame"
+                    type="button"
+                    class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-theme-200 bg-white text-theme-900 transition hover:border-theme-400 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-100 dark:hover:border-zinc-400"
+                    :disabled="isCapturingFrame"
+                    aria-label="截取畫面"
+                    @click="handleCaptureFrame"
+                >
+                    <svg
+                        v-if="isCapturingFrame"
+                        class="h-5 w-5 motion-safe:animate-spin"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                        aria-hidden="true"
+                    >
+                        <circle
+                            cx="12"
+                            cy="12"
+                            r="9"
+                            stroke="currentColor"
+                            stroke-width="3"
+                            class="opacity-30"
+                        />
+                        <path
+                            d="M21 12a9 9 0 0 0-9-9"
+                            stroke="currentColor"
+                            stroke-width="3"
+                            stroke-linecap="round"
+                        />
+                    </svg>
+                    <svg
+                        v-else
+                        class="h-5 w-5"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.8"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        xmlns="http://www.w3.org/2000/svg"
+                        aria-hidden="true"
+                    >
+                        <path
+                            d="M4 8a2 2 0 0 1 2-2h1.5l1.2-1.6A1 1 0 0 1 9.5 4h5a1 1 0 0 1 .8.4L16.5 6H18a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8Z"
+                        />
+                        <circle cx="12" cy="12.5" r="3.5" />
+                    </svg>
+                </button>
+
+                <button
                     v-if="hasDownloadableContent"
                     type="button"
-                    class="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg border border-warm-200 bg-white px-3 text-sm font-semibold transition hover:border-warm-400 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-100 dark:hover:border-zinc-400"
+                    class="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg border border-theme-200 bg-white px-3 text-sm font-semibold transition hover:border-theme-400 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-100 dark:hover:border-zinc-400"
                     :disabled="!props.downloadUrl || isDownloadingFile"
                     @click="handleDownloadFile"
                 >
@@ -719,11 +1048,11 @@ defineExpose({ getCurrentTime, seekTo, closePlayer });
 
                 <div
                     v-else-if="hasHtmlContent"
-                    class="inline-flex h-10 items-center gap-2 rounded-xl border border-warm-200 bg-warm-50 px-2 text-warm-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+                    class="inline-flex h-10 items-center gap-2 rounded-xl border border-theme-200 bg-theme-50 px-2 text-theme-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
                 >
                     <button
                         type="button"
-                        class="flex h-8 w-8 items-center justify-center rounded-lg border border-warm-200 bg-white text-sm font-semibold transition hover:border-warm-400 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-100 dark:hover:border-zinc-400"
+                        class="flex h-8 w-8 items-center justify-center rounded-lg border border-theme-200 bg-white text-sm font-semibold transition hover:border-theme-400 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-100 dark:hover:border-zinc-400"
                         :disabled="!canZoomOut || isSavingFontScale"
                         @click="adjustFontScale(-FONT_SCALE_STEP)"
                         aria-label="縮小字體"
@@ -731,14 +1060,14 @@ defineExpose({ getCurrentTime, seekTo, closePlayer });
                         A-
                     </button>
                     <button
-                        class="w-12 text-center text-sm font-semibold text-warm-900 tabular-nums dark:text-zinc-100"
+                        class="w-12 text-center text-sm font-semibold text-theme-900 tabular-nums dark:text-zinc-100"
                         @click="adjustFontScale(FONT_SCALE_DEFAULT - fontScale)"
                     >
                         {{ scaleLabel }}
                     </button>
                     <button
                         type="button"
-                        class="flex h-8 w-8 items-center justify-center rounded-lg border border-warm-200 bg-white text-sm font-semibold transition hover:border-warm-400 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-100 dark:hover:border-zinc-400"
+                        class="flex h-8 w-8 items-center justify-center rounded-lg border border-theme-200 bg-white text-sm font-semibold transition hover:border-theme-400 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-100 dark:hover:border-zinc-400"
                         :disabled="!canZoomIn || isSavingFontScale"
                         @click="adjustFontScale(FONT_SCALE_STEP)"
                         aria-label="放大字體"
@@ -750,7 +1079,7 @@ defineExpose({ getCurrentTime, seekTo, closePlayer });
 
             <article
                 v-if="hasHtmlContent && !hasDownloadableContent"
-                class="prose prose-sm max-w-none rounded-2xl border border-warm-200 bg-white px-4 py-5 text-warm-800 shadow-sm prose-warm sm:px-6 md:prose-base dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:prose-zinc dark:prose-invert"
+                class="prose prose-sm max-w-none rounded-2xl border border-theme-200 bg-white px-4 py-5 text-theme-800 shadow-sm prose-theme sm:px-6 md:prose-base dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:prose-zinc dark:prose-invert"
                 :style="fontScaleStyle"
                 @click="handleContentClick"
                 v-html="processedHtmlContent"
@@ -758,7 +1087,7 @@ defineExpose({ getCurrentTime, seekTo, closePlayer });
 
             <div
                 v-else-if="hasDownloadableContent"
-                class="rounded-2xl border border-warm-200 bg-white p-5 text-sm text-warm-900 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
+                class="rounded-2xl border border-theme-200 bg-white p-5 text-sm text-theme-900 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
             >
                 <p class="mb-3">
                     <template v-if="props.isPdf">
@@ -780,22 +1109,27 @@ defineExpose({ getCurrentTime, seekTo, closePlayer });
         </div>
 
         <p
-            v-if="!videoUrl && !hasHtmlContent && !hasDownloadableContent"
-            class="rounded-xl border border-dashed border-warm-300 bg-warm-50 p-4 text-sm text-warm-700"
+            v-if="
+                !videoUrl &&
+                !isYoutubeEmbed &&
+                !hasHtmlContent &&
+                !hasDownloadableContent
+            "
+            class="rounded-xl border border-dashed border-theme-300 bg-theme-50 p-4 text-sm text-theme-700"
         >
             此節點沒有可顯示的教材內容。
         </p>
 
         <div
             v-if="resources.length > 1"
-            class="rounded-2xl border border-warm-200 bg-white/90 p-4"
+            class="rounded-2xl border border-theme-200 bg-white/90 p-4"
         >
-            <h3 class="mb-2 text-sm font-semibold text-warm-900">附件資源</h3>
+            <h3 class="mb-2 text-sm font-semibold text-theme-900">附件資源</h3>
             <ul class="space-y-2 text-sm">
                 <li
                     v-for="(resource, index) in resources"
                     :key="index"
-                    class="rounded-lg border border-warm-200 bg-warm-50 px-3 py-2 text-warm-800"
+                    class="rounded-lg border border-theme-200 bg-theme-50 px-3 py-2 text-theme-800"
                 >
                     {{
                         resource.filename ||

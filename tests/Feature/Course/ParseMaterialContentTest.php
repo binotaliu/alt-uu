@@ -1,6 +1,7 @@
 <?php
 
 use AltUU\Domains\Course\Support\MaterialProxyUrl;
+use App\Services\AccountCredentialsStore;
 use App\Services\UUSessionStore;
 use Illuminate\Support\Facades\Http;
 
@@ -17,6 +18,7 @@ beforeEach(function () {
         'profile' => ['display_name' => '測試', 'username' => 's123'],
     ];
 
+    app(AccountCredentialsStore::class)->put('s123', 'test-password');
     app(UUSessionStore::class)->put($session);
 });
 
@@ -91,9 +93,9 @@ it('returns video url and cleaned html for declarative html5 flowplayer content'
         <title>1-0 課程內容</title>
         </head>
         <body>
-        <div id="video" class="flowplayer no-toggle" data-share="false" data-key="$519606731317810">
-            <video data-title="" poster="../images/780042.jpg">
-                <source type="application/x-mpegurl" src="https://lodm.nou.edu.tw/vod/_definst_/780042/01/01.mp4/playlist.m3u8">
+        <div id="video" class="flowplayer no-toggle" data-share="false" data-key="$000000000000000">
+            <video data-title="" poster="../images/900001.jpg">
+                <source type="application/x-mpegurl" src="https://media.example.com/vod/_definst_/900001/01/01.mp4/playlist.m3u8">
             </video>
         </div>
         <div id="wrapper">
@@ -114,7 +116,7 @@ it('returns video url and cleaned html for declarative html5 flowplayer content'
     $response = getJson('/materials/content/parsed?url=https://example.com/page.html');
 
     $response->assertOk();
-    $response->assertJsonPath('videoUrl', 'https://lodm.nou.edu.tw/vod/_definst_/780042/01/01.mp4/playlist.m3u8');
+    $response->assertJsonPath('videoUrl', 'https://media.example.com/vod/_definst_/900001/01/01.mp4/playlist.m3u8');
     $response->assertJsonPath('subtitleUrl', null);
     $response->assertJsonPath('downloadUrl', null);
 
@@ -266,6 +268,43 @@ it('does not classify plain text content as a download', function () {
 
     Http::assertSent(fn ($request) => $request->method() === 'HEAD');
     Http::assertSent(fn ($request) => $request->method() === 'GET');
+});
+
+it('returns a youtube embed result without fetching the redirector page', function () {
+    Http::fake();
+
+    $url = 'https://example.com/learn/path/youtubeEmbed.php?v=dQw4w9WgXcQ';
+    $response = getJson('/materials/content/parsed?url='.rawurlencode($url));
+
+    $response->assertOk();
+
+    $data = $response->json();
+
+    expect($data['videoUrl'])->toBeNull();
+    expect($data['videoProvider'])->toBe('youtube');
+    expect($data['embedVideoUrl'])->toBe(
+        config('services.statics.base_url').'/youtube-embed.html?v=dQw4w9WgXcQ',
+    );
+    expect($data['downloadUrl'])->toBeNull();
+    expect($data['htmlContent'])->toBe('');
+
+    Http::assertNothingSent();
+});
+
+it('returns a youtube embed result for an lms-prefixed youtube url', function () {
+    Http::fake();
+
+    $url = 'https://example.com/base/100001/content/999999/https://youtu.be/dQw4w9WgXcQ?si=xxxxxx';
+    $response = getJson('/materials/content/parsed?url='.rawurlencode($url));
+
+    $response->assertOk();
+
+    expect($response->json('videoProvider'))->toBe('youtube');
+    expect($response->json('embedVideoUrl'))->toBe(
+        config('services.statics.base_url').'/youtube-embed.html?v=dQw4w9WgXcQ',
+    );
+
+    Http::assertNothingSent();
 });
 
 it('rewrites relative src and anchor href attributes in parsed html', function () {

@@ -98,23 +98,23 @@ onBeforeUnmount(() => {
                     class="w-full max-w-2xl rounded-t-3xl bg-white shadow-2xl md:rounded-2xl dark:border-zinc-700 dark:bg-zinc-900"
                 >
                     <header
-                        class="flex items-start justify-between gap-3 border-b border-warm-200 px-4 pt-4 pb-3 dark:border-zinc-700"
+                        class="flex items-start justify-between gap-3 border-b border-theme-200 px-4 pt-4 pb-3 dark:border-zinc-700"
                     >
                         <div class="min-w-0">
                             <h3
-                                class="text-base font-semibold text-warm-900 md:text-lg dark:text-zinc-100"
+                                class="text-base font-semibold text-theme-900 md:text-lg dark:text-zinc-100"
                             >
                                 {{ title }}
                             </h3>
                             <p
-                                class="mt-1 text-xs text-warm-600 md:text-sm dark:text-zinc-400"
+                                class="mt-1 text-xs text-theme-700 md:text-sm dark:text-zinc-400"
                             >
                                 {{ contextLabel }}：{{ contextValue }}
                             </p>
                         </div>
                         <button
                             type="button"
-                            class="inline-flex h-9 w-9 items-center justify-center text-warm-700 transition hover:border-warm-400 hover:text-warm-900 dark:text-zinc-300 dark:hover:border-zinc-400 dark:hover:text-zinc-100"
+                            class="inline-flex h-9 w-9 items-center justify-center text-theme-700 transition hover:border-theme-400 hover:text-theme-900 dark:text-zinc-300 dark:hover:border-zinc-400 dark:hover:text-zinc-100"
                             aria-label="關閉"
                             @click="closeModal"
                         >
@@ -129,11 +129,11 @@ onBeforeUnmount(() => {
                     </div>
 
                     <footer
-                        class="flex flex-col items-stretch justify-end gap-2 border-t border-warm-200 px-4 py-3 pb-(--inset-bottom,1.5rem) md:flex-row md:items-center md:pb-3 dark:border-zinc-700"
+                        class="flex flex-col items-stretch justify-end gap-2 border-t border-theme-200 px-4 py-3 pb-(--inset-bottom,1.5rem) md:flex-row md:items-center md:pb-3 dark:border-zinc-700"
                     >
                         <button
                             type="button"
-                            class="rounded-xl border border-warm-300 bg-white px-4 py-2 font-semibold text-warm-700 transition hover:border-warm-400 hover:bg-warm-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:border-zinc-500 dark:hover:bg-zinc-700"
+                            class="rounded-xl border border-theme-300 bg-white px-4 py-2 font-semibold text-theme-700 transition hover:border-theme-400 hover:bg-theme-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:border-zinc-500 dark:hover:bg-zinc-700"
                             :disabled="isSubmitting"
                             @click="closeModal"
                         >
@@ -141,7 +141,7 @@ onBeforeUnmount(() => {
                         </button>
                         <button
                             type="button"
-                            class="rounded-xl bg-warm-700 px-4 py-2 font-semibold text-white transition hover:bg-warm-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-warm-800 dark:hover:bg-warm-700"
+                            class="rounded-xl bg-theme-700 px-4 py-2 font-semibold text-white transition hover:bg-theme-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-theme-800 dark:hover:bg-theme-700"
                             :disabled="isSubmitting"
                             @click="emit('submit')"
                         >

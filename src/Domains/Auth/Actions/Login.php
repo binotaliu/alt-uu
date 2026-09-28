@@ -26,7 +26,11 @@ final readonly class Login
         if (! $result['ok']) {
             $message = $this->mapFailedMessage($result['message']);
 
-            return response()->json(['ok' => false, 'message' => $message], 422);
+            return response()->json([
+                'ok' => false,
+                'message' => $message,
+                'raw' => $result['raw'] ?? null,
+            ], 422);
         }
 
         $this->queueAppBootCookie();

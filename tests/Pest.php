@@ -1,5 +1,6 @@
 <?php
 
+use App\Services\Diagnostics\DiagnosticRecorder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -16,7 +17,7 @@ use Tests\TestCase;
 
 pest()->extend(TestCase::class)
     ->use(RefreshDatabase::class)
-    ->in('Feature');
+    ->in('Feature', 'Browser');
 
 /*
 |--------------------------------------------------------------------------
@@ -47,4 +48,15 @@ expect()->extend('toBeOne', function () {
 function something()
 {
     // ..
+}
+
+/**
+ * Opens the diagnostic recording window for the current test.
+ *
+ * Recording is off by default in the app, so anything asserting on recorded
+ * events has to opt in exactly as a user would.
+ */
+function enableDiagnosticRecording(): void
+{
+    app(DiagnosticRecorder::class)->setRecording(true);
 }

@@ -2,6 +2,11 @@
 import { VideoCameraIcon } from '@heroicons/vue/24/outline';
 import { computed, onMounted, ref } from 'vue';
 import { Browser } from '#nativephp';
+import ErrorRetry from '@/components/ErrorRetry.vue';
+import LiveSessionNicknameModalDialog from '@/components/LiveSessionNicknameModalDialog.vue';
+import type { ApiError } from '@/lib/apiError';
+import { useAccountsStore } from '@/stores/accounts';
+import { useAppConfigStore } from '@/stores/appConfig';
 import type { NouToolsLiveSessionItem } from '@/types';
 
 type SessionStatus = 'upcoming' | 'ongoing' | 'ended';
@@ -9,6 +14,8 @@ type DisplayTimezone = 'taiwan' | 'local';
 
 type FlattenedLiveSession = {
     id: string;
+    accountId: number | null;
+    accountLabel: string;
     courseId: string;
     courseName: string;
     className: string | null;
@@ -29,7 +36,20 @@ const props = defineProps<{
     liveSessions: NouToolsLiveSessionItem[];
     isLoading: boolean;
     error: string | null;
+    errorDetail?: ApiError | null;
+    hasMultipleAccounts: boolean;
+    showAllAccounts: boolean;
 }>();
+
+const emit = defineEmits<{
+    'update:showAllAccounts': [value: boolean];
+    retry: [];
+}>();
+
+const accountScopeOptions = [
+    { value: false, label: '目前帳號' },
+    { value: true, label: '所有帳號' },
+] as const;
 
 function toDate(date: string, time: string): Date | null {
     const normalizedTime = time.includes('+') ? time : `${time}+08:00`;
@@ -46,6 +66,15 @@ const taiwanTimeZone = 'Asia/Taipei';
 
 const displayTimezone = ref<DisplayTimezone>('taiwan');
 const isSavingTimezonePreference = ref(false);
+
+const accountsStore = useAccountsStore();
+const appConfigStore = useAppConfigStore();
+
+const nicknameModalEnabled = ref<boolean>(true);
+const isNicknameModalOpen = ref(false);
+const pendingClassroomUrl = ref<string | null>(null);
+const pendingNickname = ref('');
+const pendingEmail = ref('');
 
 const systemTimeZone =
     Intl.DateTimeFormat().resolvedOptions().timeZone ?? 'Etc/UTC';
@@ -66,16 +95,12 @@ const timezoneOptions = [
 ] as const;
 
 onMounted(async () => {
-    try {
-        const response = await fetch('/api/preferences/live-sessions-timezone');
-        const data = await response.json();
+    await appConfigStore.loadPreferences();
 
-        if (data.timezone === 'taiwan' || data.timezone === 'local') {
-            displayTimezone.value = data.timezone;
-        }
-    } catch {
-        // keep default
-    }
+    displayTimezone.value = appConfigStore.liveSessionsTimezone;
+    nicknameModalEnabled.value = appConfigStore.liveSessionNicknameModalEnabled;
+
+    await accountsStore.loadAccounts();
 });
 
 async function setDisplayTimezone(value: DisplayTimezone): Promise<void> {
@@ -83,12 +108,8 @@ async function setDisplayTimezone(value: DisplayTimezone): Promise<void> {
     isSavingTimezonePreference.value = true;
 
     try {
-        await fetch('/api/preferences/live-sessions-timezone', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ timezone: value }),
+        await appConfigStore.updatePreferences({
+            liveSessionsTimezone: value,
         });
     } finally {
         isSavingTimezonePreference.value = false;
@@ -247,7 +268,9 @@ const flattenedSessions = computed<FlattenedLiveSession[]>(() => {
                 const endAt = toDate(item.date, item.endTime);
 
                 return {
-                    id: `${session.courseId}-${session.classCode ?? 'NA'}-${item.date}-${item.startTime}`,
+                    id: `${session.accountId ?? 'NA'}-${session.courseId}-${session.classCode ?? 'NA'}-${item.date}-${item.startTime}`,
+                    accountId: session.accountId,
+                    accountLabel: session.accountLabel,
                     courseId: session.courseId,
                     courseName: session.courseName,
                     className: session.className,
@@ -324,25 +347,95 @@ const openLink = async (url: string) => {
         window.open(url, '_blank', 'noopener');
     }
 };
+
+function resolveStudentIdentity(
+    session: FlattenedLiveSession,
+): { username: string; displayName: string } | null {
+    const account = accountsStore.accounts.find(
+        (candidate) => candidate.id === session.accountId,
+    );
+
+    if (account) {
+        return { username: account.username, displayName: account.displayName };
+    }
+
+    if (appConfigStore.username && appConfigStore.displayName) {
+        return {
+            username: appConfigStore.username,
+            displayName: appConfigStore.displayName,
+        };
+    }
+
+    return null;
+}
+
+function handleClassroomLinkClick(url: string, session: FlattenedLiveSession) {
+    if (!nicknameModalEnabled.value) {
+        openLink(url);
+
+        return;
+    }
+
+    pendingClassroomUrl.value = url;
+
+    const identity = resolveStudentIdentity(session);
+    pendingNickname.value = identity
+        ? `${identity.username} ${identity.displayName}`
+        : '';
+    pendingEmail.value = identity
+        ? `${identity.username}@webmail.nou.edu.tw`
+        : '';
+    isNicknameModalOpen.value = true;
+}
+
+function onNicknameModalEntered() {
+    if (pendingClassroomUrl.value) {
+        openLink(pendingClassroomUrl.value);
+    }
+
+    isNicknameModalOpen.value = false;
+}
 </script>
 
 <template>
     <div class="space-y-4">
+        <section v-if="hasMultipleAccounts" class="mx-auto max-w-lg">
+            <h3 class="sr-only">顯示範圍</h3>
+            <div
+                class="flex rounded-xl border border-theme-200 bg-theme-50 p-1 dark:border-zinc-700 dark:bg-zinc-800"
+            >
+                <button
+                    v-for="option in accountScopeOptions"
+                    :key="String(option.value)"
+                    type="button"
+                    class="flex-1 rounded-lg px-3 py-2 text-sm font-medium transition"
+                    :class="
+                        showAllAccounts === option.value
+                            ? 'bg-white text-theme-900 shadow-sm dark:bg-zinc-700 dark:text-zinc-100'
+                            : 'text-theme-700 hover:text-theme-900 dark:text-zinc-400 dark:hover:text-zinc-200'
+                    "
+                    @click="emit('update:showAllAccounts', option.value)"
+                >
+                    {{ option.label }}
+                </button>
+            </div>
+        </section>
+
         <section
             v-if="shouldShowTimezoneSelector"
-            class="mx-auto max-w-lg rounded-2xl border border-warm-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-900"
+            class="mx-auto max-w-lg rounded-2xl border border-theme-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-900"
         >
-            <h3 class="text-sm font-semibold text-warm-900 dark:text-zinc-100">
+            <h3 class="text-sm font-semibold text-theme-900 dark:text-zinc-100">
                 選擇顯示的時區
             </h3>
             <p
-                class="mt-1 text-xs leading-relaxed text-warm-600 dark:text-zinc-400"
+                class="mt-1 text-xs leading-relaxed text-theme-700 dark:text-zinc-400"
             >
                 系統偵測到你的時區是
                 {{ detectedTimezoneLabel }}，你可以選擇本頁顯示的時區。
             </p>
             <div
-                class="mt-3 flex rounded-xl border border-warm-200 bg-warm-50 p-1 dark:border-zinc-700 dark:bg-zinc-800"
+                class="mt-3 flex rounded-xl border border-theme-200 bg-theme-50 p-1 dark:border-zinc-700 dark:bg-zinc-800"
             >
                 <button
                     v-for="option in timezoneOptions"
@@ -351,8 +444,8 @@ const openLink = async (url: string) => {
                     class="flex-1 rounded-lg px-3 py-2 text-sm font-medium transition"
                     :class="
                         displayTimezone === option.value
-                            ? 'bg-white text-warm-900 shadow-sm dark:bg-zinc-700 dark:text-zinc-100'
-                            : 'text-warm-600 hover:text-warm-900 dark:text-zinc-400 dark:hover:text-zinc-200'
+                            ? 'bg-white text-theme-900 shadow-sm dark:bg-zinc-700 dark:text-zinc-100'
+                            : 'text-theme-700 hover:text-theme-900 dark:text-zinc-400 dark:hover:text-zinc-200'
                     "
                     :disabled="isSavingTimezonePreference"
                     @click="setDisplayTimezone(option.value)"
@@ -364,40 +457,40 @@ const openLink = async (url: string) => {
 
         <div v-if="props.isLoading" class="space-y-4">
             <div
-                class="rounded-2xl border border-warm-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-900"
+                class="rounded-2xl border border-theme-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-900"
             >
                 <div
-                    class="h-4 w-40 animate-pulse rounded bg-warm-200 dark:bg-zinc-700"
+                    class="h-4 w-40 animate-pulse rounded bg-theme-200 dark:bg-zinc-700"
                 />
                 <div
-                    class="mt-3 h-3 w-48 animate-pulse rounded bg-warm-100 dark:bg-zinc-800"
+                    class="mt-3 h-3 w-48 animate-pulse rounded bg-theme-100 dark:bg-zinc-800"
                 />
             </div>
 
             <div class="space-y-3">
                 <div v-for="section in 2" :key="section" class="space-y-2">
                     <div
-                        class="h-5 w-32 animate-pulse rounded bg-warm-200 dark:bg-zinc-700"
+                        class="h-5 w-32 animate-pulse rounded bg-theme-200 dark:bg-zinc-700"
                     />
 
                     <div
                         v-for="item in 3"
                         :key="item"
-                        class="rounded-2xl border border-warm-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-900"
+                        class="rounded-2xl border border-theme-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-900"
                     >
                         <div class="flex items-center gap-3">
                             <div
-                                class="h-16 w-16 animate-pulse rounded-lg bg-warm-100 dark:bg-zinc-800"
+                                class="h-16 w-16 animate-pulse rounded-lg bg-theme-100 dark:bg-zinc-800"
                             />
                             <div class="min-w-0 flex-1 space-y-2">
                                 <div
-                                    class="h-4 w-3/4 animate-pulse rounded bg-warm-200 dark:bg-zinc-700"
+                                    class="h-4 w-3/4 animate-pulse rounded bg-theme-200 dark:bg-zinc-700"
                                 />
                                 <div
-                                    class="h-3 w-1/2 animate-pulse rounded bg-warm-100 dark:bg-zinc-800"
+                                    class="h-3 w-1/2 animate-pulse rounded bg-theme-100 dark:bg-zinc-800"
                                 />
                                 <div
-                                    class="h-3 w-1/3 animate-pulse rounded bg-warm-100 dark:bg-zinc-800"
+                                    class="h-3 w-1/3 animate-pulse rounded bg-theme-100 dark:bg-zinc-800"
                                 />
                             </div>
                         </div>
@@ -406,16 +499,17 @@ const openLink = async (url: string) => {
             </div>
         </div>
 
-        <div
+        <ErrorRetry
             v-else-if="props.error"
-            class="rounded-2xl border border-rose-300 bg-rose-50 p-4 text-sm text-rose-700"
-        >
-            {{ props.error }}
-        </div>
+            :message="props.error"
+            :retrying="props.isLoading"
+            :detail="props.errorDetail"
+            @retry="emit('retry')"
+        />
 
         <div
             v-else-if="flattenedSessions.length === 0"
-            class="rounded-2xl border border-dashed border-warm-300 bg-warm-50 p-4 text-sm text-warm-700 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-300"
+            class="rounded-2xl border border-dashed border-theme-300 bg-theme-50 p-4 text-sm text-theme-700 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-300"
         >
             目前沒有可顯示的視訊面授班級資訊。
         </div>
@@ -427,10 +521,10 @@ const openLink = async (url: string) => {
                 :key="group.label"
             >
                 <header
-                    class="rounded-2xl border border-warm-200 bg-warm-50 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-900"
+                    class="rounded-2xl border border-theme-200 bg-theme-50 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-900"
                 >
                     <h3
-                        class="text-sm font-semibold text-warm-900 dark:text-zinc-100"
+                        class="text-sm font-semibold text-theme-900 dark:text-zinc-100"
                     >
                         {{ group.label }}
                     </h3>
@@ -438,7 +532,7 @@ const openLink = async (url: string) => {
 
                 <div
                     v-if="group.sessions.length === 0"
-                    class="rounded-2xl border border-dashed border-warm-300 bg-warm-50 p-4 text-sm text-warm-700 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-300"
+                    class="rounded-2xl border border-dashed border-theme-300 bg-theme-50 p-4 text-sm text-theme-700 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-300"
                 >
                     {{ group.emptyStateMessage }}
                 </div>
@@ -450,7 +544,7 @@ const openLink = async (url: string) => {
                         class="space-y-2"
                     >
                         <div
-                            class="px-1 py-1 text-xs font-bold text-warm-700 dark:text-zinc-200"
+                            class="px-1 py-1 text-xs font-bold text-theme-700 dark:text-zinc-200"
                         >
                             {{ monthGroup.monthLabel }}
                         </div>
@@ -461,45 +555,63 @@ const openLink = async (url: string) => {
                             <article
                                 v-for="session in monthGroup.sessions"
                                 :key="session.id"
-                                class="rounded-2xl border border-warm-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-900"
+                                class="rounded-2xl border border-theme-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-900"
                             >
                                 <div
                                     class="flex items-start justify-between gap-3"
                                 >
-                                    <div class="flex min-w-0 flex-1 gap-3">
+                                    <div
+                                        class="flex min-w-0 flex-1 items-center gap-3"
+                                    >
                                         <div
-                                            class="flex w-20 shrink-0 flex-col items-center justify-center rounded-lg bg-warm-100 px-2 py-2 text-center dark:bg-zinc-800"
+                                            class="flex w-20 shrink-0 flex-col items-center gap-1"
                                         >
-                                            <p
-                                                class="text-lg font-bold text-warm-700 dark:text-zinc-200"
+                                            <span
+                                                v-if="
+                                                    hasMultipleAccounts &&
+                                                    showAllAccounts &&
+                                                    session.accountLabel
+                                                "
+                                                class="inline-block max-w-full truncate rounded-full bg-theme-100 px-2 py-0.5 text-[10px] font-medium text-theme-800 dark:bg-zinc-800 dark:text-zinc-400"
                                             >
-                                                {{
-                                                    formatMonthDay(
-                                                        session.startAt,
-                                                        session.date,
-                                                    )
-                                                }}
-                                            </p>
-                                            <p
-                                                class="mt-0.5 text-base text-warm-600 dark:text-zinc-400"
+                                                {{ session.accountLabel }}
+                                            </span>
+                                            <div
+                                                class="flex w-full flex-col items-center justify-center rounded-lg bg-theme-100 px-2 py-2 text-center dark:bg-zinc-800"
                                             >
-                                                {{
-                                                    formatWeekday(
-                                                        session.startAt,
-                                                    )
-                                                }}
-                                            </p>
+                                                <p
+                                                    class="text-lg font-bold text-theme-700 dark:text-zinc-200"
+                                                >
+                                                    {{
+                                                        formatMonthDay(
+                                                            session.startAt,
+                                                            session.date,
+                                                        )
+                                                    }}
+                                                </p>
+                                                <p
+                                                    class="mt-0.5 text-base text-theme-700 dark:text-zinc-400"
+                                                >
+                                                    {{
+                                                        formatWeekday(
+                                                            session.startAt,
+                                                        )
+                                                    }}
+                                                </p>
+                                            </div>
                                         </div>
 
                                         <div class="min-w-0 flex-1">
                                             <div
-                                                class="flex items-start justify-between"
+                                                class="flex items-start justify-between gap-2"
                                             >
-                                                <h4
-                                                    class="line-clamp-1 text-sm font-semibold text-warm-900 dark:text-zinc-100"
-                                                >
-                                                    {{ session.courseName }}
-                                                </h4>
+                                                <div class="min-w-0 flex-1">
+                                                    <h4
+                                                        class="line-clamp-1 text-sm font-semibold text-theme-900 dark:text-zinc-100"
+                                                    >
+                                                        {{ session.courseName }}
+                                                    </h4>
+                                                </div>
 
                                                 <span
                                                     v-if="
@@ -529,7 +641,7 @@ const openLink = async (url: string) => {
                                                     class="flex shrink-0 flex-col gap-1"
                                                 >
                                                     <p
-                                                        class="text-xs text-warm-600 dark:text-zinc-400"
+                                                        class="text-xs text-theme-700 dark:text-zinc-400"
                                                     >
                                                         {{
                                                             session.className ||
@@ -542,7 +654,7 @@ const openLink = async (url: string) => {
                                                         }}
                                                     </p>
                                                     <p
-                                                        class="text-xs text-warm-600 dark:text-zinc-400"
+                                                        class="text-xs text-theme-700 dark:text-zinc-400"
                                                     >
                                                         <template
                                                             v-if="
@@ -569,7 +681,7 @@ const openLink = async (url: string) => {
                                                         </template>
                                                     </p>
                                                     <p
-                                                        class="mt-1 text-sm font-medium text-warm-800 dark:text-zinc-200"
+                                                        class="mt-1 text-sm font-medium text-theme-800 dark:text-zinc-200"
                                                     >
                                                         {{
                                                             formatClock(
@@ -594,12 +706,13 @@ const openLink = async (url: string) => {
                                                     <a
                                                         v-if="session.link"
                                                         @click.prevent="
-                                                            openLink(
+                                                            handleClassroomLinkClick(
                                                                 session.link,
+                                                                session,
                                                             )
                                                         "
                                                         :href="session.link"
-                                                        class="inline-flex shrink-0 items-center gap-1 rounded-lg border border-warm-300 px-3 py-1.5 text-base font-medium text-warm-700 transition hover:bg-warm-50 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                                                        class="inline-flex shrink-0 items-center gap-1 rounded-lg border border-theme-300 px-3 py-1.5 text-base font-medium text-theme-700 transition hover:bg-theme-50 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800"
                                                     >
                                                         <VideoCameraIcon
                                                             class="size-5"
@@ -611,15 +724,16 @@ const openLink = async (url: string) => {
                                                             session.backupClassroomUrl
                                                         "
                                                         @click.prevent="
-                                                            openLink(
+                                                            handleClassroomLinkClick(
                                                                 session.backupClassroomUrl!,
+                                                                session,
                                                             )
                                                         "
                                                         :href="
                                                             session.backupClassroomUrl
                                                         "
                                                         title="主教室人數已滿時可改用此備用連結"
-                                                        class="inline-flex shrink-0 items-center gap-1 rounded-lg px-3 py-1 text-xs font-medium text-warm-500 transition hover:text-warm-700 dark:text-zinc-400 dark:hover:text-zinc-200"
+                                                        class="inline-flex shrink-0 items-center gap-1 rounded-lg px-3 py-1 text-xs font-medium text-theme-700 transition hover:text-theme-800 dark:text-zinc-400 dark:hover:text-zinc-200"
                                                     >
                                                         備用教室
                                                     </a>
@@ -634,5 +748,14 @@ const openLink = async (url: string) => {
                 </template>
             </section>
         </template>
+
+        <LiveSessionNicknameModalDialog
+            :is-open="isNicknameModalOpen"
+            :nickname="pendingNickname"
+            :url="pendingClassroomUrl ?? ''"
+            :email="pendingEmail"
+            @close="isNicknameModalOpen = false"
+            @entered="onNicknameModalEntered"
+        />
     </div>
 </template>

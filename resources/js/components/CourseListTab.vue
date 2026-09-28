@@ -4,6 +4,8 @@ import {
     ChatBubbleLeftRightIcon,
 } from '@heroicons/vue/24/outline';
 import { computed } from 'vue';
+import ErrorRetry from '@/components/ErrorRetry.vue';
+import type { ApiError } from '@/lib/apiError';
 import type { CourseItem, CourseTasksCount } from '@/types';
 
 const props = defineProps<{
@@ -14,6 +16,11 @@ const props = defineProps<{
     isLoading: boolean;
     hasFetched: boolean;
     error: string | null;
+    errorDetail?: ApiError | null;
+}>();
+
+const emit = defineEmits<{
+    retry: [];
 }>();
 
 const grouped = computed(() => {
@@ -63,40 +70,41 @@ function getCourseTasks(course: CourseItem): CourseTasksCount {
     <div v-if="props.isLoading || !props.hasFetched" class="space-y-6">
         <div v-for="g in 2" :key="g">
             <div
-                class="mb-3 h-5 w-16 animate-pulse rounded bg-warm-200 md:h-6 dark:bg-zinc-700"
+                class="mb-3 h-5 w-16 animate-pulse rounded bg-theme-200 md:h-6 dark:bg-zinc-700"
             />
             <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 <div
                     v-for="c in 5"
                     :key="c"
-                    class="rounded-xl border border-warm-200 bg-white px-4 py-3 dark:border-zinc-700 dark:bg-zinc-900"
+                    class="rounded-xl border border-theme-200 bg-white px-4 py-3 dark:border-zinc-700 dark:bg-zinc-900"
                 >
                     <div class="mb-2 flex gap-2">
                         <div
-                            class="h-4 w-12 animate-pulse rounded-full bg-warm-200 dark:bg-zinc-700"
+                            class="h-4 w-12 animate-pulse rounded-full bg-theme-200 dark:bg-zinc-700"
                         />
                         <div
-                            class="h-4 w-16 animate-pulse rounded-full bg-warm-200 dark:bg-zinc-700"
+                            class="h-4 w-16 animate-pulse rounded-full bg-theme-200 dark:bg-zinc-700"
                         />
                     </div>
                     <div
-                        class="h-12 w-3/4 animate-pulse rounded bg-warm-200 md:h-14 dark:bg-zinc-700"
+                        class="h-12 w-3/4 animate-pulse rounded bg-theme-200 md:h-14 dark:bg-zinc-700"
                     />
                 </div>
             </div>
         </div>
     </div>
 
-    <div
+    <ErrorRetry
         v-else-if="props.error"
-        class="rounded-xl border border-dashed border-rose-300 bg-rose-50 p-5 text-sm text-rose-700"
-    >
-        {{ props.error }}
-    </div>
+        :message="props.error"
+        :retrying="props.isLoading"
+        :detail="props.errorDetail"
+        @retry="emit('retry')"
+    />
 
     <div
         v-else-if="props.courses.length === 0"
-        class="rounded-xl border border-dashed border-warm-300 bg-warm-50 px-5 py-12 text-center text-warm-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
+        class="rounded-xl border border-dashed border-theme-300 bg-theme-50 px-5 py-12 text-center text-theme-700 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
     >
         您的帳號目前未有課程，期待下學期與您在課堂上見面
     </div>
@@ -104,7 +112,7 @@ function getCourseTasks(course: CourseItem): CourseTasksCount {
     <div v-else class="space-y-6">
         <div v-for="(semesterCourses, semester) in grouped" :key="semester">
             <h3
-                class="mb-3 text-sm font-semibold text-warm-700 md:text-base dark:text-zinc-300"
+                class="mb-3 text-sm font-semibold text-theme-700 md:text-base dark:text-zinc-300"
             >
                 {{ semester }}
             </h3>
@@ -113,15 +121,15 @@ function getCourseTasks(course: CourseItem): CourseTasksCount {
                     v-for="course in semesterCourses"
                     :key="course.courseId"
                     :to="`/courses/${course.courseId}`"
-                    class="group flex flex-col gap-1 rounded-xl border border-warm-200 bg-white px-4 py-3 text-left transition hover:border-warm-500 hover:bg-warm-50 md:gap-2 md:px-8 md:py-6 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-zinc-500 dark:hover:bg-zinc-800"
+                    class="group flex flex-col gap-1 rounded-xl border border-theme-200 bg-white px-4 py-3 text-left transition hover:border-theme-500 hover:bg-theme-50 md:gap-2 md:px-8 md:py-6 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-zinc-500 dark:hover:bg-zinc-800"
                 >
                     <div class="-ml-2 flex items-center justify-between gap-2">
                         <div
-                            class="flex min-w-0 items-center text-xs text-warm-600 md:text-sm"
+                            class="flex min-w-0 items-center text-xs text-theme-700 md:text-sm"
                         >
                             <span
                                 v-if="course.courseType"
-                                class="shrink-0 rounded-full bg-warm-100 px-2 py-0.5 font-medium text-warm-700 dark:bg-warm-900 dark:text-zinc-300"
+                                class="shrink-0 rounded-full bg-theme-100 px-2 py-0.5 font-medium text-theme-800 dark:bg-theme-900 dark:text-zinc-300"
                                 :class="{
                                     'rounded-r-none pr-1': course.className,
                                 }"
@@ -214,14 +222,14 @@ function getCourseTasks(course: CourseItem): CourseTasksCount {
                                         getCourseTasks(course)
                                             .unreadArticles === 0
                                     "
-                                    class="text-slate-400 dark:text-zinc-500"
+                                    class="text-slate-600 dark:text-zinc-400"
                                 >
                                     無待辦
                                 </span>
 
                                 <span
                                     v-else-if="props.tasksLoading"
-                                    class="inline-block h-5 w-14 animate-pulse rounded bg-warm-200 dark:bg-zinc-700"
+                                    class="inline-block h-5 w-14 animate-pulse rounded bg-theme-200 dark:bg-zinc-700"
                                     aria-hidden="true"
                                 ></span>
                             </template>
@@ -229,7 +237,7 @@ function getCourseTasks(course: CourseItem): CourseTasksCount {
                     </div>
 
                     <p
-                        class="line-clamp-2 block h-12 text-base font-semibold text-warm-900 md:h-14 md:text-lg dark:text-zinc-100"
+                        class="line-clamp-2 block h-12 text-base font-semibold text-theme-900 md:h-14 md:text-lg dark:text-zinc-100"
                     >
                         {{ course.name || `課程 ${course.courseId}` }}
                     </p>

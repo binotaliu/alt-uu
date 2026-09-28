@@ -1,5 +1,6 @@
 <?php
 
+use App\Services\SchoolPortalSessionStore;
 use App\Services\UUSessionStore;
 use Illuminate\Support\Facades\Http;
 use Mockery as MockeryManager;
@@ -92,22 +93,84 @@ it('maps course homeworks with action and result urls', function () {
     ]);
 
     $response->assertSuccessful();
-    $response->assertJsonCount(2);
+    $response->assertJsonCount(2, 'homeworkItems');
+    $response->assertJsonCount(0, 'schoolPortalNotices');
 
-    $response->assertJsonPath('0.title', '假課程-作業 A');
-    $response->assertJsonPath('0.percent', '100%');
-    $response->assertJsonPath('0.type', 'homework');
-    $response->assertJsonPath('0.status', '進行作業');
-    $response->assertJsonPath('0.window', '從 2026-01-01 00:00 到 2026-01-31 23:59');
-    $response->assertJsonPath('0.actionUrl', 'https://uu.nou.edu.tw/learn/homework/exam_pre_start.php?200001+1+tokenabc+0');
-    $response->assertJsonPath('0.resultUrl', "https://uu.nou.edu.tw/learn/homework/view_exemplar.php?200001+1+tokenabc+{$studentId}+{$type}");
+    $response->assertJsonPath('homeworkItems.0.title', '假課程-作業 A');
+    $response->assertJsonPath('homeworkItems.0.percent', '100%');
+    $response->assertJsonPath('homeworkItems.0.type', 'homework');
+    $response->assertJsonPath('homeworkItems.0.status', '進行作業');
+    $response->assertJsonPath('homeworkItems.0.window', '從 2026-01-01 00:00 到 2026-01-31 23:59');
+    $response->assertJsonPath('homeworkItems.0.actionUrl', 'https://uu.nou.edu.tw/learn/homework/exam_pre_start.php?200001+1+tokenabc+0');
+    $response->assertJsonPath('homeworkItems.0.resultUrl', "https://uu.nou.edu.tw/learn/homework/view_exemplar.php?200001+1+tokenabc+{$studentId}+{$type}");
 
-    $response->assertJsonPath('1.title', '假課程-作業 B');
-    $response->assertJsonPath('1.percent', '100%');
-    $response->assertJsonPath('1.status', '已繳作業');
-    $response->assertJsonPath('1.actionUrl', null);
-    $response->assertJsonPath('1.resultUrl', null);
+    $response->assertJsonPath('homeworkItems.1.title', '假課程-作業 B');
+    $response->assertJsonPath('homeworkItems.1.percent', '100%');
+    $response->assertJsonPath('homeworkItems.1.status', '已繳作業');
+    $response->assertJsonPath('homeworkItems.1.actionUrl', null);
+    $response->assertJsonPath('homeworkItems.1.resultUrl', null);
 
     Http::assertSent(fn ($request) => str_contains($request->url(), 'action=go-course') && str_contains($request->url(), 'cid=1001'));
     Http::assertSent(fn ($request) => $request->url() === 'https://uu.nou.edu.tw/learn/homework/homework_list.php');
+});
+
+it('returns school portal homework notices alongside the hongu homework list', function () {
+    Http::fake([
+        'https://uu.nou.edu.tw/xmlapi/index.php?action=go-course*' => Http::response([
+            'code' => 0,
+            'message' => 'success',
+            'data' => [],
+        ]),
+        'https://uu.nou.edu.tw/xmlapi/index.php?action=my-course-list*' => Http::response([
+            'code' => 0,
+            'data' => [
+                'list' => [
+                    [
+                        'course_id' => '9001',
+                        'title' => '(115暑)假課程乙',
+                    ],
+                ],
+            ],
+        ]),
+        'https://uu.nou.edu.tw/learn/homework/homework_list.php' => Http::response('<html><body></body></html>'),
+        'https://nouapp.nou.edu.tw/device/compliant/qryass/index' => Http::response(
+            <<<'HTML'
+            <?xml version="1.0" encoding="UTF-8"?><html xmlns="http://www.w3.org/1999/xhtml"><body><div id="container"><div class="year-box"><div class="year">115學年暑期</div></div><div class="accordion"><div class="accordion-item"><h2 class="accordion-header"><button class="accordion-button" type="button">第1次作業</button></h2><div class="accordion-body p-0"><div class="detail-title">假課程乙</div><div class="detail">繳交日期：2026年08月16日</div><div class="detail">繳交方式：依面授教師指定方式繳交</div><div class="detail-url"><a href="/device/compliant/qryass/download?type=homework&filename=1153_900001_1&extension=pdf&_b=%5B%5D"><span>作業題目：1153_900001_1.pdf</span></a></div></div></div></div></div></body></html>
+            HTML,
+        ),
+    ]);
+
+    $honguSession = MockeryManager::mock(UUSessionStore::class);
+    $honguSession->shouldReceive('get')->andReturn([
+        'base_url' => 'https://uu.nou.edu.tw',
+        'ua' => 'test-agent',
+        'ticket' => 'ticket-1',
+        'session_idx' => 'idx-1',
+        'cookies' => ['WM' => 'cookie'],
+        'profile' => ['display_name' => '測試使用者', 'username' => 'u1001'],
+    ]);
+    $honguSession->shouldReceive('put');
+    app()->instance(UUSessionStore::class, $honguSession);
+
+    $schoolPortalSession = MockeryManager::mock(SchoolPortalSessionStore::class);
+    $schoolPortalSession->shouldReceive('get')->andReturn([
+        'base_url' => 'https://nouapp.nou.edu.tw',
+        'ua' => 'test-agent',
+        'cookies' => ['session' => 'abc'],
+    ]);
+    $schoolPortalSession->shouldReceive('put');
+    app()->instance(SchoolPortalSessionStore::class, $schoolPortalSession);
+
+    $response = get('/api/courses/9001/homeworks', [
+        'Accept' => 'application/json',
+    ]);
+
+    $response->assertSuccessful();
+    $response->assertJsonCount(0, 'homeworkItems');
+    $response->assertJsonCount(1, 'schoolPortalNotices');
+    $response->assertJsonPath('schoolPortalNotices.0.title', '第1次作業');
+    $response->assertJsonPath(
+        'schoolPortalNotices.0.downloadUrl',
+        'https://nouapp.nou.edu.tw/device/compliant/qryass/download?type=homework&filename=1153_900001_1&extension=pdf&_b=%5B%5D',
+    );
 });

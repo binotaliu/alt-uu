@@ -3,61 +3,68 @@ import {
     BriefcaseIcon,
     VideoCameraIcon,
     CalendarDaysIcon,
+    UserCircleIcon,
 } from '@heroicons/vue/24/outline';
-import { computed, ref, watch } from 'vue';
+import { ref } from 'vue';
+import { useRouter } from 'vue-router';
+import { useAppConfigStore } from '@/stores/appConfig';
 
 const props = defineProps<{
-    activeTab: 'courses' | 'live-sessions' | 'school-calendar';
+    activeTab: 'courses' | 'live-sessions' | 'school-calendar' | 'account';
     nouToolsEnabled?: boolean;
 }>();
 
-const localActiveTab = ref<
-    'courses' | 'live-sessions' | 'school-calendar' | null
->(null);
-const isNavigationLocked = ref(false);
 const showNouToolsModal = ref(false);
+const appConfigStore = useAppConfigStore();
+const router = useRouter();
 
-const activeTab = computed(() => localActiveTab.value ?? props.activeTab);
+// Account identity/subscription is always reachable regardless of the NOU Tools flag, unlike
+// live-sessions/school-calendar which require it.
+const gatedTabs = ['live-sessions', 'school-calendar'];
 
-const onTabClick = (
+const onTabClick = async (
     event: MouseEvent,
-    target: 'courses' | 'live-sessions' | 'school-calendar',
+    target: 'courses' | 'live-sessions' | 'school-calendar' | 'account',
 ) => {
-    if (isNavigationLocked.value) {
+    if (!gatedTabs.includes(target)) {
+        return;
+    }
+
+    // A tap that lands before /api/config resolves would otherwise read the
+    // flag's `false` default and prompt a user who already enabled it.
+    if (!appConfigStore.isLoaded) {
         event.preventDefault();
+
+        try {
+            await appConfigStore.loadConfig();
+        } catch {
+            // Fall through to the gate below; the flag stays at its default.
+        }
+
+        if (appConfigStore.nouToolsIntegrationEnabled) {
+            await router.push(`/courses/${target}`);
+        } else {
+            showNouToolsModal.value = true;
+        }
 
         return;
     }
 
-    // Check if NOU Tools is enabled for non-courses tabs
-    if (target !== 'courses' && !props.nouToolsEnabled) {
+    if (!props.nouToolsEnabled) {
         event.preventDefault();
         showNouToolsModal.value = true;
-
-        return;
     }
-
-    localActiveTab.value = target;
-    isNavigationLocked.value = true;
 };
 
 const enableNouTools = async () => {
     try {
-        const response = await fetch('/api/preferences/nou-tools', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ enabled: true }),
+        await appConfigStore.updatePreferences({
+            nouToolsIntegrationEnabled: true,
         });
 
-        if (response.ok) {
-            showNouToolsModal.value = false;
-            // Reload the page to reflect the change
-            window.location.reload();
-        } else {
-            alert('啟用失敗，請稍後重試');
-        }
+        showNouToolsModal.value = false;
+        // Reload the page to reflect the change
+        window.location.reload();
     } catch {
         alert('啟用失敗，請稍後重試');
     }
@@ -66,38 +73,28 @@ const enableNouTools = async () => {
 const closeModal = () => {
     showNouToolsModal.value = false;
 };
-
-watch(
-    () => props.activeTab,
-    () => {
-        localActiveTab.value = null;
-        isNavigationLocked.value = false;
-    },
-);
 </script>
 
 <template>
     <nav
-        :class="[
-            'fixed right-0 bottom-0 left-0 z-20 border-t border-warm-200 bg-white px-4 pt-2 pb-[max(var(--inset-bottom,0px),0.75rem)] [view-transition-name:mobile-bottom-nav] md:hidden dark:border-zinc-700 dark:bg-zinc-900',
-            { 'pointer-events-none': isNavigationLocked },
-        ]"
+        class="fixed right-0 bottom-0 left-0 z-20 border-t border-theme-200 bg-white px-4 pt-2 pb-[max(var(--inset-bottom,0px),0.75rem)] md:hidden dark:border-zinc-700 dark:bg-zinc-900"
     >
-        <div class="mx-auto grid max-w-xl grid-cols-3 gap-2">
+        <div class="mx-auto grid max-w-xl grid-cols-4 gap-2">
             <router-link
                 to="/courses"
                 @click="onTabClick($event, 'courses')"
-                class="inline-flex flex-col items-center gap-1 rounded-xl px-3 py-2 text-xs font-semibold transition md:text-sm"
+                class="inline-flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-xs font-semibold transition md:text-sm"
                 :class="{
-                    'bg-warm-800 text-white dark:bg-zinc-600':
+                    'bg-theme-800 text-white dark:bg-zinc-600':
                         activeTab === 'courses',
-                    'text-warm-700 hover:bg-warm-50 dark:text-zinc-300 dark:hover:bg-zinc-800':
+                    'text-theme-700 hover:bg-theme-50 dark:text-zinc-300 dark:hover:bg-zinc-800':
                         activeTab !== 'courses',
                 }"
-                data-native-transition="lateral"
             >
-                <BriefcaseIcon class="size-6" />
-                我的課程
+                <BriefcaseIcon class="size-6 shrink-0" />
+                <span class="line-clamp-2 text-center leading-tight"
+                    >我的課程</span
+                >
             </router-link>
 
             <component
@@ -108,17 +105,18 @@ watch(
                         : {}
                 "
                 @click="onTabClick($event, 'live-sessions')"
-                class="inline-flex flex-col items-center gap-1 rounded-xl px-3 py-2 text-xs font-semibold transition md:text-sm"
+                class="inline-flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-xs font-semibold transition md:text-sm"
                 :class="{
-                    'bg-warm-800 text-white dark:bg-zinc-600':
+                    'bg-theme-800 text-white dark:bg-zinc-600':
                         activeTab === 'live-sessions',
-                    'text-warm-700 hover:bg-warm-50 dark:text-zinc-300 dark:hover:bg-zinc-800':
+                    'text-theme-700 hover:bg-theme-50 dark:text-zinc-300 dark:hover:bg-zinc-800':
                         activeTab !== 'live-sessions',
                 }"
-                data-native-transition="lateral"
             >
-                <VideoCameraIcon class="size-6" />
-                視訊面授
+                <VideoCameraIcon class="size-6 shrink-0" />
+                <span class="line-clamp-2 text-center leading-tight"
+                    >視訊面授</span
+                >
             </component>
 
             <component
@@ -129,18 +127,36 @@ watch(
                         : {}
                 "
                 @click="onTabClick($event, 'school-calendar')"
-                class="inline-flex flex-col items-center gap-1 rounded-xl px-3 py-2 text-xs font-semibold transition md:text-sm"
+                class="inline-flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-xs font-semibold transition md:text-sm"
                 :class="{
-                    'bg-warm-800 text-white dark:bg-zinc-600':
+                    'bg-theme-800 text-white dark:bg-zinc-600':
                         activeTab === 'school-calendar',
-                    'text-warm-700 hover:bg-warm-50 dark:text-zinc-300 dark:hover:bg-zinc-800':
+                    'text-theme-700 hover:bg-theme-50 dark:text-zinc-300 dark:hover:bg-zinc-800':
                         activeTab !== 'school-calendar',
                 }"
-                data-native-transition="lateral"
             >
-                <CalendarDaysIcon class="size-6" />
-                學校行事曆
+                <CalendarDaysIcon class="size-6 shrink-0" />
+                <span class="line-clamp-2 text-center leading-tight"
+                    >學校行事曆</span
+                >
             </component>
+
+            <router-link
+                to="/courses/account"
+                @click="onTabClick($event, 'account')"
+                class="inline-flex flex-col items-center gap-1 rounded-xl px-2 py-2 text-xs font-semibold transition md:text-sm"
+                :class="{
+                    'bg-theme-800 text-white dark:bg-zinc-600':
+                        activeTab === 'account',
+                    'text-theme-700 hover:bg-theme-50 dark:text-zinc-300 dark:hover:bg-zinc-800':
+                        activeTab !== 'account',
+                }"
+            >
+                <UserCircleIcon class="size-6 shrink-0" />
+                <span class="line-clamp-2 text-center leading-tight"
+                    >我的帳號</span
+                >
+            </router-link>
         </div>
     </nav>
 
@@ -153,23 +169,23 @@ watch(
                 class="mx-4 rounded-2xl bg-white p-6 shadow-lg dark:bg-zinc-800"
             >
                 <h3
-                    class="mb-2 text-lg font-semibold text-warm-900 dark:text-white"
+                    class="mb-2 text-lg font-semibold text-theme-900 dark:text-white"
                 >
                     開啟 NOU 小幫手整合
                 </h3>
-                <p class="mb-6 text-sm text-warm-700 dark:text-zinc-300">
+                <p class="mb-6 text-sm text-theme-700 dark:text-zinc-300">
                     此功能需要開啟 NOU 小幫手整合才可使用。
                 </p>
                 <div class="flex gap-3">
                     <button
                         @click="closeModal"
-                        class="flex-1 rounded-lg border border-warm-300 px-4 py-2 text-sm font-medium text-warm-700 transition hover:bg-warm-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-700"
+                        class="flex-1 rounded-lg border border-theme-300 px-4 py-2 text-sm font-medium text-theme-700 transition hover:bg-theme-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-700"
                     >
                         取消
                     </button>
                     <button
                         @click="enableNouTools"
-                        class="flex-1 rounded-lg bg-warm-800 px-4 py-2 text-sm font-medium text-white transition hover:bg-warm-900 dark:bg-zinc-600 dark:hover:bg-zinc-500"
+                        class="flex-1 rounded-lg bg-theme-800 px-4 py-2 text-sm font-medium text-white transition hover:bg-theme-900 dark:bg-zinc-600 dark:hover:bg-zinc-500"
                     >
                         開啟
                     </button>

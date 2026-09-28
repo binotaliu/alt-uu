@@ -5,24 +5,44 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use AltUU\Domains\Course\Actions\GetCourseHomeworks;
+use AltUU\Domains\Course\Actions\ListCourses;
 use AltUU\Domains\Course\Actions\SyncCurrentCourse;
-use AltUU\Domains\Course\ViewModels\CourseHomeworkItemViewModel;
+use AltUU\Domains\Course\ViewModels\CourseHomeworkListViewModel;
+use AltUU\Domains\SchoolPortal\Actions\GetSchoolPortalHomeworkNotices;
 use Illuminate\Http\Request;
-use Spatie\LaravelData\DataCollection;
+use Throwable;
 
 final class CourseHomeworksController
 {
-    /**
-     * @return DataCollection<CourseHomeworkItemViewModel>
-     */
     public function __invoke(
         Request $request,
         string $cid,
         GetCourseHomeworks $getHomeworks,
         SyncCurrentCourse $syncCourse,
-    ): DataCollection {
+        ListCourses $listCourses,
+        GetSchoolPortalHomeworkNotices $getSchoolPortalHomeworkNotices,
+    ): CourseHomeworkListViewModel {
         $syncCourse($request, $cid, force: true);
 
-        return $getHomeworks($request);
+        $homeworkItems = $getHomeworks($request)->items();
+
+        $course = collect($listCourses($request)->items())
+            ->first(static fn (mixed $item): bool => $item->courseId === $cid);
+
+        $schoolPortalNotices = [];
+
+        if ($course !== null) {
+            try {
+                $schoolPortalNotices = $getSchoolPortalHomeworkNotices($request, $course)->items();
+            } catch (Throwable) {
+                // The school portal is a best-effort secondary source; Hongu's own
+                // homework listing above still returns normally on failure.
+            }
+        }
+
+        return new CourseHomeworkListViewModel(
+            homeworkItems: $homeworkItems,
+            schoolPortalNotices: $schoolPortalNotices,
+        );
     }
 }

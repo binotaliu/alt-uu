@@ -85,9 +85,30 @@ object MediaPlayerManager {
         materialName: String?,
         appearance: String?,
         sessionContext: MediaPlayerSessionContext?,
+        force: Boolean = false,
     ) {
+        if (activity.isFinishing || activity.isDestroyed) {
+            // The Activity reference captured when this bridge call was
+            // dispatched no longer backs a live screen (e.g. it was
+            // recreated between the request being queued and this Handler
+            // callback running). Building an ExoPlayer against it would be
+            // meaningless at best and crash at worst, so drop the request
+            // instead of touching the currently active player.
+            android.util.Log.w("MediaPlayer", "setPlayer: ignoring request against a finishing/destroyed activity for url=$url")
+            return
+        }
+
         val normalizedType = type.lowercase()
-        val isSameSource = currentUrl == url && currentType == normalizedType && player != null
+        val isSameSource = !force && currentUrl == url && currentType == normalizedType && player != null
+
+        // A forced reload (e.g. after a network failure) rebuilds the player
+        // from scratch but resumes from where the previous one stopped.
+        val resumePositionMs = if (force && currentUrl == url) {
+            player?.currentPosition?.coerceAtLeast(0L) ?: 0L
+        } else {
+            0L
+        }
+        val shouldResumePlayback = force && player?.playWhenReady == true
 
         android.util.Log.d("MediaPlayer", "setPlayer: url=$url type=$normalizedType frame=(${frame.x},${frame.y},${frame.width}x${frame.height}) courseName=$courseName materialName=$materialName isSameSource=$isSameSource")
 
@@ -126,8 +147,12 @@ object MediaPlayerManager {
                         .build(),
                     false,
                 )
-                setMediaItem(MediaItem.fromUri(url))
-                playWhenReady = normalizedType == "video"
+                if (resumePositionMs > 0L) {
+                    setMediaItem(MediaItem.fromUri(url), resumePositionMs)
+                } else {
+                    setMediaItem(MediaItem.fromUri(url))
+                }
+                playWhenReady = normalizedType == "video" || shouldResumePlayback
                 addListener(object : Player.Listener {
                     override fun onPlaybackStateChanged(playbackState: Int) {
                         if (playbackState == Player.STATE_READY) {
@@ -184,7 +209,15 @@ object MediaPlayerManager {
         updatePlaybackStateFromPlayer()
     }
 
-    fun stop() {
+    fun stop(expectedUrl: String? = null) {
+        if (expectedUrl != null && expectedUrl != currentUrl) {
+            // A newer setPlayer() call already superseded this stop request
+            // (e.g. it arrived late after the user navigated to another
+            // material); releasing now would tear down the new player.
+            android.util.Log.d("MediaPlayer", "stop: ignoring stale stop for $expectedUrl (current=$currentUrl)")
+            return
+        }
+
         releasePlayer()
     }
 
@@ -499,6 +532,7 @@ object MediaPlayerFunctions {
             val sessionContext = MediaPlayerSessionContext.fromMap(
                 getObjectParameter(parameters, "sessionContext"),
             )
+            val force = parameters["force"] as? Boolean ?: false
 
             Handler(Looper.getMainLooper()).post {
                 MediaPlayerManager.setPlayer(
@@ -510,6 +544,7 @@ object MediaPlayerFunctions {
                     materialName,
                     appearance,
                     sessionContext,
+                    force,
                 )
             }
 
@@ -545,7 +580,9 @@ object MediaPlayerFunctions {
 
     class Stop(private val activity: FragmentActivity) : BridgeFunction {
         override fun execute(parameters: Map<String, Any>): Map<String, Any> {
-            Handler(Looper.getMainLooper()).post { MediaPlayerManager.stop() }
+            val expectedUrl = parameters["url"] as? String
+
+            Handler(Looper.getMainLooper()).post { MediaPlayerManager.stop(expectedUrl) }
             return BridgeResponse.success(mapOf("status" to "stopped"))
         }
     }
@@ -570,7 +607,12 @@ object MediaPlayerFunctions {
 
     class GetCurrentTime(private val activity: FragmentActivity) : BridgeFunction {
         override fun execute(parameters: Map<String, Any>): Map<String, Any> {
-            return BridgeResponse.success(mapOf("time" to MediaPlayerManager.getCurrentTimeSeconds()))
+            return BridgeResponse.success(
+                mapOf(
+                    "time" to MediaPlayerManager.getCurrentTimeSeconds(),
+                    "duration" to MediaPlayerManager.getDurationSeconds(),
+                ),
+            )
         }
     }
 
@@ -593,6 +635,27 @@ object MediaPlayerFunctions {
     class GetPlaybackRate(private val activity: FragmentActivity) : BridgeFunction {
         override fun execute(parameters: Map<String, Any>): Map<String, Any> {
             return BridgeResponse.success(mapOf("rate" to MediaPlayerManager.getPlaybackSpeed()))
+        }
+    }
+
+    class CaptureFrame(private val activity: FragmentActivity) : BridgeFunction {
+        override fun execute(parameters: Map<String, Any>): Map<String, Any> {
+            val studentId = (parameters["studentId"] as? String)?.takeIf { it.isNotBlank() }
+                ?: throw BridgeError.InvalidParameters("Missing studentId parameter")
+
+            val seconds = MediaFrameCapture.captureAndShare(
+                activity = activity,
+                studentId = studentId,
+                courseName = parameters["courseName"] as? String,
+                materialName = parameters["materialName"] as? String,
+            )
+
+            return BridgeResponse.success(
+                mapOf(
+                    "status" to "captured",
+                    "time" to seconds,
+                ),
+            )
         }
     }
 

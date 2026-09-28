@@ -1,0 +1,187 @@
+name: Mobile Build & Release
+
+# build-android / build-ios always run on push to main (and on manual dispatch of
+# any branch), producing signed but unpublished artifacts for inspection/QA.
+#
+# publish-android / publish-ios only run on push to main, or a manual dispatch
+# with "publish" checked. They sit behind the `release` GitHub Environment, which
+# requires a manual approval click before the job starts - see README/setup docs
+# for configuring the required reviewer via `scripts/setup-github-secrets.sh`.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Also upload to App Store Connect / Play Store (internal track) after building'
+        type: boolean
+        default: false
+
+concurrency:
+  group: mobile-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-android:
+    name: Build Android (unsigned upload)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: ./.github/actions/setup-nativephp-build
+        with:
+          production-env: ${{ secrets.ALTUU_PRODUCTION_ENV }}
+          ios-certificate-base64: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64 }}
+          ios-provisioning-profile-base64: ${{ secrets.IOS_DISTRIBUTION_PROVISIONING_PROFILE_BASE64 }}
+          app-store-api-key-base64: ${{ secrets.APP_STORE_API_KEY_P8_BASE64 }}
+          android-keystore-base64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          google-service-account-key-base64: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY_BASE64 }}
+
+      - name: Build frontend assets
+        run: npm run build -- --mode=android
+
+      - name: Install NativePHP Android project
+        run: rm -Rf nativephp/android && php artisan native:install --force android
+
+      - name: Package signed Android bundle
+        run: php artisan native:package android --build-type=bundle --output=build-output --rebuild --no-tty
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-build
+          path: build-output/*.aab
+          retention-days: 14
+
+  build-ios:
+    name: Build iOS (unsigned upload)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: ./.github/actions/setup-nativephp-build
+        with:
+          production-env: ${{ secrets.ALTUU_PRODUCTION_ENV }}
+          ios-certificate-base64: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64 }}
+          ios-provisioning-profile-base64: ${{ secrets.IOS_DISTRIBUTION_PROVISIONING_PROFILE_BASE64 }}
+          app-store-api-key-base64: ${{ secrets.APP_STORE_API_KEY_P8_BASE64 }}
+          android-keystore-base64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          google-service-account-key-base64: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY_BASE64 }}
+
+      - name: Build frontend assets
+        run: npm run build -- --mode=ios
+
+      - name: Install NativePHP iOS project
+        run: rm -Rf nativephp/ios && php artisan native:install --force ios
+
+      - name: Package signed iOS archive
+        run: php artisan native:package ios --export-method=app-store --output=build-output --rebuild --no-tty
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ios-build
+          path: build-output/*.ipa
+          retention-days: 14
+
+  publish-android:
+    name: Publish Android to Play Store (internal)
+    needs: build-android
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.publish == true)
+    environment: release
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: ./.github/actions/setup-nativephp-build
+        with:
+          production-env: ${{ secrets.ALTUU_PRODUCTION_ENV }}
+          ios-certificate-base64: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64 }}
+          ios-provisioning-profile-base64: ${{ secrets.IOS_DISTRIBUTION_PROVISIONING_PROFILE_BASE64 }}
+          app-store-api-key-base64: ${{ secrets.APP_STORE_API_KEY_P8_BASE64 }}
+          android-keystore-base64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          google-service-account-key-base64: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY_BASE64 }}
+
+      - name: Build frontend assets
+        run: npm run build -- --mode=android
+
+      - name: Install NativePHP Android project
+        run: rm -Rf nativephp/android && php artisan native:install --force android
+
+      - name: Package, sign and upload to Play Store internal testing
+        run: php artisan native:package android --build-type=bundle --output=build-output --upload-to-play-store --play-store-track=internal --rebuild --no-tty
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-release-signed
+          path: build-output/*.aab
+          retention-days: 90
+
+  publish-ios:
+    name: Publish iOS to App Store Connect
+    needs: build-ios
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.publish == true)
+    environment: release
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: ./.github/actions/setup-nativephp-build
+        with:
+          production-env: ${{ secrets.ALTUU_PRODUCTION_ENV }}
+          ios-certificate-base64: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64 }}
+          ios-provisioning-profile-base64: ${{ secrets.IOS_DISTRIBUTION_PROVISIONING_PROFILE_BASE64 }}
+          app-store-api-key-base64: ${{ secrets.APP_STORE_API_KEY_P8_BASE64 }}
+          android-keystore-base64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          google-service-account-key-base64: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY_BASE64 }}
+
+      - name: Build frontend assets
+        run: npm run build -- --mode=ios
+
+      - name: Install NativePHP iOS project
+        run: rm -Rf nativephp/ios && php artisan native:install --force ios
+
+      - name: Package, sign and upload to App Store Connect
+        run: php artisan native:package ios --export-method=app-store --output=build-output --upload-to-app-store --rebuild --no-tty
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ios-release-signed
+          path: build-output/*.ipa
+          retention-days: 90
+
+  github-release:
+    name: Create GitHub release
+    needs: [publish-android, publish-ios]
+    if: always() && needs.publish-android.result == 'success' && needs.publish-ios.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: android-release-signed
+          path: release-assets
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: ios-release-signed
+          path: release-assets
+
+      - name: Determine app version
+        id: version
+        run: |
+          VERSION=$(printf '%s' "$ALTUU_PRODUCTION_ENV" | grep -m1 '^NATIVEPHP_APP_VERSION=' | cut -d= -f2-)
+          echo "version=${VERSION:-0.0.0}" >> "$GITHUB_OUTPUT"
+        env:
+          ALTUU_PRODUCTION_ENV: ${{ secrets.ALTUU_PRODUCTION_ENV }}
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "mobile-v${{ steps.version.outputs.version }}-${{ github.run_number }}" \
+            release-assets/*.aab release-assets/*.ipa \
+            --title "Mobile release v${{ steps.version.outputs.version }} (build ${{ github.run_number }})" \
+            --notes "Automated mobile release from commit ${{ github.sha }}. Uploaded to Play Store internal testing and App Store Connect." \
+            --target "${{ github.sha }}"

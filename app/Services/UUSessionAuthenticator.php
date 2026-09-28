@@ -5,20 +5,24 @@ declare(strict_types=1);
 namespace App\Services;
 
 use AltUU\Domains\Course\Actions\SyncCurrentCourse;
+use App\Models\Account;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 
 class UUSessionAuthenticator
 {
+    private const MAX_ACCOUNTS = 5;
+
     public function __construct(
         private readonly UUProxyClient $proxyClient,
         private readonly UUProfileSession $profileSession,
         private readonly UUSessionStore $sessionStore,
-        private readonly UURememberedCredentialsStore $rememberedCredentialsStore,
+        private readonly AccountCredentialsStore $accountCredentialsStore,
+        private readonly AccountActiveProfile $activeProfile,
     ) {}
 
     /**
-     * @return array{ok: bool, message: string}
+     * @return array{ok: bool, message: string, raw?: array<string, mixed>}
      */
     public function attemptLogin(
         Request $request,
@@ -42,6 +46,15 @@ class UUSessionAuthenticator
             return [
                 'ok' => false,
                 'message' => (string) ($payload['message'] ?? '登入失敗，請確認帳號密碼。'),
+                'raw' => $payload,
+            ];
+        }
+
+        if (! Account::query()->where('username', $normalizedUsername)->exists()
+            && Account::query()->count() >= self::MAX_ACCOUNTS) {
+            return [
+                'ok' => false,
+                'message' => '最多只能新增 5 個帳號，請先移除其他帳號。',
             ];
         }
 
@@ -62,10 +75,10 @@ class UUSessionAuthenticator
             ],
         ];
 
+        $this->accountCredentialsStore->put($normalizedUsername, $password);
+
         $this->proxyClient->syncSession($sessionData);
         $this->profileSession->put($request, $sessionData['profile']);
-
-        $this->rememberedCredentialsStore->put($normalizedUsername, $password);
 
         $this->refreshProfileFromRemote($request, $sessionData, false);
 
@@ -88,7 +101,7 @@ class UUSessionAuthenticator
 
     public function attemptRememberedLogin(Request $request): bool
     {
-        $credentials = $this->rememberedCredentialsStore->get();
+        $credentials = $this->accountCredentialsStore->get();
 
         if (! is_array($credentials)) {
             return false;
@@ -102,7 +115,12 @@ class UUSessionAuthenticator
         );
 
         if (! $result['ok']) {
-            $this->rememberedCredentialsStore->forget();
+            // Keep the active-profile pointer on this (now soft-deleted)
+            // account rather than clearing it: EnsureHunguSession reads it
+            // to report which account just failed, and several api calls
+            // can 401 concurrently on page load — clearing it here would
+            // make any later one in the same burst report a null accountId.
+            $this->accountCredentialsStore->forget(clearActiveProfile: false);
 
             return false;
         }
@@ -110,7 +128,10 @@ class UUSessionAuthenticator
         $currentCourseId = '';
 
         if ($request->hasSession()) {
-            $currentCourseId = (string) $request->session()->get('hungu.current_course_id', '');
+            $currentCourseId = (string) $request->session()->get(
+                'hungu.current_course_id.'.($this->activeProfile->get() ?? 0),
+                '',
+            );
         }
 
         if ($currentCourseId !== '') {

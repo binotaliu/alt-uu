@@ -7,7 +7,6 @@ import {
 } from '@heroicons/vue/24/outline';
 import { ref, computed, nextTick, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import { setNextNavigationKind } from '@/lib/nativePageTransition';
 import type { MaterialNode, CourseItem, CourseLearningTimeItem } from '@/types';
 
 type DirectorySourceNode = {
@@ -33,6 +32,9 @@ const props = defineProps<{
     materialNodes?: MaterialNode[];
     learningTimeItems?: CourseLearningTimeItem[];
     activeNodeIdentifier?: string | null;
+    lastSeenIdentifier?: string | null;
+    lastSeenPositionSeconds?: number | null;
+    lastSeenDurationSeconds?: number | null;
     nodeSelectMode?: 'event' | 'link';
     course?: CourseItem | null;
     isLoading?: boolean;
@@ -40,7 +42,6 @@ const props = defineProps<{
 
 const emit = defineEmits<{
     nodeSelect: [identifier: string, href: string | null];
-    'large-directory': [isLarge: boolean];
 }>();
 
 const vueRouter = useRouter();
@@ -138,12 +139,6 @@ const directoryIds = computed(() =>
         .map((node) => node.internalId),
 );
 
-const LARGE_DIRECTORY_NODE_THRESHOLD = 60;
-
-const isLargeDirectory = computed(
-    () => directoryNodes.value.length >= LARGE_DIRECTORY_NODE_THRESHOLD,
-);
-
 const collapsedDirectoryIds = ref<Set<string>>(new Set());
 
 const activeContentNode = computed(
@@ -166,14 +161,6 @@ const visibleNodes = computed(() =>
             collapsedDirectoryIds.value.has(ancestorId),
         );
     }),
-);
-
-watch(
-    isLargeDirectory,
-    (larger) => {
-        emit('large-directory', larger);
-    },
-    { immediate: true },
 );
 
 const hasDirectories = computed(() => directoryIds.value.length > 0);
@@ -213,6 +200,37 @@ function updateScrollTop() {
 function isNodeActive(node: DirectoryDisplayNode): boolean {
     return node.targetIdentifier === props.activeNodeIdentifier && !!node.href;
 }
+
+function isLastSeenNode(node: DirectoryDisplayNode): boolean {
+    return (
+        !!props.lastSeenIdentifier &&
+        node.targetIdentifier === props.lastSeenIdentifier
+    );
+}
+
+function formatClock(totalSeconds: number): string {
+    const safeSeconds = Math.max(0, Math.floor(totalSeconds));
+    const hours = Math.floor(safeSeconds / 3600);
+    const minutes = Math.floor((safeSeconds % 3600) / 60);
+    const seconds = String(safeSeconds % 60).padStart(2, '0');
+
+    if (hours > 0) {
+        return `${hours}:${String(minutes).padStart(2, '0')}:${seconds}`;
+    }
+
+    return `${minutes}:${seconds}`;
+}
+
+const lastSeenLabel = computed(() => {
+    const position = props.lastSeenPositionSeconds;
+    const duration = props.lastSeenDurationSeconds;
+
+    if (position == null || duration == null || duration <= 0) {
+        return '上次看到';
+    }
+
+    return `上次看到 ${formatClock(Math.min(position, duration))} / ${formatClock(duration)}`;
+});
 
 function isNodeInActivePath(node: DirectoryDisplayNode): boolean {
     return activeAncestorDirectoryIds.value.has(node.internalId);
@@ -278,8 +296,6 @@ watch(
 
 function handleNodeClick(node: DirectoryDisplayNode): void {
     if (nodeSelectMode.value === 'link') {
-        setNextNavigationKind('forward');
-
         vueRouter.push(
             `/courses/${encodeURIComponent(props.selectedCid)}/${encodeURIComponent(node.targetIdentifier)}`,
         );
@@ -292,11 +308,11 @@ function handleNodeClick(node: DirectoryDisplayNode): void {
 <template>
     <div class="flex h-full flex-col">
         <div
-            class="sticky top-0 z-10 border-b border-warm-200/80 bg-white/92 px-3 pt-2 pb-3 backdrop-blur dark:border-zinc-700/80 dark:bg-zinc-900/92"
+            class="sticky top-0 z-10 border-b border-theme-200/80 bg-white px-3 pt-2 pb-3 dark:border-zinc-700/80 dark:bg-zinc-900"
         >
             <div class="flex items-center justify-between gap-3 px-1">
                 <div
-                    class="flex items-center gap-2 text-sm font-semibold text-warm-800 dark:text-zinc-200"
+                    class="flex items-center gap-2 text-sm font-semibold text-theme-800 dark:text-zinc-200"
                 >
                     <FolderIcon class="h-4.5 w-4.5" />
                     教材目錄
@@ -308,7 +324,7 @@ function handleNodeClick(node: DirectoryDisplayNode): void {
                 >
                     <button
                         type="button"
-                        class="rounded-full border border-warm-200 bg-white px-2.5 py-1 text-xs font-medium text-warm-700 transition hover:border-warm-400 hover:bg-warm-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-zinc-500 dark:hover:bg-zinc-800"
+                        class="rounded-full border border-theme-200 bg-white px-2.5 py-1 text-xs font-medium text-theme-700 transition hover:border-theme-400 hover:bg-theme-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-zinc-500 dark:hover:bg-zinc-800"
                         :disabled="allExpanded"
                         :class="
                             allExpanded ? 'cursor-not-allowed opacity-50' : ''
@@ -319,7 +335,7 @@ function handleNodeClick(node: DirectoryDisplayNode): void {
                     </button>
                     <button
                         type="button"
-                        class="rounded-full border border-warm-200 bg-white px-2.5 py-1 text-xs font-medium text-warm-700 transition hover:border-warm-400 hover:bg-warm-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-zinc-500 dark:hover:bg-zinc-800"
+                        class="rounded-full border border-theme-200 bg-white px-2.5 py-1 text-xs font-medium text-theme-700 transition hover:border-theme-400 hover:bg-theme-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:border-zinc-500 dark:hover:bg-zinc-800"
                         :disabled="
                             directoryIds.length === collapsedDirectoryIds.size
                         "
@@ -343,23 +359,23 @@ function handleNodeClick(node: DirectoryDisplayNode): void {
             <template v-if="isLoading">
                 <div class="space-y-2">
                     <div
-                        class="h-10 animate-pulse rounded-xl bg-warm-200 dark:bg-zinc-700"
+                        class="h-10 animate-pulse rounded-xl bg-theme-200 dark:bg-zinc-700"
                     />
                     <div
-                        class="h-10 animate-pulse rounded-xl bg-warm-200 dark:bg-zinc-700"
+                        class="h-10 animate-pulse rounded-xl bg-theme-200 dark:bg-zinc-700"
                     />
                     <div
-                        class="h-10 animate-pulse rounded-xl bg-warm-200 dark:bg-zinc-700"
+                        class="h-10 animate-pulse rounded-xl bg-theme-200 dark:bg-zinc-700"
                     />
                     <div
-                        class="h-10 animate-pulse rounded-xl bg-warm-200 dark:bg-zinc-700"
+                        class="h-10 animate-pulse rounded-xl bg-theme-200 dark:bg-zinc-700"
                     />
                 </div>
             </template>
 
             <template v-else-if="directoryNodes.length === 0">
                 <p
-                    class="rounded-xl border border-dashed border-warm-300 bg-warm-50 p-4 text-sm text-warm-700 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"
+                    class="rounded-xl border border-dashed border-theme-300 bg-theme-50 p-4 text-sm text-theme-700 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"
                 >
                     此課程目前沒有教材目錄可顯示。
                 </p>
@@ -373,15 +389,16 @@ function handleNodeClick(node: DirectoryDisplayNode): void {
                 <template v-for="node in visibleNodes" :key="node.internalId">
                     <div
                         v-if="node.isDirectory"
+                        data-material-node
                         class="sticky -top-3 z-10 -mt-2 block w-full bg-white pt-2 dark:bg-zinc-900"
                     >
                         <button
                             type="button"
                             class="block w-full rounded-xl border px-3 text-left transition"
                             :class="{
-                                'border-warm-400 bg-warm-50 text-warm-900 dark:border-zinc-500 dark:bg-zinc-800 dark:text-zinc-100':
+                                'border-theme-700 bg-theme-50 text-theme-900 dark:border-zinc-500 dark:bg-zinc-800 dark:text-zinc-100':
                                     isNodeInActivePath(node),
-                                'border-warm-100 bg-warm-50 text-warm-900 hover:border-warm-400 hover:bg-warm-100 dark:border-zinc-700/70 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:border-zinc-600 dark:hover:bg-zinc-800':
+                                'border-theme-100 bg-theme-50 text-theme-900 hover:border-theme-400 hover:bg-theme-100 dark:border-zinc-700/70 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:border-zinc-600 dark:hover:bg-zinc-800':
                                     !isNodeInActivePath(node),
                             }"
                             :aria-expanded="!isDirectoryCollapsed(node)"
@@ -408,11 +425,11 @@ function handleNodeClick(node: DirectoryDisplayNode): void {
                                     </span>
                                     <ChevronDownIcon
                                         v-if="!isDirectoryCollapsed(node)"
-                                        class="h-4 w-4 shrink-0 text-warm-600 dark:text-zinc-400"
+                                        class="h-4 w-4 shrink-0 text-theme-700 dark:text-zinc-400"
                                     />
                                     <ChevronRightIcon
                                         v-else
-                                        class="h-4 w-4 shrink-0 text-warm-600 dark:text-zinc-400"
+                                        class="h-4 w-4 shrink-0 text-theme-700 dark:text-zinc-400"
                                     />
                                 </div>
                             </div>
@@ -420,56 +437,77 @@ function handleNodeClick(node: DirectoryDisplayNode): void {
                     </div>
 
                     <button
-                        v-else-if="node.href && !node.itemDisabled"
                         type="button"
-                        class="block rounded-xl border px-3 py-1 text-left text-sm transition"
-                        :class="
-                            isNodeActive(node)
-                                ? 'border-warm-500 bg-warm-100 text-warm-900 dark:border-zinc-500 dark:bg-zinc-700 dark:text-zinc-100'
-                                : 'border-warm-200/70 bg-white text-warm-700 hover:border-warm-400 hover:bg-warm-50 dark:border-zinc-700/70 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:bg-zinc-800'
-                        "
-                        :style="{
-                            marginLeft: `${node.level * 14}px`,
-                            width: `calc(100% - ${node.level * 14}px)`,
-                        }"
+                        v-else-if="node.href && !node.itemDisabled"
+                        data-material-node
+                        class="block w-full"
                         @click="handleNodeClick(node)"
                     >
                         <div
-                            class="flex h-10 items-center justify-between gap-2"
+                            class="block w-full rounded-xl border px-3 py-1 text-left text-sm transition"
+                            :class="
+                                isNodeActive(node)
+                                    ? 'border-theme-700 bg-theme-100 text-theme-900 dark:border-zinc-500 dark:bg-zinc-700 dark:text-zinc-100'
+                                    : 'border-theme-200/70 bg-white text-theme-700 hover:border-theme-400 hover:bg-theme-50 dark:border-zinc-700/70 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:bg-zinc-800'
+                            "
+                            :style="{
+                                marginLeft: `${node.level * 14}px`,
+                                width: `calc(100% - ${node.level * 14}px)`,
+                            }"
                         >
-                            <div class="min-w-0 flex-1">
-                                <span
-                                    class="line-clamp-2"
-                                    :class="
-                                        node.isSyntheticLink
-                                            ? 'font-medium'
-                                            : ''
-                                    "
-                                >
-                                    {{
-                                        node.text ||
-                                        node.identifier ||
-                                        '未命名節點'
-                                    }}
-                                </span>
-                            </div>
-                            <span
-                                class="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px] tabular-nums"
-                                :class="
-                                    node.duration
-                                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300'
-                                        : 'bg-slate-100 text-slate-600 dark:bg-zinc-700 dark:text-zinc-300'
-                                "
+                            <div
+                                class="flex min-h-10 items-center justify-between gap-2"
                             >
-                                <ClockIcon class="h-3.5 w-3.5" />
-                                {{ node.duration ?? '未觀看' }}
-                            </span>
+                                <div class="min-w-0 flex-1">
+                                    <span
+                                        class="line-clamp-2"
+                                        :class="
+                                            node.isSyntheticLink
+                                                ? 'font-medium'
+                                                : ''
+                                        "
+                                    >
+                                        {{
+                                            node.text ||
+                                            node.identifier ||
+                                            '未命名節點'
+                                        }}
+                                    </span>
+                                </div>
+                                <div
+                                    class="flex flex-col items-center justify-center gap-y-0.5"
+                                >
+                                    <span
+                                        class="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px] tabular-nums"
+                                        :class="
+                                            node.duration
+                                                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300'
+                                                : 'bg-slate-100 text-slate-600 dark:bg-zinc-700 dark:text-zinc-300'
+                                        "
+                                    >
+                                        <ClockIcon class="h-3.5 w-3.5" />
+                                        {{ node.duration ?? '未觀看' }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div
+                            v-if="isLastSeenNode(node) && !isNodeActive(node)"
+                            class="-mt-2 w-full rounded-b-xl border border-t-0 border-sky-500 bg-sky-100 px-2 py-1 text-center text-sm text-sky-700 dark:bg-sky-900 dark:text-sky-300"
+                            :style="{
+                                marginLeft: `${node.level * 14}px`,
+                                width: `calc(100% - ${node.level * 14}px)`,
+                            }"
+                        >
+                            {{ lastSeenLabel }}
                         </div>
                     </button>
 
                     <div
                         v-else
-                        class="block rounded-xl py-2.5 text-left text-base font-semibold text-warm-900 dark:text-zinc-100"
+                        data-material-node
+                        class="block rounded-xl py-2.5 text-left text-base font-semibold text-theme-900 dark:text-zinc-100"
                         :style="{
                             marginLeft: `${12 + node.level * 14}px`,
                             width: `calc(100% - ${12 + node.level * 14}px)`,

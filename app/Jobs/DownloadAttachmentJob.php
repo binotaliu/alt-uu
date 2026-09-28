@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Jobs;
 
 use App\Models\AttachmentDownload;
+use App\Services\SchoolPortalProxyClient;
 use App\Services\UUProxyClient;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
@@ -24,7 +25,7 @@ final class DownloadAttachmentJob implements ShouldQueue
         public readonly int $taskId,
     ) {}
 
-    public function handle(UUProxyClient $proxyClient): void
+    public function handle(UUProxyClient $proxyClient, SchoolPortalProxyClient $schoolPortalProxyClient): void
     {
         $task = AttachmentDownload::query()->find($this->taskId);
 
@@ -46,7 +47,9 @@ final class DownloadAttachmentJob implements ShouldQueue
             $safeFileName = $this->resolveSafeFileName($task->source_url, $task->file_name);
             $relativePath = sprintf('attachment-downloads/%d/%s', $task->id, $safeFileName);
 
-            $downloadResult = $proxyClient->downloadMaterialContentToLocalDisk($task->source_url, $relativePath);
+            $downloadResult = $task->source === AttachmentDownload::SOURCE_SCHOOL_PORTAL
+                ? $schoolPortalProxyClient->downloadToLocalDisk($task->source_url, $relativePath)
+                : $proxyClient->downloadMaterialContentToLocalDisk($task->source_url, $relativePath);
 
             $task->forceFill([
                 'status' => AttachmentDownload::STATUS_COMPLETED,

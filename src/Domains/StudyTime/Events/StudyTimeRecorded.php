@@ -14,5 +14,6 @@ final class StudyTimeRecorded
 
     public function __construct(
         public readonly string $cid,
+        public readonly ?int $accountId,
     ) {}
 }

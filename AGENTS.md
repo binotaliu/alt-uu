@@ -10,6 +10,7 @@
     - `AltUU\Domains\*\DataTransferObjects` must extend `Spatie\LaravelData\Data`, have `TypeScript` attribute, constructor, and only camelCase public properties.
 - Native features use NativePHP plugins in `packages/altuu/` (e.g., `plugin-media-player`, `plugin-attachment-bridge`) for iOS/Android native bridge components.
 - Key modules include courses, materials, discussion forums, live sessions, playback progress, appearance prefs, and parsed material proxy flow.
+- In addition to `tests/Feature`/`tests/Unit`, this project has Pest v4 browser tests under `tests/Browser` (Playwright-driven, real Chromium). Use them for flows that involve client-side JS logic — SPA navigation, composables, Pinia store reactions, multi-request races — that HTTP-only Feature tests can't exercise, since those never run the Vue app. Requires `npm run build` first (browser tests hit compiled `public/build` assets, not Vite HMR); run with `php artisan test tests/Browser` or filter to a specific file.
 
 <laravel-boost-guidelines>
 === foundation rules ===

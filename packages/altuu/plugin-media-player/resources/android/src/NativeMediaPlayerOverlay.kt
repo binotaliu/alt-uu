@@ -179,7 +179,15 @@ private fun AudioOverlayContent(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
+                    SkipButton(iconName = "replay_10", contentDescription = "倒轉 10 秒", themeColor = themeColor) {
+                        MediaPlayerManager.skipBy(-10.0)
+                    }
+
                     PlayPauseButton(isPlaying = isPlaying, themeColor = themeColor)
+
+                    SkipButton(iconName = "forward_10", contentDescription = "快轉 10 秒", themeColor = themeColor) {
+                        MediaPlayerManager.skipBy(10.0)
+                    }
 
                     Column(
                         modifier = Modifier
@@ -434,6 +442,7 @@ private fun VideoPlayerSurface(
                         )
                         player = MediaPlayerManager.getPlayer()
                         playerViewRef = this
+                        MediaFrameCapture.registerPlayerView(this)
                         isTopOverlayVisible = isControllerFullyVisible
                         onControlsVisibilityChanged(isControllerFullyVisible)
                     }
@@ -441,6 +450,7 @@ private fun VideoPlayerSurface(
                 update = { playerView ->
                     playerView.player = MediaPlayerManager.getPlayer()
                     playerViewRef = playerView
+                    MediaFrameCapture.registerPlayerView(playerView)
                     playerView.useController = !isInPiP
                     playerView.hideSettingsButton()
                     isTopOverlayVisible = !isInPiP && playerView.isControllerFullyVisible
@@ -559,6 +569,27 @@ private fun PlayPauseButton(isPlaying: Boolean, themeColor: Color) {
             contentDescription = if (isPlaying) "暫停" else "播放",
             size = 20.dp,
             tint = Color.White,
+        )
+    }
+}
+
+@Composable
+private fun SkipButton(iconName: String, contentDescription: String, themeColor: Color, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .size(30.dp)
+            .clickable(
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() },
+                onClick = onClick,
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        MaterialIcon(
+            name = iconName,
+            contentDescription = contentDescription,
+            size = 22.dp,
+            tint = themeColor,
         )
     }
 }

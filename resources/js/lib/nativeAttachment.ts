@@ -16,17 +16,11 @@ interface HunguCookie {
     domain: string;
 }
 
-interface DiscussAttachmentPayload {
-    cid: string;
-    bid: string;
-    nid: string;
-    attachmentUrl: string;
-}
-
 interface QueueAttachmentDownloadPayload {
     cid: string;
     sourceUrl: string;
     filename?: string | null;
+    source?: 'hungu' | 'school_portal';
 }
 
 export interface AttachmentDownloadTask {
@@ -170,8 +164,13 @@ export async function waitForAttachmentDownloadCompletion(
     }
 }
 
-export async function openAttachmentInBrowser(url: string): Promise<boolean> {
-    return openUrlInNativeBrowser(url);
+export async function openAttachmentInBrowser(
+    url: string,
+    options: {
+        css?: string;
+    } = {},
+): Promise<boolean> {
+    return openUrlInNativeBrowser(url, options);
 }
 
 export async function openUrlInNativeBrowser(
@@ -179,6 +178,7 @@ export async function openUrlInNativeBrowser(
     options: {
         method?: 'GET' | 'POST';
         postForm?: Record<string, string>;
+        css?: string;
     } = {},
 ): Promise<boolean> {
     const cookies = await fetchHunguCookies();
@@ -188,36 +188,7 @@ export async function openUrlInNativeBrowser(
         cookies,
         method,
         postForm: options.postForm ?? {},
-    });
-
-    // Backward compatibility for older native builds that only expose OpenInBrowser.
-    if (result === null) {
-        const legacyResult = await bridgeCall(
-            'AttachmentBridge.OpenInBrowser',
-            {
-                url,
-                cookies,
-                method,
-                postForm: options.postForm ?? {},
-            },
-        );
-
-        return legacyResult !== null;
-    }
-
-    return result !== null;
-}
-
-export async function openDiscussAttachmentInBrowser(
-    payload: DiscussAttachmentPayload,
-): Promise<boolean> {
-    const cookies = await fetchHunguCookies();
-    const result = await bridgeCall('AttachmentBridge.OpenDiscussAttachment', {
-        cid: payload.cid,
-        bid: payload.bid,
-        nid: payload.nid,
-        attachmentUrl: payload.attachmentUrl,
-        cookies,
+        css: options.css ?? null,
     });
 
     return result !== null;

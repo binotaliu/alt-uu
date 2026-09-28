@@ -219,8 +219,18 @@ struct WebView: UIViewRepresentable {
                 return
             }
 
+            // Let subframe navigation (e.g. an <iframe src="https://...">) load inside the
+            // WebView itself. Without this, iOS intercepts the subframe's own navigation as
+            // if it were a top-level link tap — e.g. an embedded YouTube iframe gets bounced
+            // out to the native YouTube app via Universal Links instead of rendering in place.
+            // Only genuine top-level navigation (main frame, or no target frame — e.g. a
+            // target="_blank" link/window.open) should be handed off to the system.
+            let isSubframeNavigation = navigationAction.targetFrame != nil
+                && !navigationAction.targetFrame!.isMainFrame
+
             // Open external URLs and system schemes with the system handler
-            if ["http", "https", "tel", "mailto", "sms", "facetime", "facetime-audio"].contains(scheme) {
+            if !isSubframeNavigation,
+               ["http", "https", "tel", "mailto", "sms", "facetime", "facetime-audio"].contains(scheme) {
                 UIApplication.shared.open(url)
                 decisionHandler(.cancel)
             } else {
@@ -276,6 +286,17 @@ struct WebView: UIViewRepresentable {
             let isDarkMode = targetWindow?.traitCollection.userInterfaceStyle == .dark
             let colorScheme = isDarkMode ? "dark" : "light"
 
+            // Derive a text-scale multiplier from Dynamic Type. iOS has no raw float like
+            // Android's Configuration.fontScale, so use the standard trick: compare the
+            // preferred body font size (which responds to the window's trait collection)
+            // against its size at the standard/default content size category (17pt).
+            let traitCollection = targetWindow?.traitCollection ?? UITraitCollection.current
+            let scaledBodyPointSize = UIFont.preferredFont(
+                forTextStyle: .body,
+                compatibleWith: traitCollection
+            ).pointSize
+            let textScale = scaledBodyPointSize / 17.0
+
             let js = """
             (function() {
                 // Set CSS variables directly on documentElement for immediate availability
@@ -294,6 +315,7 @@ struct WebView: UIViewRepresentable {
                     document.documentElement.style.setProperty('--corner-adaptation-margin-bottom', '\(cornerInsets.bottom)px');
                     document.documentElement.style.setProperty('--corner-adaptation-margin-left', '\(cornerInsets.left)px');
                     document.documentElement.style.setProperty('--native-color-scheme', '\(colorScheme)');
+                    document.documentElement.style.setProperty('--text-scale', '\(textScale)');
                 }
             })();
             """
@@ -370,8 +392,7 @@ struct WebView: UIViewRepresentable {
         }
 
         @objc func reloadWebView() {
-            _ = NativePHPApp.shared?.artisan(additionalArgs: ["view:clear"])
-
+            // Views are already cleared during persistent runtime reboot — just reload
             self.webView?.reload()
         }
 
@@ -438,6 +459,11 @@ struct WebView: UIViewRepresentable {
         @objc func keyboardWillHide(_ notification: Notification) {
             let js = "document.body.classList.remove('keyboard-visible');"
             self.webView?.evaluateJavaScript(js, completionHandler: nil)
+        }
+
+        @objc func contentSizeCategoryDidChange(_ notification: Notification) {
+            guard let webView = self.webView else { return }
+            injectSafeAreaInsets(webView)
         }
     }
 
@@ -555,6 +581,14 @@ struct WebView: UIViewRepresentable {
             context.coordinator,
             selector: #selector(Coordinator.keyboardWillHide),
             name: UIResponder.keyboardWillHideNotification,
+            object: nil
+        )
+
+        // Re-inject --text-scale when the OS text-size (Dynamic Type) preference changes
+        NotificationCenter.default.addObserver(
+            context.coordinator,
+            selector: #selector(Coordinator.contentSizeCategoryDidChange),
+            name: UIContentSizeCategory.didChangeNotification,
             object: nil
         )
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace AltUU\Domains\Course\Actions;
 
 use AltUU\Domains\Course\Actions\Results\ParsedMaterialContentResult;
+use AltUU\Domains\Course\Enums\VideoProvider;
 use AltUU\Domains\Course\Support\DownloadClassification;
 use AltUU\Domains\Course\Support\MaterialDownloadClassifier;
 use AltUU\Domains\Course\Support\MaterialProxyUrl;
@@ -12,6 +13,7 @@ use AltUU\Domains\Course\Support\VideoExtractors\ExtractedVideo;
 use AltUU\Domains\Course\Support\VideoExtractors\FlowplayerJsConfigVideoExtractor;
 use AltUU\Domains\Course\Support\VideoExtractors\Html5SourceVideoExtractor;
 use AltUU\Domains\Course\Support\VideoExtractors\MaterialVideoExtractor;
+use AltUU\Domains\Course\Support\YoutubeEmbedUrlParser;
 use App\Services\UUCourseClient;
 use Mews\Purifier\Facades\Purifier;
 use Symfony\Component\DomCrawler\Crawler;
@@ -31,6 +33,12 @@ final readonly class ParseMaterialContent
 
     public function __invoke(string $url, string $baseHost): ParsedMaterialContentResult
     {
+        $youtubeVideoId = YoutubeEmbedUrlParser::extractVideoId($url);
+
+        if ($youtubeVideoId !== null) {
+            return $this->toYoutubeEmbedResult($youtubeVideoId);
+        }
+
         $extensionClassification = MaterialDownloadClassifier::classifyDownloadable($url, '');
 
         if ($extensionClassification !== null) {
@@ -90,6 +98,37 @@ final readonly class ParseMaterialContent
             isPdf: false,
             htmlContent: $this->ensureUtf8($htmlContent),
         );
+    }
+
+    private function toYoutubeEmbedResult(string $videoId): ParsedMaterialContentResult
+    {
+        return new ParsedMaterialContentResult(
+            videoUrl: null,
+            subtitleUrl: null,
+            downloadUrl: null,
+            downloadProxyUrl: null,
+            downloadFileName: null,
+            downloadFileExtension: null,
+            isPdf: false,
+            htmlContent: '',
+            videoProvider: VideoProvider::Youtube,
+            embedVideoUrl: $this->buildYoutubeEmbedUrl($videoId),
+        );
+    }
+
+    /**
+     * The app's WebView loads its own pages via a custom URL scheme
+     * (php://), and WKWebView never sends a Referer header for content
+     * nested under a custom-scheme document — which YouTube requires to
+     * authorize embedded playback (surfaces as "Error 153"). Routing
+     * through this static, real-https wrapper page lets the innermost
+     * YouTube iframe see a genuine https Referer/origin instead.
+     */
+    private function buildYoutubeEmbedUrl(string $videoId): string
+    {
+        $base = rtrim((string) config('services.statics.base_url'), '/');
+
+        return $base.'/youtube-embed.html?v='.$videoId;
     }
 
     private function toDownloadResult(string $url, DownloadClassification $classification): ParsedMaterialContentResult

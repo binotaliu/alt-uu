@@ -49,7 +49,7 @@ prepare:
 run-i:
 	@if [ -z "$(UUID)" ]; then echo "UUID is required. use make run UUID=<uuid>"; exit 1; fi
 	@$(CONCURRENTLY) "$(MAKE) ensure-composer-dev-deps && $(MAKE) ensure-nativephp" "$(MAKE) ensure-node-modules" --names "php,node" --prefix-colors "green,blue"
-	@$(CONCURRENTLY) "$(NPM) run build -- --mode=ios && rm -Rf node_modules" "$(COMPOSER) install --no-dev" --names "npm,composer" --prefix-colors "blue,green"
+	@$(NPM) run build -- --mode=ios
 	$(ARTISAN) native:run i $(UUID)
 	@$(CONCURRENTLY) "$(MAKE) ensure-node-modules" "$(MAKE) ensure-composer-dev-deps" --names "npm,composer" --prefix-colors "blue,green"
 

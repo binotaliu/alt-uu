@@ -54,10 +54,11 @@ async function bridgeCall(method, params = {}) {
  * @param {string} config.url - Media URL (audio or video)
  * @param {string} config.type - Media type ('audio' or 'video')
  * @param {Array<number>} config.frame - Display frame [x, y, width, height]
+ * @param {boolean} [config.force] - Rebuild the player even if the same source is loaded
  * @returns {Promise<Object>}
  */
 export async function setPlayer(config) {
-    const { url, type, frame = [0, 0, 320, 200] } = config;
+    const { url, type, frame = [0, 0, 320, 200], force = false } = config;
 
     if (!url || !type) {
         throw new Error('Missing required parameters: url and type');
@@ -72,6 +73,7 @@ export async function setPlayer(config) {
             width: frame[2],
             height: frame[3],
         },
+        ...(force ? { force: true } : {}),
     });
 }
 

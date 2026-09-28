@@ -2,6 +2,7 @@
 
 use AltUU\Domains\Course\Actions\CourseTypeMatcher;
 use AltUU\Domains\Course\Actions\ListCourses;
+use App\Services\AccountActiveProfile;
 use App\Services\UUCourseClient;
 use App\Services\UUProxyClient;
 use Illuminate\Cache\ArrayStore;
@@ -15,7 +16,7 @@ it('populates commonCourseId when courseType comes from an app course', function
     $proxyClient = MockeryManager::mock(UUProxyClient::class);
     $proxyClient->shouldReceive('request')
         ->once()
-        ->with('my-course-list', 'GET', ['offset' => 0, 'pagesize' => 100])
+        ->with('my-course-list', 'GET', ['offset' => 0, 'pagesize' => 100], null, 'form', true, null)
         ->andReturn([
             'payload' => [
                 'data' => [
@@ -27,7 +28,7 @@ it('populates commonCourseId when courseType comes from an app course', function
             ],
         ]);
 
-    $courseClient = new UUCourseClient($proxyClient);
+    $courseClient = new UUCourseClient($proxyClient, new AccountActiveProfile);
     $action = new ListCourses($courseClient, $cache);
 
     $request = MockeryManager::mock(Request::class);
@@ -63,7 +64,7 @@ it('supports hyphenated class names when matching app course type', function () 
     $proxyClient = MockeryManager::mock(UUProxyClient::class);
     $proxyClient->shouldReceive('request')
         ->once()
-        ->with('my-course-list', 'GET', ['offset' => 0, 'pagesize' => 100])
+        ->with('my-course-list', 'GET', ['offset' => 0, 'pagesize' => 100], null, 'form', true, null)
         ->andReturn([
             'payload' => [
                 'data' => [
@@ -75,7 +76,7 @@ it('supports hyphenated class names when matching app course type', function () 
             ],
         ]);
 
-    $courseClient = new UUCourseClient($proxyClient);
+    $courseClient = new UUCourseClient($proxyClient, new AccountActiveProfile);
     $action = new ListCourses($courseClient, $cache);
 
     $request = MockeryManager::mock(Request::class);

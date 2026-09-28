@@ -16,7 +16,7 @@ final readonly class GetCoursePathInfo
 {
     private const COURSE_PATH_INFO_CACHE_PREFIX = 'alt-uu:courses:path-info:';
 
-    private const COURSE_PATH_INFO_IDS_KEY = 'alt-uu:courses:path-info:ids';
+    private const COURSE_PATH_INFO_IDS_KEY_PREFIX = 'alt-uu:courses:path-info:ids:';
 
     private const COURSE_PATH_INFO_CACHE_TTL_MINUTES = 30;
 
@@ -27,7 +27,8 @@ final readonly class GetCoursePathInfo
      */
     public function __invoke(Request $request, string $cid): array
     {
-        $pathInfoCacheKey = self::COURSE_PATH_INFO_CACHE_PREFIX.$cid;
+        $accountId = $this->courseClient->currentAccountId() ?? 0;
+        $pathInfoCacheKey = self::COURSE_PATH_INFO_CACHE_PREFIX.$accountId.':'.$cid;
         $pathInfo = Cache::get($pathInfoCacheKey);
 
         if (empty($pathInfo) || ! is_array($pathInfo)) {
@@ -40,7 +41,7 @@ final readonly class GetCoursePathInfo
                 $pathInfo,
                 now()->addMinutes(self::COURSE_PATH_INFO_CACHE_TTL_MINUTES),
             );
-            $this->registerPathInfoKey($cid);
+            $this->registerPathInfoKey($accountId, $cid);
         }
 
         $flatNodes = $this->flattenNodes(Arr::get($pathInfo, 'data.path.item', []));
@@ -102,9 +103,10 @@ final readonly class GetCoursePathInfo
         return $result;
     }
 
-    private function registerPathInfoKey(string $cid): void
+    private function registerPathInfoKey(int $accountId, string $cid): void
     {
-        $ids = Cache::get(self::COURSE_PATH_INFO_IDS_KEY, []);
+        $idsKey = self::COURSE_PATH_INFO_IDS_KEY_PREFIX.$accountId;
+        $ids = Cache::get($idsKey, []);
 
         if (! is_array($ids)) {
             $ids = [];
@@ -113,7 +115,7 @@ final readonly class GetCoursePathInfo
         if (! in_array($cid, $ids, true)) {
             $ids[] = $cid;
             Cache::put(
-                self::COURSE_PATH_INFO_IDS_KEY,
+                $idsKey,
                 $ids,
                 now()->addMinutes(self::COURSE_PATH_INFO_CACHE_TTL_MINUTES),
             );

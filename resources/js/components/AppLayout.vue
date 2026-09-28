@@ -4,12 +4,8 @@ import {
     XCircleIcon,
     XMarkIcon,
 } from '@heroicons/vue/24/outline';
-import { ref, onMounted, computed } from 'vue';
+import { ref, computed } from 'vue';
 import type { Slot } from 'vue';
-import {
-    bootstrapNativePageTransitions,
-    commitNativePageVisit,
-} from '@/lib/nativePageTransition';
 
 defineProps<{
     title?: string;
@@ -39,15 +35,10 @@ const showFlashMessage = (message: string, type: 'success' | 'error') => {
 
 // add to window for easier debugging and testing in DevTools console
 window.showFlashMessage = showFlashMessage;
-
-onMounted(() => {
-    bootstrapNativePageTransitions();
-    commitNativePageVisit();
-});
 </script>
 
 <template>
-    <main class="min-h-screen text-warm-900 dark:text-zinc-100">
+    <main class="min-h-screen text-theme-900 dark:text-zinc-100">
         <Transition
             enter-active-class="transition-opacity duration-200"
             leave-active-class="transition-opacity duration-200"

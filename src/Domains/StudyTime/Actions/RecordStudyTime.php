@@ -7,6 +7,7 @@ namespace AltUU\Domains\StudyTime\Actions;
 use AltUU\Domains\StudyTime\Actions\Results\RecordStudyTimeResult;
 use AltUU\Domains\StudyTime\Events\StudyTimeRecorded;
 use AltUU\Domains\StudyTime\ViewModels\StudyTimeResultViewModel;
+use App\Models\AccountDailyActivity;
 use App\Models\PlaybackProgress;
 use App\Services\UUStudyTimeClient;
 use Illuminate\Http\Request;
@@ -27,6 +28,7 @@ final readonly class RecordStudyTime
             'seconds' => ['nullable', 'integer', 'min:1', 'max:28800'],
             'startedAt' => ['nullable', 'date'],
             'positionSeconds' => ['nullable', 'numeric', 'min:0'],
+            'mediaDurationSeconds' => ['nullable', 'numeric', 'gt:0'],
         ])->validate();
 
         $seconds = (int) ($input['seconds'] ?? 0);
@@ -65,13 +67,18 @@ final readonly class RecordStudyTime
         $ok = ($uploadPayload['code'] ?? 500) === 0;
 
         if ($ok) {
-            StudyTimeRecorded::dispatch((string) $input['cid']);
+            StudyTimeRecorded::dispatch((string) $input['cid'], $this->studyTimeClient->currentAccountId());
         }
 
         $positionSeconds = isset($input['positionSeconds']) ? (float) $input['positionSeconds'] : null;
 
+        $mediaDurationSeconds = isset($input['mediaDurationSeconds']) ? (float) $input['mediaDurationSeconds'] : null;
+
+        $accountId = $this->studyTimeClient->currentAccountId();
+
         PlaybackProgress::updateOrCreate(
             [
+                'account_id' => $accountId,
                 'cid' => (string) $input['cid'],
                 'activity_id' => (string) $input['activityId'],
             ],
@@ -79,8 +86,13 @@ final readonly class RecordStudyTime
                 'duration_seconds' => $seconds,
                 'position_seconds' => $positionSeconds ?? 0,
                 'hungu_upload_success' => $ok,
+                ...($mediaDurationSeconds !== null ? ['media_duration_seconds' => $mediaDurationSeconds] : []),
             ],
         );
+
+        if ($accountId !== null) {
+            $this->recordDailyActivity($accountId, $seconds);
+        }
 
         return new RecordStudyTimeResult(
             viewModel: new StudyTimeResultViewModel(
@@ -89,6 +101,18 @@ final readonly class RecordStudyTime
                 message: is_string($uploadPayload['message'] ?? null) ? $uploadPayload['message'] : null,
             ),
         );
+    }
+
+    private function recordDailyActivity(int $accountId, int $seconds): void
+    {
+        $activityDate = Date::now('Asia/Taipei')->toDateString();
+
+        $activity = AccountDailyActivity::query()->firstOrCreate(
+            ['account_id' => $accountId, 'activity_date' => $activityDate],
+            ['total_seconds' => 0],
+        );
+
+        $activity->increment('total_seconds', $seconds);
     }
 
     private function normalizeInput(Request $request): array
@@ -100,6 +124,7 @@ final readonly class RecordStudyTime
             'seconds' => $request->input('seconds'),
             'startedAt' => $request->input('startedAt', $request->input('started_at')),
             'positionSeconds' => $request->input('positionSeconds', $request->input('position_seconds')),
+            'mediaDurationSeconds' => $request->input('mediaDurationSeconds', $request->input('media_duration_seconds')),
         ];
     }
 }

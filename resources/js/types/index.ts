@@ -15,8 +15,28 @@ export type CourseLearningTimeItem =
     AltUU.Domains.Course.ViewModels.CourseLearningTimeItemViewModel;
 export type CourseHomeworkItem =
     AltUU.Domains.Course.ViewModels.CourseHomeworkItemViewModel;
+export type CourseHomeworkList =
+    AltUU.Domains.Course.ViewModels.CourseHomeworkListViewModel;
 export type CourseSelfExamItem =
     AltUU.Domains.Course.ViewModels.CourseHomeworkItemViewModel;
+export type CourseSchoolPortalInfo =
+    AltUU.Domains.Course.ViewModels.CourseSchoolPortalInfoViewModel;
+
+// School Portal ViewModels
+export type SchoolPortalGrade =
+    AltUU.Domains.SchoolPortal.ViewModels.SchoolPortalGradeViewModel;
+export type SchoolPortalHomeworkNotice =
+    AltUU.Domains.SchoolPortal.ViewModels.SchoolPortalHomeworkNoticeViewModel;
+export type SchoolPortalClassSessionInfo =
+    AltUU.Domains.SchoolPortal.ViewModels.SchoolPortalClassSessionInfoViewModel;
+export type SchoolPortalExamInfo =
+    AltUU.Domains.SchoolPortal.ViewModels.SchoolPortalExamInfoViewModel;
+export type SchoolPortalExamSchedule =
+    AltUU.Domains.SchoolPortal.ViewModels.SchoolPortalExamScheduleViewModel;
+export type SchoolPortalExamScope =
+    AltUU.Domains.SchoolPortal.ViewModels.SchoolPortalExamScopeViewModel;
+export type SchoolPortalExamAgendaItem =
+    AltUU.Domains.SchoolPortal.ViewModels.SchoolPortalExamAgendaItemViewModel;
 
 export type CourseItem = CourseItemViewModel & {
     pendingHomeworks?: number;
@@ -39,6 +59,33 @@ export type PostListViewModel =
 export type StudyTimeResult =
     AltUU.Domains.StudyTime.ViewModels.StudyTimeResultViewModel;
 
+// Subscription ViewModels
+export type SubscriptionEntitlement =
+    AltUU.Domains.Subscription.ViewModels.EntitlementViewModel;
+export type SubscriptionProduct =
+    AltUU.Domains.Subscription.ViewModels.ProductViewModel;
+
+// Account ViewModels
+export type AccountProfile = AltUU.Domains.Account.ViewModels.AccountViewModel;
+
+// Activity ViewModels
+export type ActivityDay =
+    AltUU.Domains.Activity.ViewModels.ActivityDayViewModel;
+export type ActivityHeatmap =
+    AltUU.Domains.Activity.ViewModels.ActivityHeatmapViewModel;
+
+// DataPortability ViewModels/DTOs
+export type DataExport =
+    AltUU.Domains.DataPortability.ViewModels.DataExportViewModel;
+export type DataImportResult =
+    AltUU.Domains.DataPortability.ViewModels.DataImportResultViewModel;
+export type PlaybackProgressImportItem =
+    AltUU.Domains.DataPortability.DataTransferObjects.PlaybackProgressImportItemData;
+export type AccountDailyActivityImportItem =
+    AltUU.Domains.DataPortability.DataTransferObjects.AccountDailyActivityImportItemData;
+export type ImportDataInput =
+    AltUU.Domains.DataPortability.DataTransferObjects.ImportDataInputData;
+
 // Composite/frontend-only types
 export interface ParsedContent {
     videoUrl: string | null;
@@ -49,6 +96,8 @@ export interface ParsedContent {
     downloadFileExtension: string | null;
     isPdf: boolean;
     htmlContent: string | null;
+    videoProvider: 'native' | 'youtube';
+    embedVideoUrl: string | null;
 }
 
 export interface CoursePathData {
@@ -84,6 +133,7 @@ export interface StudyTimePayload {
     seconds: number;
     startedAt: string | null;
     positionSeconds?: number;
+    mediaDurationSeconds?: number;
 }
 
 export interface NouToolsClassSession {
@@ -93,6 +143,8 @@ export interface NouToolsClassSession {
 }
 
 export interface NouToolsLiveSessionItem {
+    accountId: number | null;
+    accountLabel: string;
     courseId: string;
     courseName: string;
     semester: string | null;

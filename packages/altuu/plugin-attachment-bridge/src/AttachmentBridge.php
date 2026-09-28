@@ -14,19 +14,15 @@ final class AttachmentBridge
         ]);
     }
 
-    public function openUrl(string $url, array $cookies = [], string $method = 'GET', array $postForm = []): ?object
+    public function openUrl(string $url, array $cookies = [], string $method = 'GET', array $postForm = [], ?string $css = null): ?object
     {
         return $this->call('AttachmentBridge.OpenURL', [
             'url' => $url,
             'cookies' => $cookies,
             'method' => strtoupper($method),
             'postForm' => $postForm,
+            'css' => $css,
         ]);
-    }
-
-    public function openInBrowser(string $url, array $cookies = [], string $method = 'GET', array $postForm = []): ?object
-    {
-        return $this->openUrl($url, $cookies, $method, $postForm);
     }
 
     public function openTronclass(string $url): ?object

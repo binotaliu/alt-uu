@@ -4,9 +4,18 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use AltUU\Domains\Account\Actions\HasAnyAccounts;
+use AltUU\Domains\AppPreference\Actions\GetAccentColor;
 use AltUU\Domains\AppPreference\Actions\GetAppearance;
 use AltUU\Domains\AppPreference\Actions\GetOnboardingCompleted;
 use App\Http\Middleware\EnsureHunguSession;
+use App\Services\Diagnostics\DiagnosticRecorder;
+use App\Services\Diagnostics\DiagnosticRedactor;
+use App\Services\Diagnostics\DiagnosticSalt;
+use App\Services\Diagnostics\UpstreamCallSubscriber;
+use App\Services\Diagnostics\UpstreamRecordingSwitch;
+use App\Services\SchoolPortalProxyClient;
+use App\Services\SchoolPortalSessionAuthenticator;
 use App\Services\UUProxyClient;
 use App\Services\UUSessionAuthenticator;
 use Carbon\CarbonImmutable;
@@ -24,7 +33,25 @@ final class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(DiagnosticSalt::class);
+
+        $this->app->singleton(
+            DiagnosticRedactor::class,
+            fn ($app): DiagnosticRedactor => new DiagnosticRedactor(
+                $app->make(DiagnosticSalt::class)->value(),
+            ),
+        );
+
+        // Both hold state across events: the switch spans a closure, and the
+        // listener correlates RequestSending with ResponseReceived. Laravel
+        // registers subscribers by class name and re-resolves on every
+        // dispatch, so without these they would lose that state.
+        $this->app->singleton(UpstreamRecordingSwitch::class);
+        $this->app->singleton(UpstreamCallSubscriber::class);
+
+        // Shared so its per-request "is recording on?" memo is resolved once
+        // rather than once per injection site.
+        $this->app->singleton(DiagnosticRecorder::class);
     }
 
     /**
@@ -36,7 +63,9 @@ final class AppServiceProvider extends ServiceProvider
 
         view()->composer('app', function ($view): void {
             $view->with('appearance', app(GetAppearance::class)());
+            $view->with('accentColor', app(GetAccentColor::class)());
             $view->with('showOnboarding', ! app(GetOnboardingCompleted::class)());
+            $view->with('hasAccounts', app(HasAnyAccounts::class)());
         });
 
         $this->app->resolving(UUProxyClient::class, function (UUProxyClient $proxyClient, $app): void {
@@ -45,6 +74,14 @@ final class AppServiceProvider extends ServiceProvider
                 $authenticator = $app->make(UUSessionAuthenticator::class);
 
                 return $authenticator->attemptRememberedLogin($request);
+            });
+        });
+
+        $this->app->resolving(SchoolPortalProxyClient::class, function (SchoolPortalProxyClient $proxyClient, $app): void {
+            $proxyClient->setReauthenticationHandler(function () use ($app): bool {
+                $authenticator = $app->make(SchoolPortalSessionAuthenticator::class);
+
+                return $authenticator->attemptRememberedLogin();
             });
         });
     }

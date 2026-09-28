@@ -40,6 +40,9 @@ jobs:
       - name: Install Node Dependencies
         run: npm i
 
+      - name: Install Playwright Browsers
+        run: npx playwright install chromium --with-deps
+
       - name: Install Dependencies
         run: composer install --no-interaction --prefer-dist --optimize-autoloader
 

@@ -1,4 +1,6 @@
 import { ref } from 'vue';
+import { asApiError } from '@/lib/apiError';
+import type { ApiError } from '@/lib/apiError';
 import { useDiscussStore } from '@/stores/discuss';
 import type { DiscussData } from '@/types';
 
@@ -12,6 +14,7 @@ export function useDiscuss() {
     const data = ref<DiscussData | null>(null);
     const isLoading = ref(false);
     const error = ref<string | null>(null);
+    const errorDetail = ref<ApiError | null>(null);
 
     async function fetchDiscuss(
         cid?: string,
@@ -21,6 +24,7 @@ export function useDiscuss() {
     ): Promise<void> {
         isLoading.value = true;
         error.value = null;
+        errorDetail.value = null;
 
         try {
             const selectedCid = cid ?? '';
@@ -67,6 +71,7 @@ export function useDiscuss() {
             };
         } catch (e) {
             error.value = e instanceof Error ? e.message : '載入討論板失敗';
+            errorDetail.value = asApiError(e);
         } finally {
             isLoading.value = false;
         }
@@ -76,6 +81,7 @@ export function useDiscuss() {
         data,
         isLoading,
         error,
+        errorDetail,
         fetchDiscuss,
         createPost: store.createPost,
         updatePost: store.updatePost,

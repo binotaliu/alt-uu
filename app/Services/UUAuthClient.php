@@ -13,11 +13,11 @@ final class UUAuthClient
         private readonly UUProxyClient $proxyClient,
         private readonly UUSessionStore $sessionStore,
         private readonly UUProfileSession $profileSession,
-        private readonly UURememberedCredentialsStore $rememberedCredentialsStore,
+        private readonly AccountCredentialsStore $accountCredentialsStore,
     ) {}
 
     /**
-     * @return array{ok: bool, message: string}
+     * @return array{ok: bool, message: string, raw?: array<string, mixed>}
      */
     public function attemptLogin(Request $request, string $username, string $password): array
     {
@@ -28,7 +28,7 @@ final class UUAuthClient
     {
         $this->proxyClient->request('logout', 'POST');
         $this->sessionStore->forget();
-        $this->rememberedCredentialsStore->forget();
+        $this->accountCredentialsStore->forget();
         $this->profileSession->forget($request);
     }
 }

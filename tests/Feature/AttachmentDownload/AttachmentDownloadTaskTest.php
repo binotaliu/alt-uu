@@ -62,6 +62,46 @@ it('queues an attachment download task', function () {
     Queue::assertPushed(DownloadAttachmentJob::class, 1);
 });
 
+it('queues an attachment download task for the school portal source', function () {
+    Queue::fake();
+    fakeHunguSessionStore();
+
+    $response = withCookie(config('hungu.app_boot_cookie_name'), '1')
+        ->postJson('/api/attachments/download-tasks', [
+            'cid' => '1001',
+            'sourceUrl' => 'https://nouapp.nou.edu.tw/device/compliant/qryass/download?type=homework&filename=1153_900001_1&extension=pdf',
+            'filename' => '1153_900001_1.pdf',
+            'source' => 'school_portal',
+        ]);
+
+    $response->assertSuccessful();
+    $response->assertJsonPath('status', AttachmentDownload::STATUS_QUEUED);
+
+    assertDatabaseHas('attachment_downloads', [
+        'cid' => '1001',
+        'source' => 'school_portal',
+        'source_url' => 'https://nouapp.nou.edu.tw/device/compliant/qryass/download?type=homework&filename=1153_900001_1&extension=pdf',
+        'status' => AttachmentDownload::STATUS_QUEUED,
+    ]);
+
+    Queue::assertPushed(DownloadAttachmentJob::class, 1);
+});
+
+it('rejects a school portal download task pointing at a different host', function () {
+    Queue::fake();
+    fakeHunguSessionStore();
+
+    $response = withCookie(config('hungu.app_boot_cookie_name'), '1')
+        ->postJson('/api/attachments/download-tasks', [
+            'cid' => '1001',
+            'sourceUrl' => 'https://uu.nou.edu.tw/learn/attachment/sample.pdf',
+            'source' => 'school_portal',
+        ]);
+
+    $response->assertForbidden();
+    Queue::assertNothingPushed();
+});
+
 it('rejects attachment download task for an external host', function () {
     Queue::fake();
 

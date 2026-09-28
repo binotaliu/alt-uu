@@ -1,11 +1,16 @@
 <script setup lang="ts">
-import { ClockIcon } from '@heroicons/vue/24/outline';
+import {
+    ChevronLeftIcon,
+    ChevronRightIcon,
+    ClockIcon,
+} from '@heroicons/vue/24/outline';
 import { ref, onMounted, watch, computed, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { Browser } from '#nativephp';
+import { Browser, Network } from '#nativephp';
 import AndroidBottomControlBackground from '@/components/AndroidBottomControlBackground.vue';
 import AppLayout from '@/components/AppLayout.vue';
 import BackButton from '@/components/BackButton.vue';
+import ErrorRetry from '@/components/ErrorRetry.vue';
 import MaterialDirectory from '@/components/MaterialDirectory.vue';
 import MaterialViewer from '@/components/MaterialViewer.vue';
 import PageHeader from '@/components/PageHeader.vue';
@@ -14,13 +19,14 @@ import {
     useNodeResources,
     useParsedContent,
     useCourseLearningTimes,
+    useLastSeenMaterial,
 } from '@/composables/useCoursePath';
 import { useCourses } from '@/composables/useCourses';
 import { useStudyTimer } from '@/composables/useStudyTimer';
 import { useTitle } from '@/composables/useTitle';
 import { openTronclassUrl } from '@/lib/nativeAttachment';
 import { getNativeMediaState } from '@/lib/nativeMediaPlayer';
-import { setNextNavigationKind } from '@/lib/nativePageTransition';
+import { navigateBack } from '@/router';
 import { useAppConfigStore } from '@/stores/appConfig';
 import type { MaterialNode } from '@/types';
 
@@ -39,8 +45,20 @@ const {
     isLoading: isPathLoading,
     fetchPath,
 } = useCoursePath(props.cid);
-const { resources, fetchResources } = useNodeResources();
-const { content, fetchContent, fetchParsedContent } = useParsedContent();
+const {
+    resources,
+    error: resourcesError,
+    errorDetail: resourcesErrorDetail,
+    fetchResources,
+} = useNodeResources();
+const {
+    content,
+    error: contentError,
+    errorDetail: contentErrorDetail,
+    fetchContent,
+    refreshContent,
+    fetchParsedContent,
+} = useParsedContent();
 const {
     viewingSeconds,
     startedAt,
@@ -51,13 +69,22 @@ const {
     sendStudyTime,
     sendStudyTimeBeacon,
     updatePlaybackPosition,
-} = useStudyTimer(props.cid, async () => {
-    return (await viewerRef.value?.getCurrentTime()) ?? 0;
-});
+    updateMediaDuration,
+} = useStudyTimer(
+    props.cid,
+    async () => (await viewerRef.value?.getCurrentTime()) ?? 0,
+    async () => (await viewerRef.value?.getDuration()) ?? 0,
+);
 
 const { items: learningTimeItems, fetchLearningTimes } = useCourseLearningTimes(
     props.cid,
 );
+const {
+    activityId: lastSeenActivityId,
+    positionSeconds: lastSeenPositionSeconds,
+    mediaDurationSeconds: lastSeenDurationSeconds,
+    fetchLastSeenMaterial,
+} = useLastSeenMaterial(props.cid);
 
 const activeNodeIdentifier = ref<string>(props.scoid);
 const isContentLoading = ref(true);
@@ -66,6 +93,11 @@ const restoredStartedAt = ref<string | null>(null);
 
 // Resume prompt state
 const resumePrompt = ref<{ position: number; label: string } | null>(null);
+
+// Cellular playback confirmation state
+const cellularPrompt = ref(false);
+const cellularPromptDontAskAgain = ref(false);
+let cellularPromptResolve: ((allowed: boolean) => void) | null = null;
 
 const selectedCourse = computed(
     () => courses.value.find((c) => c.courseId === props.cid) ?? null,
@@ -83,6 +115,32 @@ const activeNode = computed<MaterialNode | null>(
 );
 
 const activeNodeText = computed(() => activeNode.value?.text || '');
+
+const navigableNodes = computed(() =>
+    materialNodes.value.filter((n) => n.leaf && n.href && !n.itemDisabled),
+);
+
+const activeNavIndex = computed(() =>
+    navigableNodes.value.findIndex(
+        (n) => n.identifier === activeNodeIdentifier.value,
+    ),
+);
+
+const previousMaterialNode = computed<MaterialNode | null>(() => {
+    const index = activeNavIndex.value;
+
+    return index > 0 ? navigableNodes.value[index - 1] : null;
+});
+
+const nextMaterialNode = computed<MaterialNode | null>(() => {
+    const index = activeNavIndex.value;
+
+    if (index < 0 || index >= navigableNodes.value.length - 1) {
+        return null;
+    }
+
+    return navigableNodes.value[index + 1];
+});
 
 const activeNodeHref = computed(() => activeNode.value?.href || null);
 
@@ -133,17 +191,42 @@ function checkScreenSize() {
     isTabletOrAbove.value = window.matchMedia('(min-width: 768px)').matches;
 }
 
-async function loadNodeData(scoid: string) {
+async function loadNodeData(scoid: string): Promise<boolean> {
     isContentLoading.value = true;
+    let proceed = true;
 
     try {
         await Promise.all([
             fetchResources(props.cid, scoid),
             fetchContent(props.cid, scoid),
         ]);
+
+        if (content.value?.videoUrl || content.value?.embedVideoUrl) {
+            proceed = await ensureCellularPlaybackAllowed();
+        }
     } finally {
         isContentLoading.value = false;
     }
+
+    if (!proceed) {
+        vueRouter.replace(`/courses/${encodeURIComponent(props.cid)}`);
+    }
+
+    return proceed;
+}
+
+async function reloadNodeContent(): Promise<boolean> {
+    const scoid = activeNodeIdentifier.value;
+    const [contentOk] = await Promise.all([
+        refreshContent(props.cid, scoid),
+        fetchResources(props.cid, scoid),
+    ]);
+
+    return contentOk;
+}
+
+async function retryLoadNodeData(): Promise<void> {
+    await loadNodeData(activeNodeIdentifier.value);
 }
 
 function consumeRestoredStartedAt(): string | null {
@@ -237,6 +320,48 @@ function handleResumeDismiss(): void {
     resumePrompt.value = null;
 }
 
+async function ensureCellularPlaybackAllowed(): Promise<boolean> {
+    if (!configStore.cellularPlaybackWarningEnabled) {
+        return true;
+    }
+
+    let status: { connected: boolean; type?: string } | null = null;
+
+    try {
+        status = await Network.status();
+    } catch {
+        return true;
+    }
+
+    if (!status || status.type !== 'cellular') {
+        return true;
+    }
+
+    cellularPromptDontAskAgain.value = false;
+    cellularPrompt.value = true;
+
+    return new Promise<boolean>((resolve) => {
+        cellularPromptResolve = resolve;
+    });
+}
+
+async function resolveCellularPrompt(allowed: boolean): Promise<void> {
+    cellularPrompt.value = false;
+
+    if (cellularPromptDontAskAgain.value) {
+        try {
+            await configStore.updatePreferences({
+                cellularPlaybackWarningEnabled: false,
+            });
+        } catch {
+            // Ignore; the user will simply be asked again next time.
+        }
+    }
+
+    cellularPromptResolve?.(allowed);
+    cellularPromptResolve = null;
+}
+
 async function reloadSession(): Promise<boolean> {
     try {
         const response = await fetch('/api/auth/bootstrap-session', {
@@ -301,6 +426,18 @@ async function handleNodeSelect(identifier: string) {
     vueRouter.replace(
         `/courses/${encodeURIComponent(props.cid)}/${encodeURIComponent(identifier)}`,
     );
+}
+
+async function goToPreviousMaterial() {
+    if (previousMaterialNode.value) {
+        await handleNodeSelect(previousMaterialNode.value.identifier);
+    }
+}
+
+async function goToNextMaterial() {
+    if (nextMaterialNode.value) {
+        await handleNodeSelect(nextMaterialNode.value.identifier);
+    }
 }
 
 async function handleContentLinkClick(href: string) {
@@ -399,22 +536,8 @@ async function handleBack() {
     isSaving.value = false;
 
     stopTimer();
-    setNextNavigationKind('back');
 
-    const path = `/courses/${encodeURIComponent(props.cid)}`;
-    const previousPath = window.history.state?.back as string | null;
-
-    if (previousPath === path) {
-        if (document.startViewTransition) {
-            document.startViewTransition(() => {
-                window.history.back();
-            });
-        } else {
-            window.history.back();
-        }
-    } else {
-        vueRouter.replace(path);
-    }
+    navigateBack(`/courses/${encodeURIComponent(props.cid)}`);
 }
 
 function handleNativeBackPressed(event: Event): void {
@@ -437,6 +560,12 @@ function handlePageLeave(): void {
             if (typeof currentTime === 'number' && currentTime > 0) {
                 updatePlaybackPosition(currentTime);
             }
+
+            const duration = await viewerRef.value?.getDuration();
+
+            if (typeof duration === 'number') {
+                updateMediaDuration(duration);
+            }
         } finally {
             sendStudyTimeBeacon(node.identifier, href);
         }
@@ -452,7 +581,12 @@ watch(activeNodeIdentifier, async (scoid) => {
         return;
     }
 
-    await loadNodeData(scoid);
+    const proceed = await loadNodeData(scoid);
+
+    if (!proceed) {
+        return;
+    }
+
     const isNativeRestore = restoredStartedAt.value !== null;
     startTracking(!!activeNodeHref.value, consumeRestoredStartedAt());
     resumePrompt.value = null;
@@ -482,7 +616,13 @@ onMounted(async () => {
     window.addEventListener('pagehide', handlePageLeave);
     window.addEventListener(NATIVE_BACK_PRESSED_EVENT, handleNativeBackPressed);
 
-    await Promise.all([fetchCourses(), fetchPath(), configStore.loadConfig()]);
+    await Promise.all([
+        fetchCourses(),
+        fetchPath(),
+        fetchLastSeenMaterial(),
+        configStore.loadConfig(),
+        configStore.loadPreferences(),
+    ]);
     await loadNativeRestoreState();
 
     // If this is tablet (iPad) or larger, load learning times to show durations in the sidebar
@@ -491,12 +631,15 @@ onMounted(async () => {
     }
 
     if (props.scoid) {
-        await loadNodeData(props.scoid);
-        const isNativeRestore = restoredStartedAt.value !== null;
-        startTracking(!!activeNodeHref.value, consumeRestoredStartedAt());
+        const proceed = await loadNodeData(props.scoid);
 
-        if (activeNodeHref.value && !isNativeRestore) {
-            void checkPlaybackProgress(props.scoid);
+        if (proceed) {
+            const isNativeRestore = restoredStartedAt.value !== null;
+            startTracking(!!activeNodeHref.value, consumeRestoredStartedAt());
+
+            if (activeNodeHref.value && !isNativeRestore) {
+                void checkPlaybackProgress(props.scoid);
+            }
         }
     }
 });
@@ -530,7 +673,7 @@ onUnmounted(() => {
                     class="inline-flex shrink-0 items-center gap-2"
                 >
                     <div
-                        class="inline-flex items-center gap-2 rounded-full bg-warm-100 px-3 py-1 text-xs font-medium text-warm-800 md:text-sm lg:text-base dark:bg-zinc-700 dark:text-zinc-200"
+                        class="inline-flex items-center gap-2 rounded-full bg-theme-100 px-3 py-1 text-xs font-medium text-theme-800 md:text-sm lg:text-base dark:bg-zinc-700 dark:text-zinc-200"
                     >
                         <ClockIcon class="h-4 w-4" />
                         <span class="sr-only">學習計時</span>
@@ -551,13 +694,20 @@ onUnmounted(() => {
                     class="md:sticky md:top-[calc(var(--inset-top,0px)+6.25rem)] md:h-[calc(100vh-var(--inset-top,0px)-var(--inset-bottom,0px)-8rem)]"
                 >
                     <div
-                        class="h-full overflow-hidden rounded-2xl border border-warm-200 bg-white/85 shadow-sm backdrop-blur dark:border-zinc-700 dark:bg-zinc-900/85"
+                        class="h-full overflow-hidden rounded-2xl border border-theme-200 bg-white/85 shadow-sm backdrop-blur dark:border-zinc-700 dark:bg-zinc-900/85"
                     >
                         <MaterialDirectory
                             :selected-cid="cid"
                             :material-nodes="materialNodes"
                             :learning-time-items="learningTimeItems"
                             :active-node-identifier="activeNodeIdentifier"
+                            :last-seen-identifier="lastSeenActivityId"
+                            :last-seen-position-seconds="
+                                lastSeenPositionSeconds
+                            "
+                            :last-seen-duration-seconds="
+                                lastSeenDurationSeconds
+                            "
                             :is-loading="isPathLoading"
                             node-select-mode="event"
                             @node-select="handleNodeSelect"
@@ -568,30 +718,41 @@ onUnmounted(() => {
                 <section class="min-w-0">
                     <div v-if="isContentLoading" class="space-y-3">
                         <div
-                            class="aspect-video w-full animate-pulse rounded-2xl bg-warm-200 dark:bg-zinc-700"
+                            class="aspect-video w-full animate-pulse rounded-2xl bg-theme-200 dark:bg-zinc-700"
                         />
                         <div
-                            class="space-y-2 rounded-2xl border border-warm-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900"
+                            class="space-y-2 rounded-2xl border border-theme-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900"
                         >
                             <div
-                                class="h-4 animate-pulse rounded bg-warm-200 dark:bg-zinc-700"
+                                class="h-4 animate-pulse rounded bg-theme-200 dark:bg-zinc-700"
                                 style="width: 75%"
                             />
                             <div
-                                class="h-4 animate-pulse rounded bg-warm-200 dark:bg-zinc-700"
+                                class="h-4 animate-pulse rounded bg-theme-200 dark:bg-zinc-700"
                                 style="width: 55%"
                             />
                             <div
-                                class="h-4 animate-pulse rounded bg-warm-200 dark:bg-zinc-700"
+                                class="h-4 animate-pulse rounded bg-theme-200 dark:bg-zinc-700"
                                 style="width: 90%"
                             />
                         </div>
                     </div>
+                    <ErrorRetry
+                        v-else-if="contentError || resourcesError"
+                        :message="
+                            contentError || resourcesError || '載入教材失敗'
+                        "
+                        :detail="contentErrorDetail ?? resourcesErrorDetail"
+                        :retrying="isContentLoading"
+                        @retry="retryLoadNodeData"
+                    />
                     <MaterialViewer
                         v-else
                         ref="viewerRef"
                         :video-url="content?.videoUrl ?? null"
                         :subtitle-url="content?.subtitleUrl ?? null"
+                        :video-provider="content?.videoProvider ?? 'native'"
+                        :embed-video-url="content?.embedVideoUrl ?? null"
                         :download-url="content?.downloadUrl ?? null"
                         :download-proxy-url="content?.downloadProxyUrl ?? null"
                         :download-file-name="content?.downloadFileName ?? null"
@@ -607,6 +768,7 @@ onUnmounted(() => {
                         :selected-cid="cid"
                         :in-app-url="activeNodeHref"
                         :native-session-context="nativeSessionContext"
+                        :reload-content="reloadNodeContent"
                         :prefer-web-player="
                             configStore.screenReaderEnhancedSupportEnabled
                         "
@@ -615,6 +777,60 @@ onUnmounted(() => {
                             (elapsed) => updatePlaybackPosition(elapsed)
                         "
                     />
+
+                    <div
+                        v-if="
+                            !isContentLoading &&
+                            (previousMaterialNode || nextMaterialNode)
+                        "
+                        class="mt-4 grid grid-cols-2 gap-3"
+                    >
+                        <button
+                            type="button"
+                            class="group flex min-w-0 items-start gap-2 rounded-2xl border border-theme-200 bg-white p-3 text-left transition hover:border-theme-400 hover:bg-theme-50 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-theme-200 disabled:hover:bg-white dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-zinc-500 dark:hover:bg-zinc-800 dark:disabled:hover:border-zinc-700 dark:disabled:hover:bg-zinc-900"
+                            :disabled="!previousMaterialNode"
+                            @click="goToPreviousMaterial"
+                        >
+                            <ChevronLeftIcon
+                                class="mt-0.5 h-4 w-4 shrink-0 text-theme-700 group-disabled:text-theme-400 dark:text-zinc-400"
+                            />
+                            <div class="min-w-0">
+                                <p
+                                    class="text-xs font-medium text-theme-700 dark:text-zinc-400"
+                                >
+                                    上一個教材
+                                </p>
+                                <p
+                                    class="line-clamp-2 text-sm font-semibold text-theme-900 dark:text-zinc-100"
+                                >
+                                    {{ previousMaterialNode?.text || '無' }}
+                                </p>
+                            </div>
+                        </button>
+
+                        <button
+                            type="button"
+                            class="group flex min-w-0 items-start justify-end gap-2 rounded-2xl border border-theme-200 bg-white p-3 text-right transition hover:border-theme-400 hover:bg-theme-50 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-theme-200 disabled:hover:bg-white dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-zinc-500 dark:hover:bg-zinc-800 dark:disabled:hover:border-zinc-700 dark:disabled:hover:bg-zinc-900"
+                            :disabled="!nextMaterialNode"
+                            @click="goToNextMaterial"
+                        >
+                            <div class="min-w-0">
+                                <p
+                                    class="text-xs font-medium text-theme-700 dark:text-zinc-400"
+                                >
+                                    下一個教材
+                                </p>
+                                <p
+                                    class="line-clamp-2 text-sm font-semibold text-theme-900 dark:text-zinc-100"
+                                >
+                                    {{ nextMaterialNode?.text || '無' }}
+                                </p>
+                            </div>
+                            <ChevronRightIcon
+                                class="mt-0.5 h-4 w-4 shrink-0 text-theme-700 group-disabled:text-theme-400 dark:text-zinc-400"
+                            />
+                        </button>
+                    </div>
                 </section>
             </div>
         </div>
@@ -627,21 +843,21 @@ onUnmounted(() => {
                 >
                     <div
                         key="saving"
-                        class="w-full max-w-md rounded-2xl border border-warm-200 bg-white/95 px-4 py-3 shadow-lg backdrop-blur-md dark:border-zinc-700 dark:bg-zinc-900/95"
+                        class="w-full max-w-md rounded-2xl border border-theme-200 bg-white/95 px-4 py-3 shadow-lg backdrop-blur-md dark:border-zinc-700 dark:bg-zinc-900/95"
                     >
                         <div class="flex items-center gap-3">
                             <span
-                                class="inline-block h-6 w-6 animate-spin rounded-full border-2 border-warm-600 border-r-transparent dark:border-zinc-100 dark:border-r-transparent"
+                                class="inline-block h-6 w-6 animate-spin rounded-full border-2 border-theme-700 border-r-transparent dark:border-zinc-100 dark:border-r-transparent"
                                 aria-hidden="true"
                             />
                             <div class="text-left">
                                 <p
-                                    class="text-sm font-semibold text-warm-900 dark:text-zinc-100"
+                                    class="text-sm font-semibold text-theme-900 dark:text-zinc-100"
                                 >
                                     正在保存學習進度
                                 </p>
                                 <p
-                                    class="text-xs text-warm-600 dark:text-zinc-400"
+                                    class="text-xs text-theme-700 dark:text-zinc-400"
                                 >
                                     已儲存最新位置，請稍候…
                                 </p>
@@ -660,36 +876,89 @@ onUnmounted(() => {
                         class="relative z-10 flex h-full items-end justify-center px-4 pb-[max(var(--inset-bottom,0px),1.5rem)]"
                     >
                         <div
-                            class="w-full max-w-sm rounded-2xl border border-warm-200 bg-white px-5 py-5 shadow-xl dark:border-zinc-700 dark:bg-zinc-900"
+                            class="w-full max-w-sm rounded-2xl border border-theme-200 bg-white px-5 py-5 shadow-xl dark:border-zinc-700 dark:bg-zinc-900"
                         >
                             <p
-                                class="text-sm font-semibold text-warm-900 dark:text-zinc-100"
+                                class="text-sm font-semibold text-theme-900 dark:text-zinc-100"
                             >
                                 接續上次播放？
                             </p>
                             <p
-                                class="mt-1 text-sm text-warm-600 dark:text-zinc-400"
+                                class="mt-1 text-sm text-theme-700 dark:text-zinc-400"
                             >
                                 上次播放到
                                 <span
-                                    class="font-medium text-warm-900 dark:text-zinc-100"
+                                    class="font-medium text-theme-900 dark:text-zinc-100"
                                     >{{ resumePrompt.label }}</span
                                 >，是否從此處繼續？
                             </p>
                             <div class="mt-4 flex gap-3">
                                 <button
                                     type="button"
-                                    class="flex-1 rounded-xl bg-warm-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-warm-700"
+                                    class="flex-1 rounded-xl bg-theme-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-theme-700"
                                     @click="handleResumeConfirm"
                                 >
                                     接續播放
                                 </button>
                                 <button
                                     type="button"
-                                    class="flex-1 rounded-xl border border-warm-200 px-4 py-2.5 text-sm font-medium text-warm-700 transition hover:border-warm-400 dark:border-zinc-700 dark:text-zinc-300"
+                                    class="flex-1 rounded-xl border border-theme-200 px-4 py-2.5 text-sm font-medium text-theme-700 transition hover:border-theme-400 dark:border-zinc-700 dark:text-zinc-300"
                                     @click="handleResumeDismiss"
                                 >
                                     從頭開始
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </transition>
+
+            <transition name="slide-up" appear>
+                <div v-if="cellularPrompt" class="fixed inset-0 z-80">
+                    <div
+                        class="absolute inset-0 bg-black/45 backdrop-blur-xs"
+                    />
+                    <div
+                        class="relative z-10 flex h-full items-end justify-center px-4 pb-[max(var(--inset-bottom,0px),1.5rem)]"
+                    >
+                        <div
+                            class="w-full max-w-sm rounded-2xl border border-theme-200 bg-white px-5 py-5 shadow-xl dark:border-zinc-700 dark:bg-zinc-900"
+                        >
+                            <p
+                                class="text-sm font-semibold text-theme-900 dark:text-zinc-100"
+                            >
+                                使用行動網路播放？
+                            </p>
+                            <p
+                                class="mt-1 text-sm text-theme-700 dark:text-zinc-400"
+                            >
+                                您目前透過行動網路（非
+                                Wi-Fi）連線，播放教材影音可能會消耗較多行動數據，是否繼續播放？
+                            </p>
+                            <label
+                                class="mt-3 flex items-center gap-2 text-sm text-theme-700 dark:text-zinc-300"
+                            >
+                                <input
+                                    v-model="cellularPromptDontAskAgain"
+                                    type="checkbox"
+                                    class="size-4 rounded border-theme-300 text-theme-700 focus:ring-theme-500 dark:border-zinc-600 dark:text-theme-500"
+                                />
+                                不再詢問（可於設定頁面重新開啟）
+                            </label>
+                            <div class="mt-4 flex gap-3">
+                                <button
+                                    type="button"
+                                    class="flex-1 rounded-xl bg-theme-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-theme-700"
+                                    @click="resolveCellularPrompt(true)"
+                                >
+                                    繼續播放
+                                </button>
+                                <button
+                                    type="button"
+                                    class="flex-1 rounded-xl border border-theme-200 px-4 py-2.5 text-sm font-medium text-theme-700 transition hover:border-theme-400 dark:border-zinc-700 dark:text-zinc-300"
+                                    @click="resolveCellularPrompt(false)"
+                                >
+                                    返回課程
                                 </button>
                             </div>
                         </div>

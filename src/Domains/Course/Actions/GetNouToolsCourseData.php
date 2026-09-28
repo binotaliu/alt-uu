@@ -4,14 +4,20 @@ declare(strict_types=1);
 
 namespace AltUU\Domains\Course\Actions;
 
+use AltUU\Domains\Course\Support\CourseNameMatcher;
 use AltUU\Domains\Course\ViewModels\CourseItemViewModel;
 use App\Services\NouToolsClient;
-use Normalizer;
 use Spatie\LaravelData\DataCollection;
 
 final readonly class GetNouToolsCourseData
 {
     public const UNDIVIDED_CLASS_CODE = '不分班';
+
+    /**
+     * Class code indicating 統一面授: when a course has only this one class,
+     * every student uses it for video sessions regardless of their own class.
+     */
+    public const UNIFIED_IN_PERSON_CLASS_CODE = 'ZZZ000';
 
     public function __construct(private NouToolsClient $nouToolsClient) {}
 
@@ -32,8 +38,8 @@ final readonly class GetNouToolsCourseData
         $results = [];
 
         foreach ($userCourses->items() as $course) {
-            $termCode = $this->toNouToolsTermCode($course->semester);
-            $normalizedName = $this->normalizeCourseName($course->name);
+            $termCode = CourseNameMatcher::normalizeTermCode($course->semester);
+            $normalizedName = CourseNameMatcher::normalizeName($course->name);
 
             if ($termCode === null || $normalizedName === '' || ! isset($termMaps[$termCode][$normalizedName])) {
                 $results[] = [
@@ -80,7 +86,7 @@ final readonly class GetNouToolsCourseData
         $grouped = [];
 
         foreach ($userCourses->items() as $course) {
-            $termCode = $this->toNouToolsTermCode($course->semester);
+            $termCode = CourseNameMatcher::normalizeTermCode($course->semester);
 
             if ($termCode === null) {
                 continue;
@@ -108,7 +114,7 @@ final readonly class GetNouToolsCourseData
             $id = (int) ($summary['id'] ?? 0);
             $name = isset($summary['name']) && is_string($summary['name']) ? trim($summary['name']) : '';
             $term = isset($summary['term']) && is_string($summary['term']) ? trim($summary['term']) : '';
-            $normalizedName = $this->normalizeCourseName($name);
+            $normalizedName = CourseNameMatcher::normalizeName($name);
 
             if ($id <= 0 || $normalizedName === '') {
                 continue;
@@ -132,6 +138,20 @@ final readonly class GetNouToolsCourseData
     {
         if ($detail === null || ! isset($detail['classes']) || ! is_array($detail['classes'])) {
             return null;
+        }
+
+        if (count($detail['classes']) === 1) {
+            $onlyClass = $detail['classes'][array_key_first($detail['classes'])];
+
+            if (is_array($onlyClass)) {
+                $onlyClassCode = isset($onlyClass['code']) && is_string($onlyClass['code'])
+                    ? strtoupper(trim($onlyClass['code']))
+                    : '';
+
+                if ($onlyClassCode === self::UNIFIED_IN_PERSON_CLASS_CODE) {
+                    return $onlyClass;
+                }
+            }
         }
 
         $expectedCode = $this->resolveClassCode($className);
@@ -178,64 +198,5 @@ final readonly class GetNouToolsCourseData
         }
 
         return strtoupper($trimmed);
-    }
-
-    private function toNouToolsTermCode(?string $semester): ?string
-    {
-        if (! is_string($semester)) {
-            return null;
-        }
-
-        $normalized = preg_replace('/\s+/u', '', trim($semester)) ?? '';
-
-        if ($normalized === '') {
-            return null;
-        }
-
-        if (preg_match('/^(?<year>\d{2,3})(?<season>上|下|暑)$/u', $normalized, $matches) !== 1) {
-            return null;
-        }
-
-        $rocYear = (int) ($matches['year'] ?? 0);
-        $season = (string) ($matches['season'] ?? '');
-
-        if ($rocYear <= 0) {
-            return null;
-        }
-
-        $year = $rocYear + 1911;
-        $seasonCode = match ($season) {
-            '上' => 'A',
-            '下' => 'B',
-            '暑' => 'C',
-            default => null,
-        };
-
-        if ($seasonCode === null) {
-            return null;
-        }
-
-        return sprintf('%d%s', $year, $seasonCode);
-    }
-
-    private function normalizeCourseName(string $name): string
-    {
-        $value = trim($name);
-
-        if ($value === '') {
-            return '';
-        }
-
-        if (class_exists(Normalizer::class)) {
-            $normalized = Normalizer::normalize($value, Normalizer::FORM_KC);
-            if (is_string($normalized) && $normalized !== '') {
-                $value = $normalized;
-            }
-        }
-
-        $value = mb_strtolower($value, 'UTF-8');
-        $value = preg_replace('/[\p{Z}\p{P}\p{S}]+/u', '', $value) ?? $value;
-
-        return trim($value);
     }
 }

@@ -1,0 +1,30 @@
+{
+    "name": "altuu/plugin-alt-uu-plus",
+    "description": "NativePHP in-app purchase bridge for subscription entitlement (StoreKit 2 / Play Billing)",
+    "type": "nativephp-plugin",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Binota Liu"
+        }
+    ],
+    "require": {
+        "php": "^8.2",
+        "nativephp/mobile": "^3.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "AltUU\\AltUUPlus\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "AltUU\\AltUUPlus\\AltUUPlusServiceProvider"
+            ]
+        },
+        "nativephp": {
+            "manifest": "nativephp.json"
+        }
+    }
+}

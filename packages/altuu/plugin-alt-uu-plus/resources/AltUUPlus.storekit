@@ -1,0 +1,156 @@
+{
+  "appPolicies" : {
+    "eula" : "",
+    "policies" : [
+      {
+        "locale" : "en_US",
+        "policyText" : "",
+        "policyURL" : ""
+      }
+    ]
+  },
+  "identifier" : "4FBD42E6",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+
+  ],
+  "settings" : {
+    "_applicationInternalID" : "6760690577",
+    "_askToBuyEnabled" : false,
+    "_billingGracePeriodEnabled" : false,
+    "_billingIssuesEnabled" : false,
+    "_developerTeamID" : "LBNLGVK7Y4",
+    "_disableDialogs" : false,
+    "_failTransactionsEnabled" : false,
+    "_lastSynchronizedDate" : 805387780.70014799,
+    "_locale" : "zh_Hant",
+    "_renewalBillingIssuesEnabled" : false,
+    "_storefront" : "TWN",
+    "_storeKitErrors" : [
+
+    ],
+    "_timeRate" : 0
+  },
+  "subscriptionBundleGroups" : [
+
+  ],
+  "subscriptionGroups" : [
+    {
+      "id" : "22220554",
+      "localizations" : [
+        {
+          "description" : "",
+          "displayName" : "Alt UU+",
+          "locale" : "zh_Hant"
+        }
+      ],
+      "name" : "Alt UU+",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "billingPlans" : [
+            {
+              "billingPlanType" : "BILLED_UPFRONT",
+              "commitmentDisplayPrice" : "90",
+              "displayPrice" : "90",
+              "internalID" : "6789156910_BILLED_UPFRONT",
+              "isEnabled" : true
+            }
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "90",
+          "familyShareable" : false,
+          "groupNumber" : 2,
+          "internalID" : "6789156910",
+          "introductoryOffers" : [
+
+          ],
+          "localizations" : [
+            {
+              "description" : "享有一個月的 Alt UU+ 服務",
+              "displayName" : "月訂閱",
+              "locale" : "zh_Hant"
+            },
+            {
+              "description" : "Enjoy a month of Alt UU+",
+              "displayName" : "Monthly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "ALT_UU_PLUS.MONTHLY",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Monthly",
+          "subscriptionGroupID" : "22220554",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
+        },
+        {
+          "adHocOffers" : [
+
+          ],
+          "billingPlans" : [
+            {
+              "billingPlanType" : "BILLED_UPFRONT",
+              "commitmentDisplayPrice" : "690",
+              "displayPrice" : "690",
+              "internalID" : "6789159056_BILLED_UPFRONT",
+              "isEnabled" : true
+            },
+            {
+              "billingPlanType" : "MONTHLY",
+              "commitmentDisplayPrice" : "60",
+              "displayPrice" : "60",
+              "internalID" : "6789159056_MONTHLY",
+              "isEnabled" : true
+            }
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "690",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "6789159056",
+          "introductoryOffers" : [
+
+          ],
+          "localizations" : [
+            {
+              "description" : "Enjoy a whole year of Alt UU+",
+              "displayName" : "Yearly",
+              "locale" : "en_US"
+            },
+            {
+              "description" : "享有一整年的 Alt UU+ 服務",
+              "displayName" : "年訂閱",
+              "locale" : "zh_Hant"
+            }
+          ],
+          "productID" : "ALT_UU_PLUS.YEARLY",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "Yearly",
+          "subscriptionGroupID" : "22220554",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
+        }
+      ]
+    }
+  ],
+  "subscriptionSuiteGroups" : [
+
+  ],
+  "version" : {
+    "major" : 5,
+    "minor" : 0
+  }
+}

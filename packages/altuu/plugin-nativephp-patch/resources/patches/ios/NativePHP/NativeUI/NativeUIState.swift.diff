@@ -1,5 +1,5 @@
---- /Users/binota/Developer/alt-uu/storage/framework/testing/nativephp-patch-ios-be22a232-1959-4032-97dd-a6365005af81/resources/xcode/NativePHP/NativeUI/NativeUIState.swift
-+++ /Users/binota/Developer/alt-uu/packages/altuu/plugin-nativephp-patch/resources/patches/ios/NativePHP/NativeUI/NativeUIState.swift
+--- /Users/binota/Developer/alt-uu-internal/vendor/nativephp/mobile/resources/xcode/NativePHP/NativeUI/NativeUIState.swift
++++ /Users/binota/Developer/alt-uu-internal/packages/altuu/plugin-nativephp-patch/resources/patches/ios/NativePHP/NativeUI/NativeUIState.swift
 @@ -8,6 +8,9 @@
      @Published var components: [NativeComponent] = []
      @Published var bottomNavData: BottomNavData?

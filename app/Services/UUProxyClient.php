@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Services\Diagnostics\UpstreamCallSubscriber;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Http;
@@ -33,8 +34,9 @@ class UUProxyClient
         array|string|null $body = null,
         string $bodyType = 'form',
         bool $canRetryOnForbidden = true,
+        ?int $accountId = null,
     ): array {
-        $session = $this->currentSession();
+        $session = $this->currentSession($accountId);
         $baseUrl = $this->normalizeBaseUrl((string) Arr::get($session, 'base_url', ''));
         $ua = (string) Arr::get($session, 'ua', config('hungu.user_agent'));
         $ticket = (string) (Arr::get($session, 'ticket') ?: Arr::get($session, 'session_idx'));
@@ -71,7 +73,7 @@ class UUProxyClient
             is_array($cookies) ? $cookies : [],
             $this->extractSetCookies($response),
         );
-        $this->syncSession($updatedSession);
+        $this->syncSession($updatedSession, $accountId);
 
         $responseBody = $response->json();
 
@@ -92,7 +94,7 @@ class UUProxyClient
             }
 
             if ($reauthenticated) {
-                return $this->request($action, $method, $params, $body, $bodyType, false);
+                return $this->request($action, $method, $params, $body, $bodyType, false, $accountId);
             }
         }
 
@@ -208,10 +210,7 @@ class UUProxyClient
         $ua = (string) Arr::get($session, 'ua', config('hungu.user_agent'));
         $cookies = Arr::get($session, 'cookies', []);
 
-        $response = $this->baseHttp($baseUrl, $ua, is_array($cookies) ? $cookies : [])
-            ->withHeaders([
-                'accept' => '*/*',
-            ])
+        $response = $this->rawContentHttp($baseUrl, $ua, is_array($cookies) ? $cookies : [])
             ->get($url);
 
         $updatedSession = $session;
@@ -227,6 +226,36 @@ class UUProxyClient
             'headers' => [
                 'content-type' => (string) $response->header('content-type', 'text/plain; charset=utf-8'),
             ],
+        ];
+    }
+
+    /**
+     * Build the upstream request a native shell needs to fetch material content
+     * itself, so the bytes stream straight to the WebView instead of through PHP.
+     *
+     * @return array{url: string, headers: array<string, string>}
+     */
+    public function materialFetchHandoff(string $url): array
+    {
+        $session = $this->currentSession();
+        $baseUrl = $this->normalizeBaseUrl((string) Arr::get($session, 'base_url', ''));
+        $ua = (string) Arr::get($session, 'ua', config('hungu.user_agent'));
+        $cookies = Arr::get($session, 'cookies', []);
+
+        $headers = array_filter(
+            [
+                'User-Agent' => $ua,
+                'Origin' => $baseUrl,
+                'Referer' => $baseUrl.'/learn/index.php',
+                'Cookie' => $this->cookieHeader(is_array($cookies) ? $cookies : []),
+                'Accept' => '*/*',
+            ],
+            static fn (string $value): bool => $value !== '',
+        );
+
+        return [
+            'url' => $url,
+            'headers' => $headers,
         ];
     }
 
@@ -313,11 +342,8 @@ class UUProxyClient
         $ua = (string) Arr::get($session, 'ua', config('hungu.user_agent'));
         $cookies = Arr::get($session, 'cookies', []);
 
-        $headResponse = $this->baseHttp($baseUrl, $ua, is_array($cookies) ? $cookies : [])
+        $headResponse = $this->rawContentHttp($baseUrl, $ua, is_array($cookies) ? $cookies : [])
             ->withOptions(['stream' => true])
-            ->withHeaders([
-                'accept' => '*/*',
-            ])
             ->head($url);
 
         $updatedSession = $session;
@@ -357,11 +383,8 @@ class UUProxyClient
 
         return new StreamedResponse(
             function () use ($url, $baseUrl, $ua, $cookies): void {
-                $response = $this->baseHttp($baseUrl, $ua, is_array($cookies) ? $cookies : [])
+                $response = $this->rawContentHttp($baseUrl, $ua, is_array($cookies) ? $cookies : [])
                     ->withOptions(['stream' => true])
-                    ->withHeaders([
-                        'accept' => '*/*',
-                    ])
                     ->get($url);
 
                 $stream = $response->toPsrResponse()->getBody();
@@ -395,11 +418,8 @@ class UUProxyClient
         $ua = (string) Arr::get($session, 'ua', config('hungu.user_agent'));
         $cookies = Arr::get($session, 'cookies', []);
 
-        $response = $this->baseHttp($baseUrl, $ua, is_array($cookies) ? $cookies : [])
+        $response = $this->rawContentHttp($baseUrl, $ua, is_array($cookies) ? $cookies : [])
             ->withOptions(['stream' => true])
-            ->withHeaders([
-                'accept' => '*/*',
-            ])
             ->get($url);
 
         $updatedSession = $session;
@@ -470,13 +490,13 @@ class UUProxyClient
     /**
      * @param  array<string, mixed>  $session
      */
-    public function syncSession(array $session): void
+    public function syncSession(array $session, ?int $accountId = null): void
     {
         if ($session === []) {
             return;
         }
 
-        $this->sessionStore->put($session);
+        $this->sessionStore->put($session, $accountId);
     }
 
     public function setCookie(string $name, string $value): void
@@ -501,9 +521,9 @@ class UUProxyClient
     /**
      * @return array<string, mixed>
      */
-    private function currentSession(): array
+    private function currentSession(?int $accountId = null): array
     {
-        $stored = $this->sessionStore->get();
+        $stored = $this->sessionStore->get($accountId);
 
         return is_array($stored) ? $stored : [];
     }
@@ -540,6 +560,16 @@ class UUProxyClient
                 'referer' => rtrim($baseUrl, '/').'/learn/index.php',
                 'cookie' => $this->cookieHeader($cookies),
             ]);
+    }
+
+    /**
+     * @param  array<string, string>  $cookies
+     */
+    private function rawContentHttp(string $baseUrl, string $ua, array $cookies)
+    {
+        return $this->baseHttp($baseUrl, $ua, $cookies)
+            ->withAttributes([UpstreamCallSubscriber::EXPECTS_JSON_ATTRIBUTE => false])
+            ->withHeaders(['accept' => '*/*']);
     }
 
     private function buildBody(array|string|null $body, string $bodyType): ?string

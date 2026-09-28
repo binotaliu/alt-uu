@@ -12,8 +12,9 @@ final class MediaPlayer
      * @param  string  $url  The media URL (audio or video)
      * @param  string  $type  The media type: 'audio' or 'video'
      * @param  array  $frame  The display frame [x, y, width, height] in points
+     * @param  bool  $force  Rebuild the player even if the same source is already loaded, resuming from the current position
      */
-    public function setPlayer(string $url, string $type, array $frame, ?string $courseName = null, ?string $materialName = null): ?object
+    public function setPlayer(string $url, string $type, array $frame, ?string $courseName = null, ?string $materialName = null, bool $force = false): ?object
     {
         $payload = [
             'url' => $url,
@@ -32,6 +33,10 @@ final class MediaPlayer
 
         if ($materialName !== null) {
             $payload['materialName'] = $materialName;
+        }
+
+        if ($force) {
+            $payload['force'] = true;
         }
 
         return $this->call('MediaPlayer.SetPlayer', $payload);

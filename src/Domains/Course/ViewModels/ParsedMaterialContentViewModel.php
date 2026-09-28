@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace AltUU\Domains\Course\ViewModels;
 
 use AltUU\Domains\Course\Actions\Results\ParsedMaterialContentResult;
+use AltUU\Domains\Course\Enums\VideoProvider;
 use Spatie\LaravelData\Resource;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
@@ -20,6 +21,8 @@ final class ParsedMaterialContentViewModel extends Resource
         public ?string $downloadFileExtension,
         public bool $isPdf,
         public ?string $htmlContent,
+        public VideoProvider $videoProvider,
+        public ?string $embedVideoUrl,
     ) {}
 
     public static function fromResult(ParsedMaterialContentResult $result): self
@@ -33,6 +36,8 @@ final class ParsedMaterialContentViewModel extends Resource
             downloadFileExtension: $result->downloadFileExtension,
             isPdf: $result->isPdf,
             htmlContent: $result->htmlContent,
+            videoProvider: $result->videoProvider,
+            embedVideoUrl: $result->embedVideoUrl,
         );
     }
 
@@ -47,6 +52,8 @@ final class ParsedMaterialContentViewModel extends Resource
             downloadFileExtension: null,
             isPdf: false,
             htmlContent: null,
+            videoProvider: VideoProvider::Native,
+            embedVideoUrl: null,
         );
     }
 }

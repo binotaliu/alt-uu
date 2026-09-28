@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\KeyValueStore;
+use App\Services\AccountCredentialsStore;
 use App\Services\UUSessionStore;
 
 use function Pest\Laravel\assertDatabaseHas;
@@ -15,6 +16,7 @@ beforeEach(function () {
 
 function seedHunguSession(string $username = 's1234567'): void
 {
+    app(AccountCredentialsStore::class)->put($username, 'test-password');
     app(UUSessionStore::class)->put([
         'base_url' => 'https://uu.nou.edu.tw',
         'ua' => 'test-agent',

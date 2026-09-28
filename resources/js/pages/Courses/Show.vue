@@ -2,13 +2,17 @@
 import {
     FolderIcon,
     ChatBubbleLeftRightIcon,
+    ChartBarIcon,
+    ClipboardDocumentCheckIcon,
     ClipboardDocumentListIcon,
+    InformationCircleIcon,
 } from '@heroicons/vue/24/outline';
 import { onBeforeUnmount, onMounted, ref, computed, watch } from 'vue';
 import AndroidBottomControlBackground from '@/components/AndroidBottomControlBackground.vue';
 import AppLayout from '@/components/AppLayout.vue';
 import BackButton from '@/components/BackButton.vue';
 import CourseDiscussTab from '@/components/CourseDiscussTab.vue';
+import CourseGradeTab from '@/components/CourseGradeTab.vue';
 import CourseHomeworkTab from '@/components/CourseHomeworkTab.vue';
 import CourseInfoTab from '@/components/CourseInfoTab.vue';
 import CourseMaterialsTab from '@/components/CourseMaterialsTab.vue';
@@ -17,8 +21,11 @@ import PageHeader from '@/components/PageHeader.vue';
 import { apiFetch } from '@/composables/useApi';
 import { useCourseSelfExams } from '@/composables/useCoursePath';
 import {
+    useCourseGrade,
     useCourseHomeworks,
     useCourseLearningTimes,
+    useCourseSchoolPortalInfo,
+    useLastSeenMaterial,
 } from '@/composables/useCoursePath';
 import { useCourses } from '@/composables/useCourses';
 import { useDiscuss } from '@/composables/useDiscuss';
@@ -33,7 +40,13 @@ import type {
 
 const props = defineProps<{
     cid: string;
-    tab?: 'materials' | 'discuss' | 'homework' | 'study-time' | 'course-info';
+    tab?:
+        | 'materials'
+        | 'discuss'
+        | 'homework'
+        | 'grades'
+        | 'study-time'
+        | 'course-info';
 }>();
 const configStore = useAppConfigStore();
 const nouToolsEnabled = computed(() =>
@@ -43,28 +56,54 @@ const {
     course: nouToolsCourse,
     isLoading: isNouToolsCourseLoading,
     error: nouToolsCourseError,
+    errorDetail: nouToolsCourseErrorDetail,
     fetchCourseInfo: fetchNouToolsCourseInfo,
 } = useNouToolsCourseInfo(props.cid);
+const {
+    classSessionInfo: schoolPortalClassSessionInfo,
+    examInfo: schoolPortalExamInfo,
+    isLoading: isSchoolPortalInfoLoading,
+    error: schoolPortalInfoError,
+    errorDetail: schoolPortalInfoErrorDetail,
+    fetchSchoolPortalInfo,
+} = useCourseSchoolPortalInfo(props.cid);
 
 const { courses, isLoading: isCoursesLoading, fetchCourses } = useCourses();
 const {
     items: learningTimeItems,
     isLoading: isLearningTimesLoading,
     error: learningTimesError,
+    errorDetail: learningTimesErrorDetail,
     fetchLearningTimes,
 } = useCourseLearningTimes(props.cid);
 const {
+    activityId: lastSeenActivityId,
+    positionSeconds: lastSeenPositionSeconds,
+    mediaDurationSeconds: lastSeenDurationSeconds,
+    fetchLastSeenMaterial,
+} = useLastSeenMaterial(props.cid);
+const {
     items: homeworkItems,
+    schoolPortalNotices: homeworkSchoolPortalNotices,
     isLoading: isHomeworkLoading,
     error: homeworkError,
+    errorDetail: homeworkErrorDetail,
     fetchHomeworks,
 } = useCourseHomeworks(props.cid);
 const {
     items: selfExamItems,
     isLoading: isSelfExamLoading,
     error: selfExamError,
+    errorDetail: selfExamErrorDetail,
     fetchSelfExams,
 } = useCourseSelfExams(props.cid);
+const {
+    grade: courseGrade,
+    isLoading: isGradeLoading,
+    error: gradeError,
+    errorDetail: gradeErrorDetail,
+    fetchGrade,
+} = useCourseGrade(props.cid);
 
 const tasksCount = ref<Record<string, CourseTasksCount>>({});
 const tasksLoading = ref(false);
@@ -127,25 +166,34 @@ const {
     data: currentDiscussData,
     isLoading: isCurrentBoardsLoading,
     error: currentDiscussError,
+    errorDetail: currentDiscussErrorDetail,
     fetchDiscuss: fetchCurrentDiscuss,
 } = useDiscuss();
 const {
     data: commonDiscussData,
     isLoading: isCommonBoardsLoading,
     error: commonDiscussError,
+    errorDetail: commonDiscussErrorDetail,
     fetchDiscuss: fetchCommonDiscuss,
 } = useDiscuss();
 
 function resolveTab(
     hash: string | undefined,
     tab: string | undefined,
-): 'materials' | 'discuss' | 'homework' | 'self-exam' | 'course-info' {
+):
+    | 'materials'
+    | 'discuss'
+    | 'homework'
+    | 'grades'
+    | 'self-exam'
+    | 'course-info' {
     const normalizedHash = (hash || '').replace(/^#/, '');
 
     if (
         normalizedHash === 'materials' ||
         normalizedHash === 'discuss' ||
         normalizedHash === 'homework' ||
+        normalizedHash === 'grades' ||
         normalizedHash === 'self-exam' ||
         normalizedHash === 'course-info'
     ) {
@@ -155,6 +203,7 @@ function resolveTab(
     if (
         tab === 'discuss' ||
         tab === 'homework' ||
+        tab === 'grades' ||
         tab === 'self-exam' ||
         tab === 'course-info'
     ) {
@@ -165,14 +214,18 @@ function resolveTab(
 }
 
 const activeTab = ref<
-    'materials' | 'discuss' | 'homework' | 'self-exam' | 'course-info'
+    | 'materials'
+    | 'discuss'
+    | 'homework'
+    | 'grades'
+    | 'self-exam'
+    | 'course-info'
 >(
     resolveTab(
         typeof window !== 'undefined' ? window.location.hash : undefined,
         props.tab,
     ),
 );
-const hasLargeMaterialDirectory = ref(false);
 const shouldRefreshHomeworksOnReturn = ref(false);
 const shouldRefreshSelfExamsOnReturn = ref(false);
 
@@ -211,6 +264,9 @@ const boardSections = computed<DiscussBoardSection[]>(() => {
 const boardLoadError = computed(
     () => currentDiscussError.value ?? commonDiscussError.value,
 );
+const boardLoadErrorDetail = computed(
+    () => currentDiscussErrorDetail.value ?? commonDiscussErrorDetail.value,
+);
 const isBoardsLoading = computed(
     () => isCurrentBoardsLoading.value || isCommonBoardsLoading.value,
 );
@@ -226,6 +282,10 @@ const pageTitle = computed(() => {
 
     if (activeTab.value === 'self-exam') {
         return '自我練習';
+    }
+
+    if (activeTab.value === 'grades') {
+        return '成績';
     }
 
     if (activeTab.value === 'course-info') {
@@ -307,6 +367,7 @@ function handleHashChange(): void {
         hash === 'materials' ||
         hash === 'discuss' ||
         hash === 'homework' ||
+        hash === 'grades' ||
         hash === 'self-exam' ||
         hash === 'course-info'
     ) {
@@ -319,6 +380,7 @@ onMounted(async () => {
     await Promise.all([
         fetchCourses(),
         fetchLearningTimes(),
+        fetchLastSeenMaterial(),
         fetchTasksCount(),
     ]);
 
@@ -360,14 +422,23 @@ watch(
     { immediate: true },
 );
 
+async function loadCourseInfo(): Promise<void> {
+    // The backend already enforces the NOU Tools integration gate (it
+    // returns a null course when disabled), so this always fetches both
+    // sources rather than gating on the client-side preference flag, which
+    // can still be loading (its initial value defaults to false) when this
+    // tab is the one active on page load.
+    await Promise.all([fetchNouToolsCourseInfo(), fetchSchoolPortalInfo()]);
+}
+
 watch(
     activeTab,
     async (tab) => {
-        if (tab !== 'course-info' || !nouToolsEnabled.value) {
+        if (tab !== 'course-info') {
             return;
         }
 
-        await fetchNouToolsCourseInfo();
+        await loadCourseInfo();
     },
     { immediate: true },
 );
@@ -384,6 +455,18 @@ watch(
     },
     { immediate: true },
 );
+
+watch(
+    activeTab,
+    async (tab) => {
+        if (tab !== 'grades') {
+            return;
+        }
+
+        await fetchGrade();
+    },
+    { immediate: true },
+);
 </script>
 
 <template>
@@ -393,31 +476,23 @@ watch(
             :isLoading="isCoursesLoading || !selectedCourse"
         >
             <template #left>
-                <BackButton
-                    href="/courses"
-                    :view-transition="
-                        !(
-                            activeTab === 'materials' &&
-                            hasLargeMaterialDirectory
-                        )
-                    "
-                />
+                <BackButton href="/courses" />
             </template>
 
             <template #below>
                 <div
-                    class="flex flex-wrap items-center text-sm text-warm-600"
+                    class="flex flex-wrap items-center text-sm text-theme-700"
                     v-if="selectedCourse"
                 >
                     <span
                         v-if="selectedCourse.semester"
-                        class="mr-2 rounded-full py-0.5 pr-2 font-medium text-warm-700 dark:text-zinc-300"
+                        class="mr-2 rounded-full py-0.5 pr-2 font-medium text-theme-700 dark:text-zinc-300"
                     >
                         {{ selectedCourse.semester }}
                     </span>
                     <span
                         v-if="selectedCourse.courseType"
-                        class="rounded-full bg-warm-100 px-2 py-0.5 font-medium text-warm-700 dark:bg-warm-900 dark:text-zinc-300"
+                        class="rounded-full bg-theme-100 px-2 py-0.5 font-medium text-theme-800 dark:bg-theme-900 dark:text-zinc-300"
                         :class="{
                             'rounded-r-none pr-1': selectedCourse.className,
                         }"
@@ -452,15 +527,15 @@ watch(
                     class="scrollbar-hidden -mx-3 -my-2 overflow-x-auto px-3 py-2 text-center whitespace-nowrap"
                 >
                     <div
-                        class="inline-flex min-w-max rounded-2xl border border-warm-200 bg-white/90 p-1 shadow-sm [view-transition-name:mobile-nav] dark:border-zinc-700 dark:bg-zinc-900/90"
+                        class="inline-flex min-w-max rounded-2xl border border-theme-200 bg-white/90 p-1 shadow-sm dark:border-zinc-700 dark:bg-zinc-900/90"
                     >
                         <button
                             type="button"
                             class="inline-flex min-w-24 shrink-0 justify-center rounded-xl px-4 py-2 text-sm font-medium transition"
                             :class="
                                 activeTab === 'materials'
-                                    ? 'bg-warm-800 text-white shadow-sm dark:bg-zinc-600'
-                                    : 'text-warm-700 hover:bg-warm-50 dark:text-zinc-300 dark:hover:bg-zinc-800'
+                                    ? 'bg-theme-800 text-white shadow-sm dark:bg-zinc-600'
+                                    : 'text-theme-700 hover:bg-theme-50 dark:text-zinc-300 dark:hover:bg-zinc-800'
                             "
                             @click="activeTab = 'materials'"
                         >
@@ -471,8 +546,8 @@ watch(
                             class="inline-flex min-w-24 shrink-0 justify-center rounded-xl px-4 py-2 text-sm font-medium transition"
                             :class="
                                 activeTab === 'discuss'
-                                    ? 'bg-warm-800 text-white shadow-sm dark:bg-zinc-600'
-                                    : 'text-warm-700 hover:bg-warm-50 dark:text-zinc-300 dark:hover:bg-zinc-800'
+                                    ? 'bg-theme-800 text-white shadow-sm dark:bg-zinc-600'
+                                    : 'text-theme-700 hover:bg-theme-50 dark:text-zinc-300 dark:hover:bg-zinc-800'
                             "
                             @click="activeTab = 'discuss'"
                         >
@@ -482,8 +557,8 @@ watch(
                                 class="ml-2 inline-flex w-8 items-center justify-center rounded-full px-2 py-0.5 text-xs font-semibold"
                                 :class="
                                     activeTab === 'discuss'
-                                        ? 'bg-white text-warm-800 dark:bg-zinc-900 dark:text-white'
-                                        : 'bg-warm-800 text-white dark:bg-zinc-600'
+                                        ? 'bg-white text-theme-800 dark:bg-zinc-900 dark:text-white'
+                                        : 'bg-theme-800 text-white dark:bg-zinc-600'
                                 "
                             >
                                 {{
@@ -498,8 +573,8 @@ watch(
                             class="inline-flex min-w-24 shrink-0 justify-center rounded-xl px-4 py-2 text-sm font-medium transition"
                             :class="
                                 activeTab === 'homework'
-                                    ? 'bg-warm-800 text-white shadow-sm dark:bg-zinc-600'
-                                    : 'text-warm-700 hover:bg-warm-50 dark:text-zinc-300 dark:hover:bg-zinc-800'
+                                    ? 'bg-theme-800 text-white shadow-sm dark:bg-zinc-600'
+                                    : 'text-theme-700 hover:bg-theme-50 dark:text-zinc-300 dark:hover:bg-zinc-800'
                             "
                             @click="activeTab = 'homework'"
                         >
@@ -509,8 +584,8 @@ watch(
                                 class="ml-2 inline-flex w-8 items-center justify-center rounded-full px-2 py-0.5 text-xs font-semibold"
                                 :class="
                                     activeTab === 'homework'
-                                        ? 'bg-white text-warm-800 dark:bg-zinc-900 dark:text-white'
-                                        : 'bg-warm-800 text-white dark:bg-zinc-600'
+                                        ? 'bg-white text-theme-800 dark:bg-zinc-900 dark:text-white'
+                                        : 'bg-theme-800 text-white dark:bg-zinc-600'
                                 "
                             >
                                 {{
@@ -525,21 +600,32 @@ watch(
                             class="inline-flex min-w-24 shrink-0 justify-center rounded-xl px-4 py-2 text-sm font-medium transition"
                             :class="
                                 activeTab === 'self-exam'
-                                    ? 'bg-warm-800 text-white shadow-sm dark:bg-zinc-600'
-                                    : 'text-warm-700 hover:bg-warm-50 dark:text-zinc-300 dark:hover:bg-zinc-800'
+                                    ? 'bg-theme-800 text-white shadow-sm dark:bg-zinc-600'
+                                    : 'text-theme-700 hover:bg-theme-50 dark:text-zinc-300 dark:hover:bg-zinc-800'
                             "
                             @click="activeTab = 'self-exam'"
                         >
                             練習
                         </button>
                         <button
-                            v-if="nouToolsEnabled"
+                            type="button"
+                            class="inline-flex min-w-24 shrink-0 justify-center rounded-xl px-4 py-2 text-sm font-medium transition"
+                            :class="
+                                activeTab === 'grades'
+                                    ? 'bg-theme-800 text-white shadow-sm dark:bg-zinc-600'
+                                    : 'text-theme-700 hover:bg-theme-50 dark:text-zinc-300 dark:hover:bg-zinc-800'
+                            "
+                            @click="activeTab = 'grades'"
+                        >
+                            成績
+                        </button>
+                        <button
                             type="button"
                             class="inline-flex min-w-24 shrink-0 justify-center rounded-xl px-4 py-2 text-sm font-medium transition"
                             :class="
                                 activeTab === 'course-info'
-                                    ? 'bg-warm-800 text-white shadow-sm dark:bg-zinc-600'
-                                    : 'text-warm-700 hover:bg-warm-50 dark:text-zinc-300 dark:hover:bg-zinc-800'
+                                    ? 'bg-theme-800 text-white shadow-sm dark:bg-zinc-600'
+                                    : 'text-theme-700 hover:bg-theme-50 dark:text-zinc-300 dark:hover:bg-zinc-800'
                             "
                             @click="activeTab = 'course-info'"
                         >
@@ -550,19 +636,19 @@ watch(
             </div>
 
             <div
-                class="mx-auto flex w-full max-w-6xl flex-col gap-4 [view-transition-name:pad-nav] md:flex-row md:items-start"
+                class="mx-auto flex w-full max-w-6xl flex-col gap-4 md:flex-row md:items-start"
             >
                 <div class="hidden w-56 md:block">
                     <aside
-                        class="fixed hidden w-56 flex-col gap-1 rounded-2xl border border-warm-200 bg-white/90 p-1 shadow-sm md:flex dark:border-zinc-700 dark:bg-zinc-900/90"
+                        class="fixed hidden w-56 flex-col gap-1 rounded-2xl border border-theme-200 bg-white/90 p-1 shadow-sm md:flex dark:border-zinc-700 dark:bg-zinc-900/90"
                     >
                         <button
                             type="button"
                             class="flex items-center gap-1 rounded-xl px-3 py-2 text-left font-medium transition"
                             :class="
                                 activeTab === 'materials'
-                                    ? 'bg-warm-800 text-white shadow dark:bg-zinc-600'
-                                    : 'text-warm-700 hover:bg-warm-50 dark:text-zinc-300 dark:hover:bg-zinc-800'
+                                    ? 'bg-theme-800 text-white shadow dark:bg-zinc-600'
+                                    : 'text-theme-700 hover:bg-theme-50 dark:text-zinc-300 dark:hover:bg-zinc-800'
                             "
                             @click="activeTab = 'materials'"
                         >
@@ -574,8 +660,8 @@ watch(
                             class="flex items-center justify-between rounded-xl px-3 py-2 text-left font-medium transition"
                             :class="
                                 activeTab === 'discuss'
-                                    ? 'bg-warm-800 text-white shadow dark:bg-zinc-600'
-                                    : 'text-warm-700 hover:bg-warm-50 dark:text-zinc-300 dark:hover:bg-zinc-800'
+                                    ? 'bg-theme-800 text-white shadow dark:bg-zinc-600'
+                                    : 'text-theme-700 hover:bg-theme-50 dark:text-zinc-300 dark:hover:bg-zinc-800'
                             "
                             @click="activeTab = 'discuss'"
                         >
@@ -588,8 +674,8 @@ watch(
                                 class="ml-2 inline-flex w-8 items-center justify-center rounded-full px-2 py-0.5 text-xs font-semibold"
                                 :class="
                                     activeTab === 'discuss'
-                                        ? 'bg-white text-warm-800 dark:bg-zinc-900 dark:text-white'
-                                        : 'bg-warm-800 text-white dark:bg-zinc-600'
+                                        ? 'bg-white text-theme-800 dark:bg-zinc-900 dark:text-white'
+                                        : 'bg-theme-800 text-white dark:bg-zinc-600'
                                 "
                             >
                                 {{
@@ -604,8 +690,8 @@ watch(
                             class="flex items-center justify-between rounded-xl px-3 py-2 text-left font-medium transition"
                             :class="
                                 activeTab === 'homework'
-                                    ? 'bg-warm-800 text-white shadow dark:bg-zinc-600'
-                                    : 'text-warm-700 hover:bg-warm-50 dark:text-zinc-300 dark:hover:bg-zinc-800'
+                                    ? 'bg-theme-800 text-white shadow dark:bg-zinc-600'
+                                    : 'text-theme-700 hover:bg-theme-50 dark:text-zinc-300 dark:hover:bg-zinc-800'
                             "
                             @click="activeTab = 'homework'"
                         >
@@ -618,8 +704,8 @@ watch(
                                 class="ml-2 inline-flex w-8 items-center justify-center rounded-full px-2 py-0.5 text-xs font-semibold"
                                 :class="
                                     activeTab === 'homework'
-                                        ? 'bg-white text-warm-800 dark:bg-zinc-900 dark:text-white'
-                                        : 'bg-warm-800 text-white dark:bg-zinc-600'
+                                        ? 'bg-white text-theme-800 dark:bg-zinc-900 dark:text-white'
+                                        : 'bg-theme-800 text-white dark:bg-zinc-600'
                                 "
                             >
                                 {{
@@ -634,26 +720,38 @@ watch(
                             class="flex items-center gap-1 rounded-xl px-3 py-2 text-left font-medium transition"
                             :class="
                                 activeTab === 'self-exam'
-                                    ? 'bg-warm-800 text-white shadow dark:bg-zinc-600'
-                                    : 'text-warm-700 hover:bg-warm-50 dark:text-zinc-300 dark:hover:bg-zinc-800'
+                                    ? 'bg-theme-800 text-white shadow dark:bg-zinc-600'
+                                    : 'text-theme-700 hover:bg-theme-50 dark:text-zinc-300 dark:hover:bg-zinc-800'
                             "
                             @click="activeTab = 'self-exam'"
                         >
-                            <ClipboardDocumentListIcon class="size-4" />
+                            <ClipboardDocumentCheckIcon class="size-4" />
                             自我練習
                         </button>
                         <button
-                            v-if="nouToolsEnabled"
+                            type="button"
+                            class="flex items-center gap-1 rounded-xl px-3 py-2 text-left font-medium transition"
+                            :class="
+                                activeTab === 'grades'
+                                    ? 'bg-theme-800 text-white shadow dark:bg-zinc-600'
+                                    : 'text-theme-700 hover:bg-theme-50 dark:text-zinc-300 dark:hover:bg-zinc-800'
+                            "
+                            @click="activeTab = 'grades'"
+                        >
+                            <ChartBarIcon class="size-4" />
+                            成績
+                        </button>
+                        <button
                             type="button"
                             class="flex items-center gap-1 rounded-xl px-3 py-2 text-left font-medium transition"
                             :class="
                                 activeTab === 'course-info'
-                                    ? 'bg-warm-800 text-white shadow dark:bg-zinc-600'
-                                    : 'text-warm-700 hover:bg-warm-50 dark:text-zinc-300 dark:hover:bg-zinc-800'
+                                    ? 'bg-theme-800 text-white shadow dark:bg-zinc-600'
+                                    : 'text-theme-700 hover:bg-theme-50 dark:text-zinc-300 dark:hover:bg-zinc-800'
                             "
                             @click="activeTab = 'course-info'"
                         >
-                            <ClipboardDocumentListIcon class="size-4" />
+                            <InformationCircleIcon class="size-4" />
                             課程資訊
                         </button>
                     </aside>
@@ -668,10 +766,15 @@ watch(
                                 :learning-time-items="learningTimeItems"
                                 :is-loading="isLearningTimesLoading"
                                 :error="learningTimesError"
-                                @large-directory="
-                                    (hasLarge: boolean) =>
-                                        (hasLargeMaterialDirectory = hasLarge)
+                                :error-detail="learningTimesErrorDetail"
+                                :last-seen-identifier="lastSeenActivityId"
+                                :last-seen-position-seconds="
+                                    lastSeenPositionSeconds
                                 "
+                                :last-seen-duration-seconds="
+                                    lastSeenDurationSeconds
+                                "
+                                @retry="fetchLearningTimes"
                             />
 
                             <CourseDiscussTab
@@ -679,17 +782,25 @@ watch(
                                 :course-id="cid"
                                 :board-sections="boardSections"
                                 :board-load-error="boardLoadError"
+                                :board-load-error-detail="boardLoadErrorDetail"
                                 :is-boards-loading="isBoardsLoading"
+                                @retry="loadBoardSections"
                             />
 
                             <CourseHomeworkTab
                                 v-else-if="activeTab === 'homework'"
+                                :cid="cid"
                                 :items="homeworkItems"
+                                :school-portal-notices="
+                                    homeworkSchoolPortalNotices
+                                "
                                 :is-loading="isHomeworkLoading"
                                 :error="homeworkError"
+                                :error-detail="homeworkErrorDetail"
                                 @opened-in-app-browser="
                                     handleHomeworkBrowserOpened
                                 "
+                                @retry="loadHomeworks"
                             />
 
                             <CourseSelfExamTab
@@ -697,6 +808,17 @@ watch(
                                 :items="selfExamItems"
                                 :is-loading="isSelfExamLoading"
                                 :error="selfExamError"
+                                :error-detail="selfExamErrorDetail"
+                                @retry="loadSelfExams"
+                            />
+
+                            <CourseGradeTab
+                                v-else-if="activeTab === 'grades'"
+                                :grade="courseGrade"
+                                :is-loading="isGradeLoading"
+                                :error="gradeError"
+                                :error-detail="gradeErrorDetail"
+                                @retry="fetchGrade"
                             />
 
                             <CourseInfoTab
@@ -704,6 +826,20 @@ watch(
                                 :course="nouToolsCourse"
                                 :is-loading="isNouToolsCourseLoading"
                                 :error="nouToolsCourseError"
+                                :error-detail="nouToolsCourseErrorDetail"
+                                :nou-tools-enabled="nouToolsEnabled"
+                                :class-session-info="
+                                    schoolPortalClassSessionInfo
+                                "
+                                :exam-info="schoolPortalExamInfo"
+                                :is-school-portal-loading="
+                                    isSchoolPortalInfoLoading
+                                "
+                                :school-portal-error="schoolPortalInfoError"
+                                :school-portal-error-detail="
+                                    schoolPortalInfoErrorDetail
+                                "
+                                @retry="loadCourseInfo"
                             />
                         </div>
                     </transition>

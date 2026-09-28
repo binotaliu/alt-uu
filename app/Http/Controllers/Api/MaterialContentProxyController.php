@@ -12,6 +12,16 @@ use Native\Mobile\Facades\Device;
 
 final class MaterialContentProxyController
 {
+    /**
+     * Sent by patched native shells that can fetch and stream upstream content themselves.
+     */
+    public const NATIVE_FETCH_SUPPORTED_HEADER = 'X-Native-Fetch-Supported';
+
+    /**
+     * Base64-encoded JSON {url, headers} telling the native shell what to fetch.
+     */
+    public const NATIVE_FETCH_HEADER = 'X-Native-Fetch';
+
     public function __invoke(
         Request $request,
         UUProxyClient $proxyClient,
@@ -40,6 +50,12 @@ final class MaterialContentProxyController
             abort(403, '不允許存取外部資源');
         }
 
+        if ($this->shouldHandOffToNative($request)) {
+            $handoff = json_encode($proxyClient->materialFetchHandoff($url), JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+
+            return response('', 200)->header(self::NATIVE_FETCH_HEADER, base64_encode($handoff));
+        }
+
         $material = $proxyClient->fetchMaterialContent($url);
 
         $body = $material['body'] ?? '';
@@ -60,5 +76,11 @@ final class MaterialContentProxyController
         }
 
         return response($body, $status)->withHeaders($headers);
+    }
+
+    private function shouldHandOffToNative(Request $request): bool
+    {
+        return $request->header(self::NATIVE_FETCH_SUPPORTED_HEADER) === '1'
+            && (bool) config('hungu.material_proxy_native_fetch', true);
     }
 }

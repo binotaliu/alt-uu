@@ -21,7 +21,8 @@ final readonly class GetNodeResources
      */
     public function __invoke(Request $request, string $cid, string $scoid): DataCollection
     {
-        $resourceCacheKey = self::COURSE_NODE_RESOURCES_CACHE_PREFIX.$cid.'.'.$scoid;
+        $accountId = $this->courseClient->currentAccountId() ?? 0;
+        $resourceCacheKey = self::COURSE_NODE_RESOURCES_CACHE_PREFIX.$accountId.'.'.$cid.'.'.$scoid;
         $cachedResources = $request->session()->get($resourceCacheKey, ['loaded' => false, 'items' => []]);
 
         if (! is_array($cachedResources)) {

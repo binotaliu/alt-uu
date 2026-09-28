@@ -1,9 +1,11 @@
 <!DOCTYPE html>
 <html
     lang="{{ str_replace('_', '-', app()->getLocale()) }}"
+    data-accent="{{ $accentColor ?? 'warm' }}"
     @class ([
         'dark' => ($appearance ?? 'system') === 'dark',
         'device-android' => \Native\Mobile\Facades\System::isAndroid(),
+        'device-ios' => \Native\Mobile\Facades\System::isIos(),
     ])
 >
 <head>
@@ -18,6 +20,7 @@
         (function () {
             window.appearance = '{{ $appearance ?? "system" }}';
             window.showOnboarding = {{ $showOnboarding ? 'true' : 'false' }};
+            window.hasAccounts = {{ $hasAccounts ? 'true' : 'false' }};
             if (window.appearance === 'system') {
                 if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
                     document.documentElement.classList.add('dark');
@@ -140,7 +143,7 @@
 </head>
 <body
     @class ([
-        'overflow-x-hidden bg-warm-100 font-sans antialiased dark:bg-zinc-950' => true,
+        'overflow-x-hidden bg-theme-100 font-sans antialiased dark:bg-zinc-950' => true,
         'device-android' => \Native\Mobile\Facades\System::isAndroid(),
         'device-ios' => \Native\Mobile\Facades\System::isIos(),
     ])

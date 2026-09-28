@@ -8,17 +8,25 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final class UUCourseClient
 {
-    public function __construct(private readonly UUProxyClient $proxyClient) {}
+    public function __construct(
+        private readonly UUProxyClient $proxyClient,
+        private readonly AccountActiveProfile $activeProfile,
+    ) {}
+
+    public function currentAccountId(): ?int
+    {
+        return $this->activeProfile->get();
+    }
 
     /**
      * @return array{payload: array<string, mixed>}
      */
-    public function fetchCourseList(): array
+    public function fetchCourseList(?int $accountId = null): array
     {
         return $this->proxyClient->request('my-course-list', 'GET', [
             'offset' => 0,
             'pagesize' => 100,
-        ]);
+        ], null, 'form', true, $accountId);
     }
 
     /**

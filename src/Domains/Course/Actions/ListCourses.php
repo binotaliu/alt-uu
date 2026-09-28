@@ -28,9 +28,9 @@ final readonly class ListCourses
     /**
      * @return DataCollection<CourseItemViewModel>
      */
-    public function __invoke(Request $request): DataCollection
+    public function __invoke(Request $request, ?int $accountId = null): DataCollection
     {
-        $cacheKey = $this->resolveCourseListCacheKey($request);
+        $cacheKey = $this->resolveCourseListCacheKey($request, $accountId);
         $courses = $this->cache->get($cacheKey, []);
 
         if (! is_array($courses)) {
@@ -38,7 +38,7 @@ final readonly class ListCourses
         }
 
         if ($courses === []) {
-            $courseResult = $this->courseClient->fetchCourseList();
+            $courseResult = $this->courseClient->fetchCourseList($accountId);
 
             $coursePayload = $courseResult['payload'];
             $courses = Arr::get($coursePayload, 'data.list', []);
@@ -203,8 +203,12 @@ final readonly class ListCourses
         return ($semester !== '' ? $semester : '').'|'.$name;
     }
 
-    private function resolveCourseListCacheKey(Request $request): string
+    private function resolveCourseListCacheKey(Request $request, ?int $accountId = null): string
     {
+        if ($accountId !== null) {
+            return self::COURSE_LIST_CACHE_KEY_PREFIX.'account:'.$accountId;
+        }
+
         $username = '';
 
         if ($request->hasSession()) {

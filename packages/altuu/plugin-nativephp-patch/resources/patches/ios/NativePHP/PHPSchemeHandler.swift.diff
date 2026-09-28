@@ -1,5 +1,5 @@
---- /Users/binota/Developer/alt-uu/storage/framework/testing/nativephp-patch-ios-be22a232-1959-4032-97dd-a6365005af81/resources/xcode/NativePHP/PHPSchemeHandler.swift
-+++ /Users/binota/Developer/alt-uu/packages/altuu/plugin-nativephp-patch/resources/patches/ios/NativePHP/PHPSchemeHandler.swift
+--- /Users/binota/Developer/alt-uu-internal/vendor/nativephp/mobile/resources/xcode/NativePHP/PHPSchemeHandler.swift
++++ /Users/binota/Developer/alt-uu-internal/packages/altuu/plugin-nativephp-patch/resources/patches/ios/NativePHP/PHPSchemeHandler.swift
 @@ -188,6 +188,7 @@
                      }
                  }
@@ -8,7 +8,25 @@
                  WebView.dataStore.httpCookieStore.getAllCookies { cookies in
                      guard self.isTaskActive(schemeTask) else { return }
  
-@@ -392,6 +393,7 @@
+@@ -208,6 +209,9 @@
+ 
+                     request.headers["Cookie"] = cookieHeader
+                     request.headers["X-XSRF-TOKEN"] = csrfToken
++                    // [native-fetch-patch] Tell PHP this shell can stream upstream
++                    // content itself (see NativeFetchStreamer below).
++                    request.headers[NativeFetchStreamer.supportedHeader] = "1"
+ 
+                     self.forwardToPHP(requestData: request, schemeTask: schemeTask, redirectCount: 0)
+                 }
+@@ -225,6 +229,7 @@
+     func stopLoading(for schemeTask: WKURLSchemeTask) {
+         // Cancel any ongoing operations for this task
+         print("Canceling scheme task: \(schemeTask)")
++        NativeFetchStreamer.shared.cancel(schemeTask)
+     }
+ 
+     private func isTaskActive(_ schemeTask: WKURLSchemeTask) -> Bool {
+@@ -461,6 +466,7 @@
      }
  
      private func forwardToPHP(requestData: RequestData, schemeTask: WKURLSchemeTask, redirectCount: Int = 0) {
@@ -16,7 +34,7 @@
          getResponse(request: requestData) { result in
              guard self.isTaskActive(schemeTask) else { return }
  
-@@ -466,6 +468,7 @@
+@@ -535,6 +541,7 @@
                          headers[headerComponents[0].lowercased()] = headerComponents[1]
                      }
                  }
@@ -24,11 +42,25 @@
  
                  // Legacy X-Native-UI header support (now using Edge.Set bridge function instead)
                  // Note: This is kept for backward compatibility but the primary method is now
-@@ -545,6 +548,25 @@
+@@ -613,8 +620,40 @@
+                     return
                  }
  
-                 print("Forwarding response to WebView")
++                // [native-fetch-patch]
++                // PHP answered with a fetch instruction instead of a body: stream the
++                // upstream resource straight into the WebView without going through PHP.
++                if let handoff = headers[NativeFetchStreamer.handoffHeader.lowercased()] {
++                    NativeFetchStreamer.shared.start(
++                        encodedHandoff: handoff,
++                        schemeTask: schemeTask,
++                        isActive: { [weak self] in self?.isTaskActive(schemeTask) ?? false },
++                        onComplete: { [weak self] in self?.removeTask(schemeTask) }
++                    )
++                    return
++                }
 +
+                 print("Forwarding response to WebView")
+ 
 +                // [binary-response-patch]
 +                // The PHP→Swift bridge transports the response as a UTF-8 String, so binary
 +                // payloads (images, audio, etc.) are base64-encoded on the PHP side and tagged
@@ -47,10 +79,11 @@
 +                // streaming contexts (especially for media playback). This is critical for
 +                // binary responses where body is decoded separately from the original text.
 +                headers["content-length"] = "\(finalBodyData.count)"
- 
++
                  guard let httpResponse = HTTPURLResponse(url: (URL(string: requestData.uri) ?? URL(string: "/"))!,
                                                          statusCode: statusCode,
-@@ -559,16 +581,11 @@
+                                                         httpVersion: "HTTP/1.1",
+@@ -628,16 +667,11 @@
  
                  // Send the response to the task
                  if self.isTaskActive(schemeTask) {
@@ -70,7 +103,7 @@
  
                      // Indicate that the task has finished
                      schemeTask.didFinish()
-@@ -610,9 +627,10 @@
+@@ -679,9 +713,10 @@
  
              // Extract cookie headers
              let components = response.components(separatedBy: "\r\n\r\n")
@@ -83,3 +116,162 @@
  
              let setCookieHeaders = headersList.filter { $0.hasPrefix("Set-Cookie:") || $0.hasPrefix("set-cookie:") }
  
+@@ -710,9 +745,158 @@
+                     let encodingError = self.error(code: 500, description: "Failed to encode PHP response")
+                     completion(.failure(encodingError))
+                 }
++            }
++        }
++    }
++}
++
++// MARK: - [native-fetch-patch]
++
++/// Fetches an upstream resource on PHP's behalf and streams it into a WKURLSchemeTask.
++///
++/// PHP's material proxy has to attach the school session's UA and cookies, but the
++/// PHP bridge can only return a fully-buffered string: large media blocked the PHP
++/// thread until the whole file was downloaded and could not be seeked. Instead, PHP
++/// replies with an `X-Native-Fetch` header (base64 JSON `{url, headers}`) and this
++/// class performs the request, forwarding the WebView's `Range` header and relaying
++/// status, headers and body chunks as they arrive.
++///
++/// All delegate callbacks run on the main queue, which is also where WebKit calls
++/// `webView(_:stop:)`, so the `isActive` check and the scheme-task calls cannot race.
++final class NativeFetchStreamer: NSObject, URLSessionDataDelegate {
++    static let shared = NativeFetchStreamer()
++
++    static let supportedHeader = "X-Native-Fetch-Supported"
++    static let handoffHeader = "X-Native-Fetch"
++
++    /// Upstream response headers relayed to the WebView. Everything else (Set-Cookie,
++    /// Content-Encoding, etc.) is dropped.
++    private static let relayedHeaders = [
++        "content-type", "content-length", "content-range", "accept-ranges",
++        "last-modified", "etag",
++    ]
++
++    private struct Handoff: Decodable {
++        let url: String
++        let headers: [String: String]
++    }
++
++    private struct Entry {
++        let schemeTask: WKURLSchemeTask
++        let isActive: () -> Bool
++        let onComplete: () -> Void
++    }
++
++    private var entries: [Int: Entry] = [:]
++    private var dataTasks: [ObjectIdentifier: URLSessionDataTask] = [:]
++
++    private lazy var session: URLSession = {
++        let configuration = URLSessionConfiguration.default
++        // Cookies come from PHP's session store via the handoff; don't mix in a jar.
++        configuration.httpCookieStorage = nil
++        configuration.httpShouldSetCookies = false
++        configuration.urlCache = nil
++        configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
++        configuration.timeoutIntervalForRequest = 30
++        return URLSession(configuration: configuration, delegate: self, delegateQueue: .main)
++    }()
++
++    func start(
++        encodedHandoff: String,
++        schemeTask: WKURLSchemeTask,
++        isActive: @escaping () -> Bool,
++        onComplete: @escaping () -> Void
++    ) {
++        guard let json = Data(base64Encoded: encodedHandoff.trimmingCharacters(in: .whitespaces)),
++              let handoff = try? JSONDecoder().decode(Handoff.self, from: json),
++              let url = URL(string: handoff.url),
++              url.scheme == "https" || url.scheme == "http" else {
++            print("NativeFetchStreamer: invalid handoff")
++            if isActive() {
++                schemeTask.didFailWithError(NSError(domain: "NativeFetchStreamer", code: 500, userInfo: [NSLocalizedDescriptionKey: "Invalid native fetch handoff"]))
++                onComplete()
+             }
++            return
+         }
++
++        var request = URLRequest(url: url)
++        request.httpMethod = "GET"
++        for (name, value) in handoff.headers {
++            request.setValue(value, forHTTPHeaderField: name)
++        }
++        if let range = schemeTask.request.value(forHTTPHeaderField: "Range") {
++            request.setValue(range, forHTTPHeaderField: "Range")
++        }
++
++        let dataTask = session.dataTask(with: request)
++        entries[dataTask.taskIdentifier] = Entry(schemeTask: schemeTask, isActive: isActive, onComplete: onComplete)
++        dataTasks[ObjectIdentifier(schemeTask)] = dataTask
++        print("NativeFetchStreamer: GET \(url.absoluteString) range: \(request.value(forHTTPHeaderField: "Range") ?? "-")")
++        dataTask.resume()
+     }
++
++    /// Called from `webView(_:stop:)` (main queue) when WebKit no longer wants the data.
++    func cancel(_ schemeTask: WKURLSchemeTask) {
++        guard let dataTask = dataTasks.removeValue(forKey: ObjectIdentifier(schemeTask)) else { return }
++        entries.removeValue(forKey: dataTask.taskIdentifier)
++        dataTask.cancel()
++    }
++
++    func urlSession(
++        _ session: URLSession,
++        dataTask: URLSessionDataTask,
++        didReceive response: URLResponse,
++        completionHandler: @escaping (URLSession.ResponseDisposition) -> Void
++    ) {
++        guard let entry = entries[dataTask.taskIdentifier], entry.isActive() else {
++            completionHandler(.cancel)
++            return
++        }
++
++        let upstream = response as? HTTPURLResponse
++        var headers: [String: String] = [:]
++        for (key, value) in upstream?.allHeaderFields ?? [:] {
++            guard let name = (key as? String)?.lowercased(),
++                  Self.relayedHeaders.contains(name) else { continue }
++            headers[name] = "\(value)"
++        }
++        // URLSession transparently decompresses, so the upstream length no longer
++        // matches the bytes we relay.
++        if upstream?.value(forHTTPHeaderField: "Content-Encoding") != nil {
++            headers.removeValue(forKey: "content-length")
++        }
++        headers["cache-control"] = "no-store"
++
++        guard let schemeURL = entry.schemeTask.request.url,
++              let relayed = HTTPURLResponse(url: schemeURL, statusCode: upstream?.statusCode ?? 200, httpVersion: "HTTP/1.1", headerFields: headers) else {
++            completionHandler(.cancel)
++            return
++        }
++
++        print("NativeFetchStreamer: <- \(upstream?.statusCode ?? 0) headers: \(headers)")
++        entry.schemeTask.didReceive(relayed)
++        completionHandler(.allow)
++    }
++
++    func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
++        guard let entry = entries[dataTask.taskIdentifier], entry.isActive() else { return }
++        entry.schemeTask.didReceive(data)
++    }
++
++    func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
++        guard let entry = entries.removeValue(forKey: task.taskIdentifier) else { return }
++        dataTasks.removeValue(forKey: ObjectIdentifier(entry.schemeTask))
++
++        guard entry.isActive() else { return }
++
++        if let error = error {
++            print("NativeFetchStreamer: failed \(error.localizedDescription)")
++            entry.schemeTask.didFailWithError(error)
++        } else {
++            entry.schemeTask.didFinish()
++        }
++        entry.onComplete()
++    }
+ }
+ 
+ struct RequestData {

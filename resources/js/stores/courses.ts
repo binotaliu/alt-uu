@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { apiFetch } from '@/composables/useApi';
+import { asApiError } from '@/lib/apiError';
+import type { ApiError } from '@/lib/apiError';
 import type { CourseItem } from '@/types';
 
 export const useCourseStore = defineStore('courses', () => {
@@ -8,6 +10,7 @@ export const useCourseStore = defineStore('courses', () => {
     const isLoading = ref(false);
     const hasFetched = ref(false);
     const error = ref<string | null>(null);
+    const errorDetail = ref<ApiError | null>(null);
     let inflight: Promise<void> | null = null;
 
     async function loadCourses(force = false): Promise<void> {
@@ -21,6 +24,7 @@ export const useCourseStore = defineStore('courses', () => {
 
         isLoading.value = true;
         error.value = null;
+        errorDetail.value = null;
 
         inflight = (async () => {
             try {
@@ -28,6 +32,7 @@ export const useCourseStore = defineStore('courses', () => {
                 courses.value = fetched;
             } catch (e) {
                 error.value = e instanceof Error ? e.message : '載入課程失敗';
+                errorDetail.value = asApiError(e);
 
                 throw e;
             } finally {
@@ -43,11 +48,13 @@ export const useCourseStore = defineStore('courses', () => {
     function clearCourses(): void {
         courses.value = [];
         error.value = null;
+        errorDetail.value = null;
     }
 
     function reset(): void {
         courses.value = [];
         error.value = null;
+        errorDetail.value = null;
         isLoading.value = false;
         hasFetched.value = false;
         inflight = null;
@@ -58,6 +65,7 @@ export const useCourseStore = defineStore('courses', () => {
         isLoading,
         hasFetched,
         error,
+        errorDetail,
         loadCourses,
         clearCourses,
         reset,

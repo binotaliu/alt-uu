@@ -1,14 +1,12 @@
 <?php
 
 use App\Models\KeyValueStore;
-use App\Services\UURememberedCredentialsStore;
+use App\Services\AccountCredentialsStore;
 use App\Services\UUSessionStore;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
-use function Pest\Laravel\assertDatabaseHas;
-use function Pest\Laravel\assertDatabaseMissing;
 use function Pest\Laravel\get;
 use function Pest\Laravel\post;
 use function Pest\Laravel\postJson;
@@ -40,6 +38,11 @@ it('returns error json on invalid login', function () {
     $response->assertJson([
         'ok' => false,
         'message' => '登入失敗，請確認帳號密碼。',
+        'raw' => [
+            'code' => 503,
+            'message' => 'Auth fail',
+            'data' => [],
+        ],
     ]);
 });
 
@@ -85,16 +88,12 @@ it('stores proxy session and remembered credentials after successful login', fun
     $response->assertSessionHas('hungu.profile.display_name', '測試學生');
     $response->assertSessionHas('hungu.profile.picture', 'https://uu.nou.edu.tw/avatar.jpg');
 
-    assertDatabaseHas('key_value_store', [
-        'key' => config('hungu.cookie_name'),
-    ]);
-    assertDatabaseHas('key_value_store', [
-        'key' => config('hungu.remember_credentials_key'),
-    ]);
+    expect(app(UUSessionStore::class)->has())->toBeTrue();
+    expect(app(AccountCredentialsStore::class)->has())->toBeTrue();
 });
 
 it('always remembers credentials after successful login', function () {
-    app(UURememberedCredentialsStore::class)->put('s1234567', 'old-password');
+    app(AccountCredentialsStore::class)->put('s1234567', 'old-password');
 
     Http::fake([
         'https://uu.nou.edu.tw/' => Http::response('<html/>', 200, [
@@ -131,9 +130,7 @@ it('always remembers credentials after successful login', function () {
 
     $response->assertSuccessful();
     $response->assertJson(['ok' => true]);
-    assertDatabaseHas('key_value_store', [
-        'key' => config('hungu.remember_credentials_key'),
-    ]);
+    expect(app(AccountCredentialsStore::class)->has())->toBeTrue();
 });
 
 it('uses session ticket when fetching profile after login', function () {
@@ -185,28 +182,31 @@ it('uses session ticket when fetching profile after login', function () {
     });
 });
 
-it('renders booting page as SPA shell', function () {
-    app(UUSessionStore::class)->put([
-        'base_url' => 'https://uu.nou.edu.tw',
-        'ua' => (string) config('hungu.user_agent'),
-        'ticket' => 'ticket-booting-page',
-        'session_idx' => 'idx-booting-page',
-        'cookies' => ['WMSESSID' => 'cookie-booting-page'],
-        'profile' => [
-            'display_name' => '測試學生',
-            'username' => 's1234567',
-            'picture' => '',
-            'realname' => '測試學生',
-        ],
-    ]);
-
-    $response = get('/auth/booting');
+it('exposes onboarding-completed and has-accounts state to the SPA shell', function () {
+    $response = get('/courses');
 
     $response->assertSuccessful();
     $response->assertViewIs('app');
+    $response->assertViewHas('showOnboarding', true);
+    $response->assertViewHas('hasAccounts', false);
+
+    app(AccountCredentialsStore::class)->put('s1234567', 'test-password');
+
+    KeyValueStore::query()->updateOrCreate(
+        ['key' => 'preference:onboarding-completed'],
+        ['value' => json_encode(['completed' => true], JSON_THROW_ON_ERROR)],
+    );
+
+    $response = get('/onboarding');
+
+    $response->assertSuccessful();
+    $response->assertViewIs('app');
+    $response->assertViewHas('showOnboarding', false);
+    $response->assertViewHas('hasAccounts', true);
 });
 
 it('validates existing session in bootstrap api and queues app boot cookie', function () {
+    app(AccountCredentialsStore::class)->put('s1234567', 'test-password');
     app(UUSessionStore::class)->put([
         'base_url' => 'https://uu.nou.edu.tw',
         'ua' => (string) config('hungu.user_agent'),
@@ -249,6 +249,7 @@ it('validates existing session in bootstrap api and queues app boot cookie', fun
 });
 
 it('returns saved onboarding and nou tools preferences in bootstrap api', function () {
+    app(AccountCredentialsStore::class)->put('s1234567', 'test-password');
     app(UUSessionStore::class)->put([
         'base_url' => 'https://uu.nou.edu.tw',
         'ua' => (string) config('hungu.user_agent'),
@@ -295,6 +296,8 @@ it('returns saved onboarding and nou tools preferences in bootstrap api', functi
 });
 
 it('tries remembered credentials when bootstrap api cannot validate current session', function () {
+    app(AccountCredentialsStore::class)->put('s1234567', 'remembered-secret');
+
     app(UUSessionStore::class)->put([
         'base_url' => 'https://uu.nou.edu.tw',
         'ua' => (string) config('hungu.user_agent'),
@@ -303,13 +306,11 @@ it('tries remembered credentials when bootstrap api cannot validate current sess
         'cookies' => ['WMSESSID' => 'cookie-expired'],
         'profile' => [
             'display_name' => '過期使用者',
-            'username' => 's9999999',
+            'username' => 's1234567',
             'picture' => '',
             'realname' => '過期使用者',
         ],
     ]);
-
-    app(UURememberedCredentialsStore::class)->put('s1234567', 'remembered-secret');
 
     Http::fake([
         'https://uu.nou.edu.tw/xmlapi/index.php?action=my-profile*' => Http::sequence()
@@ -361,6 +362,8 @@ it('tries remembered credentials when bootstrap api cannot validate current sess
 });
 
 it('returns unauthorized when bootstrap api validation and remembered login both fail', function () {
+    app(AccountCredentialsStore::class)->put('s1234567', 'wrong-secret');
+
     app(UUSessionStore::class)->put([
         'base_url' => 'https://uu.nou.edu.tw',
         'ua' => (string) config('hungu.user_agent'),
@@ -369,13 +372,11 @@ it('returns unauthorized when bootstrap api validation and remembered login both
         'cookies' => ['WMSESSID' => 'cookie-expired'],
         'profile' => [
             'display_name' => '過期使用者',
-            'username' => 's9999999',
+            'username' => 's1234567',
             'picture' => '',
             'realname' => '過期使用者',
         ],
     ]);
-
-    app(UURememberedCredentialsStore::class)->put('s1234567', 'wrong-secret');
 
     Http::fake([
         'https://uu.nou.edu.tw/xmlapi/index.php?action=my-profile*' => Http::response([
@@ -405,14 +406,11 @@ it('returns unauthorized when bootstrap api validation and remembered login both
     ]);
     $response->assertSessionMissing('hungu.profile');
     expect(app(UUSessionStore::class)->get())->toBeNull();
-
-    assertDatabaseMissing('key_value_store', [
-        'key' => config('hungu.remember_credentials_key'),
-    ]);
+    expect(app(AccountCredentialsStore::class)->has())->toBeFalse();
 });
 
 it('can re-login from remembered credentials when session record is missing', function () {
-    app(UURememberedCredentialsStore::class)->put('s1234567', 'remembered-secret');
+    app(AccountCredentialsStore::class)->put('s1234567', 'remembered-secret');
 
     Http::fake([
         'https://uu.nou.edu.tw/' => Http::response('<html/>', 200, [
@@ -455,6 +453,7 @@ it('can re-login from remembered credentials when session record is missing', fu
 })->skip('Disabled.');
 
 it('clears cached course list and remembered credentials on logout', function () {
+    app(AccountCredentialsStore::class)->put('s1234567', 'remembered-secret');
     app(UUSessionStore::class)->put([
         'base_url' => 'https://uu.nou.edu.tw',
         'ua' => (string) config('hungu.user_agent'),
@@ -468,7 +467,6 @@ it('clears cached course list and remembered credentials on logout', function ()
             'realname' => '測試學生',
         ],
     ]);
-    app(UURememberedCredentialsStore::class)->put('s1234567', 'remembered-secret');
 
     Cache::store('database')->put('alt-uu:courses:list:s1234567', [
         ['course_id' => '1001', 'title' => '(114下)行動學習導論-ZZZ001班'],
@@ -499,7 +497,5 @@ it('clears cached course list and remembered credentials on logout', function ()
     $response->assertSessionMissing('alt-uu:courses:node-resources:1001.2001');
     expect(Cache::store('database')->has('alt-uu:courses:list:s1234567'))->toBeFalse();
     expect(Cache::store('database')->has('alt-uu:courses:list:s7654321'))->toBeFalse();
-    assertDatabaseMissing('key_value_store', [
-        'key' => config('hungu.remember_credentials_key'),
-    ]);
+    expect(app(AccountCredentialsStore::class)->has())->toBeFalse();
 });

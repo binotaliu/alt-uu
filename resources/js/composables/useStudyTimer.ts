@@ -8,11 +8,13 @@ import type { StudyTimePayload } from '@/types';
 export function useStudyTimer(
     cid: string,
     getPositionSeconds?: () => Promise<number>,
+    getMediaDurationSeconds?: () => Promise<number>,
 ) {
     const viewingSeconds = ref(0);
     const startedAt = ref<string | null>(null);
     const isSaving = ref(false);
     const lastKnownPlaybackPosition = ref<number | null>(null);
+    const lastKnownMediaDuration = ref<number | null>(null);
 
     let timer: ReturnType<typeof setInterval> | null = null;
     let startTimeMs: number | null = null;
@@ -121,6 +123,22 @@ export function useStudyTimer(
             payload.positionSeconds = lastKnownPlaybackPosition.value;
         }
 
+        if (getMediaDurationSeconds) {
+            try {
+                const duration = await getMediaDurationSeconds();
+
+                if (duration > 0) {
+                    lastKnownMediaDuration.value = duration;
+                }
+            } catch {
+                // Best effort
+            }
+        }
+
+        if (lastKnownMediaDuration.value !== null) {
+            payload.mediaDurationSeconds = lastKnownMediaDuration.value;
+        }
+
         try {
             const response = await fetch('/study-time', {
                 method: 'POST',
@@ -161,6 +179,13 @@ export function useStudyTimer(
             );
         }
 
+        if (lastKnownMediaDuration.value !== null) {
+            formData.append(
+                'mediaDurationSeconds',
+                String(lastKnownMediaDuration.value),
+            );
+        }
+
         if (typeof navigator.sendBeacon === 'function') {
             navigator.sendBeacon('/study-time', formData);
         }
@@ -169,6 +194,12 @@ export function useStudyTimer(
     onUnmounted(() => {
         stopTimer();
     });
+
+    function updateMediaDuration(duration: number): void {
+        if (Number.isFinite(duration) && duration > 0) {
+            lastKnownMediaDuration.value = duration;
+        }
+    }
 
     function updatePlaybackPosition(position: number): void {
         if (Number.isFinite(position) && position >= 0) {
@@ -186,5 +217,6 @@ export function useStudyTimer(
         sendStudyTime,
         sendStudyTimeBeacon,
         updatePlaybackPosition,
+        updateMediaDuration,
     };
 }

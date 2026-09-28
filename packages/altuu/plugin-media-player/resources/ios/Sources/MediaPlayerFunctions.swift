@@ -46,11 +46,12 @@ enum MediaPlayerFunctions {
             let materialName = parameters["materialName"] as? String
             let appearance = parameters["appearance"] as? String
             let sessionContext = MediaPlayerFunctions.parseSessionContext(from: parameters)
+            let force = (parameters["force"] as? Bool) ?? false
 
             // Get NativeUIState and update it
             DispatchQueue.main.async {
                 NativeUIState.shared.updateMediaPlayer(url: url, type: type, frame: frame, courseName: courseName, materialName: materialName, appearance: appearance, sessionContext: sessionContext)
-                MediaPlayerManager.shared.setPlayer(url: url, type: type, frame: frame, courseName: courseName, materialName: materialName, appearance: appearance, sessionContext: sessionContext)
+                MediaPlayerManager.shared.setPlayer(url: url, type: type, frame: frame, courseName: courseName, materialName: materialName, appearance: appearance, sessionContext: sessionContext, force: force)
             }
 
             return BridgeResponse.success(data: [
@@ -93,8 +94,10 @@ enum MediaPlayerFunctions {
 
     class Stop: BridgeFunction {
         func execute(parameters: [String: Any]) throws -> [String: Any] {
+            let expectedURL = parameters["url"] as? String
+
             DispatchQueue.main.async {
-                MediaPlayerManager.shared.stop()
+                MediaPlayerManager.shared.stop(expectedURL: expectedURL)
             }
 
             return BridgeResponse.success(data: [
@@ -125,9 +128,11 @@ enum MediaPlayerFunctions {
     class GetCurrentTime: BridgeFunction {
         func execute(parameters: [String: Any]) throws -> [String: Any] {
             let currentTime = MediaPlayerManager.shared.getCurrentTime()
+            let duration = MediaPlayerManager.shared.getDuration()
 
             return BridgeResponse.success(data: [
                 "time": currentTime,
+                "duration": duration,
             ])
         }
     }
@@ -176,6 +181,7 @@ class MediaPlayerManager: NSObject {
     private static let skipIntervalSeconds: NSNumber = 10
 
     private var player: AVPlayer?
+    private(set) var videoOutput: AVPlayerItemVideoOutput?
     private var playerViewController: AVPlayerViewController?
     private var nowPlayingSession: MPNowPlayingSession?
     private var currentURL: URL?
@@ -251,7 +257,20 @@ class MediaPlayerManager: NSObject {
         }
     }
 
-    func setPlayer(url: String, type: String, frame: MediaPlayerFrame, courseName: String? = nil, materialName: String? = nil, appearance: String? = nil, sessionContext: MediaPlayerSessionContext? = nil) {
+    /// Detaches a torn-down `AVPlayerViewController` from the manager so no stale
+    /// reference lingers for async now-playing-info updates to race against. Only
+    /// clears the reference if `controller` is still the one currently registered,
+    /// so a controller for a freshly mounted view isn't accidentally unregistered.
+    func unregisterPlayerViewController(_ controller: AVPlayerViewController) {
+        guard playerViewController === controller else {
+            return
+        }
+
+        controller.player = nil
+        playerViewController = nil
+    }
+
+    func setPlayer(url: String, type: String, frame: MediaPlayerFrame, courseName: String? = nil, materialName: String? = nil, appearance: String? = nil, sessionContext: MediaPlayerSessionContext? = nil, force: Bool = false) {
         guard let sourceURL = URL(string: url) else {
             DebugLogger.shared.log("[MediaPlayer] Invalid URL: \(url)")
             return
@@ -260,7 +279,12 @@ class MediaPlayerManager: NSObject {
         configureAudioSession()
 
         let normalizedType = type.lowercased()
-        let isSameSource = currentURL == sourceURL && currentType == normalizedType && player != nil
+        let isSameSource = !force && currentURL == sourceURL && currentType == normalizedType && player != nil
+
+        // A forced reload (e.g. after a network failure) rebuilds the player
+        // from scratch but resumes from where the previous one stopped.
+        let resumeTime: Double? = force && currentURL == sourceURL ? getCurrentTime() : nil
+        let shouldResumePlayback = force && (player?.timeControlStatus ?? .paused) != .paused
 
         self.currentType = normalizedType
         self.currentCourseName = courseName
@@ -285,6 +309,17 @@ class MediaPlayerManager: NSObject {
 
         let asset = AVAsset(url: sourceURL)
         let playerItem = AVPlayerItem(asset: asset)
+
+        if normalizedType == "video" {
+            let output = AVPlayerItemVideoOutput(pixelBufferAttributes: [
+                kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
+            ])
+            playerItem.add(output)
+            self.videoOutput = output
+        } else {
+            self.videoOutput = nil
+        }
+
         let player = AVPlayer(playerItem: playerItem)
 
         self.player = player
@@ -294,7 +329,15 @@ class MediaPlayerManager: NSObject {
             playerViewController?.player = player
         }
 
+        if let resumeTime, resumeTime > 0 {
+            player.seek(to: CMTime(seconds: resumeTime, preferredTimescale: 600), toleranceBefore: .zero, toleranceAfter: .zero)
+        }
+
         installNowPlayingInfoTimeObserver()
+
+        if shouldResumePlayback {
+            play()
+        }
 
         if #available(iOS 16.0, *) {
             setupNowPlayingSession()  // metadata is written inside becomeActiveIfPossible callback
@@ -338,13 +381,22 @@ class MediaPlayerManager: NSObject {
         DebugLogger.shared.log("[MediaPlayer] Paused")
     }
 
-    func stop() {
+    func stop(expectedURL: String? = nil) {
+        if let expectedURL, URL(string: expectedURL) != currentURL {
+            // A newer setPlayer() call already superseded this stop request
+            // (e.g. it arrived late after the user navigated to another
+            // material); releasing now would tear down the new player.
+            DebugLogger.shared.log("[MediaPlayer] stop: ignoring stale stop for \(expectedURL) (current=\(currentURL?.absoluteString ?? "nil"))")
+            return
+        }
+
         removeNowPlayingInfoTimeObserver()
 
         player?.pause()
         player?.seek(to: .zero)
         playerViewController?.player = nil
         player = nil
+        videoOutput = nil
         currentURL = nil
         currentSessionContext = nil
 
@@ -562,7 +614,7 @@ class MediaPlayerManager: NSObject {
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
     }
 
-    private func skip(by delta: Double) {
+    func skip(by delta: Double) {
         guard let player = player else {
             return
         }
@@ -592,6 +644,14 @@ class MediaPlayerManager: NSObject {
         }
         let seconds = player.currentTime().seconds
         return seconds.isFinite ? seconds : 0
+    }
+
+    func getDuration() -> Double {
+        guard let seconds = player?.currentItem?.duration.seconds else {
+            return 0
+        }
+
+        return seconds.isFinite && seconds > 0 ? seconds : 0
     }
 
     func getState() -> [String: Any] {

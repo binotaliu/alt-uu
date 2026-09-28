@@ -209,6 +209,9 @@ class PHPSchemeHandler: NSObject, WKURLSchemeHandler {
 
                     request.headers["Cookie"] = cookieHeader
                     request.headers["X-XSRF-TOKEN"] = csrfToken
+                    // [native-fetch-patch] Tell PHP this shell can stream upstream
+                    // content itself (see NativeFetchStreamer below).
+                    request.headers[NativeFetchStreamer.supportedHeader] = "1"
 
                     self.forwardToPHP(requestData: request, schemeTask: schemeTask, redirectCount: 0)
                 }
@@ -226,6 +229,7 @@ class PHPSchemeHandler: NSObject, WKURLSchemeHandler {
     func stopLoading(for schemeTask: WKURLSchemeTask) {
         // Cancel any ongoing operations for this task
         print("Canceling scheme task: \(schemeTask)")
+        NativeFetchStreamer.shared.cancel(schemeTask)
     }
 
     private func isTaskActive(_ schemeTask: WKURLSchemeTask) -> Bool {
@@ -256,10 +260,47 @@ class PHPSchemeHandler: NSObject, WKURLSchemeHandler {
             return "image/jpeg"
         case "gif":
             return "image/gif"
+        case "webp":
+            return "image/webp"
+        case "heic":
+            return "image/heic"
+        case "heif":
+            return "image/heif"
         case "svg":
             return "image/svg+xml"
+        // Video — keep parity with the Android handler so plugin-staged media
+        // (and any other locally served clips) play with the correct
+        // Content-Type. WKWebView byte-sniffs in some cases, but stricter
+        // clients still need an explicit video/* type.
+        case "mp4":
+            return "video/mp4"
+        case "m4v":
+            return "video/x-m4v"
+        case "mov":
+            return "video/quicktime"
+        case "webm":
+            return "video/webm"
+        case "mkv":
+            return "video/x-matroska"
+        case "avi":
+            return "video/x-msvideo"
+        case "3gp":
+            return "video/3gpp"
+        case "m3u8":
+            return "application/vnd.apple.mpegurl"
+        case "ts":
+            return "video/mp2t"
+        // Audio
         case "m4a":
             return "audio/mp4"
+        case "mp3":
+            return "audio/mpeg"
+        case "wav":
+            return "audio/wav"
+        case "aac":
+            return "audio/aac"
+        case "ogg":
+            return "audio/ogg"
         default:
             return "application/octet-stream"
         }
@@ -275,11 +316,18 @@ class PHPSchemeHandler: NSObject, WKURLSchemeHandler {
             return
         }
 
-        // Extract GET parameters
+        // Extract URI + query with percent-encoding preserved. PHP consumes them
+        // verbatim as $_SERVER['REQUEST_URI'] / $_SERVER['QUERY_STRING'], so they
+        // must match what a real HTTP server would set — same shape Android
+        // produces via Uri.encodedPath. Using .path / .query would decode once
+        // and corrupt paths containing reserved chars ('/', '+', '$', '*') or
+        // literal '%' from the data.
+        var uri = "/"
         var query: String?
         if let url = request.url {
             let urlComponents = URLComponents(url: url, resolvingAgainstBaseURL: false)
-            query = urlComponents?.query
+            uri = urlComponents?.percentEncodedPath ?? "/"
+            query = urlComponents?.percentEncodedQuery
         }
 
         // Extract HTTP method
@@ -288,22 +336,47 @@ class PHPSchemeHandler: NSObject, WKURLSchemeHandler {
         // Extract Headers
         let headers = request.allHTTPHeaderFields ?? [:]
 
-        // Extract POST data if method is POST/PUT/PATCH
+        // Extract POST data if method is POST/PUT/PATCH.
+        //
+        // WKURLSchemeTask does not populate `request.httpBody` for XHR or
+        // fetch() POSTs originating from JavaScript — the body is exposed only
+        // via `request.httpBodyStream`. Read the stream as a fallback so JSON
+        // and other JS-initiated bodies (Inertia.js, axios, fetch) reach PHP.
         var data: String?
-        if ["POST", "PUT", "PATCH"].contains(method.uppercased()), let httpBody = request.httpBody {
-            if let body = String(data: httpBody, encoding: .utf8) {
-                data = body
+        if ["POST", "PUT", "PATCH"].contains(method.uppercased()) {
+            if let httpBody = request.httpBody {
+                if let body = String(data: httpBody, encoding: .utf8) {
+                    data = body
+                }
+            } else if let stream = request.httpBodyStream {
+                stream.open()
+                defer { stream.close() }
+
+                var bodyData = Data()
+                let bufferSize = 4096
+                let buffer = UnsafeMutablePointer<UInt8>.allocate(capacity: bufferSize)
+                defer { buffer.deallocate() }
+
+                while stream.hasBytesAvailable {
+                    let bytesRead = stream.read(buffer, maxLength: bufferSize)
+                    if bytesRead > 0 {
+                        bodyData.append(buffer, count: bytesRead)
+                    } else {
+                        break
+                    }
+                }
+
+                if let body = String(data: bodyData, encoding: .utf8) {
+                    data = body
+                }
             }
         }
-
-        // Define the URI
-        let uri = request.url?.path ?? "/"
 
         // Create a RequestData object
         let requestData = RequestData(
             method: method,
             uri: uri,
-            data: data ?? nil,
+            data: data,
             query: query ?? "",
             headers: headers
         )
@@ -547,6 +620,19 @@ class PHPSchemeHandler: NSObject, WKURLSchemeHandler {
                     return
                 }
 
+                // [native-fetch-patch]
+                // PHP answered with a fetch instruction instead of a body: stream the
+                // upstream resource straight into the WebView without going through PHP.
+                if let handoff = headers[NativeFetchStreamer.handoffHeader.lowercased()] {
+                    NativeFetchStreamer.shared.start(
+                        encodedHandoff: handoff,
+                        schemeTask: schemeTask,
+                        isActive: { [weak self] in self?.isTaskActive(schemeTask) ?? false },
+                        onComplete: { [weak self] in self?.removeTask(schemeTask) }
+                    )
+                    return
+                }
+
                 print("Forwarding response to WebView")
 
                 // [binary-response-patch]
@@ -609,7 +695,7 @@ class PHPSchemeHandler: NSObject, WKURLSchemeHandler {
         PersistentPHPRuntime.shared.executeOnPHPThreadAsync {
             let mode = PersistentPHPRuntime.shared.isBooted ? "PERSISTENT" : "CLASSIC"
             let start = CFAbsoluteTimeGetCurrent()
-            NSLog("[NativePHP] [\(mode)] --> \(request.method) \(request.uri)")
+            NSLog("%@", "[NativePHP] [\(mode)] --> \(request.method) \(request.uri)")
 
             let response: String
             if PersistentPHPRuntime.shared.isBooted {
@@ -623,7 +709,7 @@ class PHPSchemeHandler: NSObject, WKURLSchemeHandler {
             let elapsed = (CFAbsoluteTimeGetCurrent() - start) * 1000
             // Extract status code from first line (e.g. "HTTP/1.1 200 OK")
             let statusLine = response.prefix(while: { $0 != "\r" && $0 != "\n" })
-            NSLog("[NativePHP] [\(mode)] <-- \(statusLine) (\(String(format: "%.1f", elapsed))ms)")
+            NSLog("%@", "[NativePHP] [\(mode)] <-- \(statusLine) (\(String(format: "%.1f", elapsed))ms)")
 
             // Extract cookie headers
             let components = response.components(separatedBy: "\r\n\r\n")
@@ -661,6 +747,155 @@ class PHPSchemeHandler: NSObject, WKURLSchemeHandler {
                 }
             }
         }
+    }
+}
+
+// MARK: - [native-fetch-patch]
+
+/// Fetches an upstream resource on PHP's behalf and streams it into a WKURLSchemeTask.
+///
+/// PHP's material proxy has to attach the school session's UA and cookies, but the
+/// PHP bridge can only return a fully-buffered string: large media blocked the PHP
+/// thread until the whole file was downloaded and could not be seeked. Instead, PHP
+/// replies with an `X-Native-Fetch` header (base64 JSON `{url, headers}`) and this
+/// class performs the request, forwarding the WebView's `Range` header and relaying
+/// status, headers and body chunks as they arrive.
+///
+/// All delegate callbacks run on the main queue, which is also where WebKit calls
+/// `webView(_:stop:)`, so the `isActive` check and the scheme-task calls cannot race.
+final class NativeFetchStreamer: NSObject, URLSessionDataDelegate {
+    static let shared = NativeFetchStreamer()
+
+    static let supportedHeader = "X-Native-Fetch-Supported"
+    static let handoffHeader = "X-Native-Fetch"
+
+    /// Upstream response headers relayed to the WebView. Everything else (Set-Cookie,
+    /// Content-Encoding, etc.) is dropped.
+    private static let relayedHeaders = [
+        "content-type", "content-length", "content-range", "accept-ranges",
+        "last-modified", "etag",
+    ]
+
+    private struct Handoff: Decodable {
+        let url: String
+        let headers: [String: String]
+    }
+
+    private struct Entry {
+        let schemeTask: WKURLSchemeTask
+        let isActive: () -> Bool
+        let onComplete: () -> Void
+    }
+
+    private var entries: [Int: Entry] = [:]
+    private var dataTasks: [ObjectIdentifier: URLSessionDataTask] = [:]
+
+    private lazy var session: URLSession = {
+        let configuration = URLSessionConfiguration.default
+        // Cookies come from PHP's session store via the handoff; don't mix in a jar.
+        configuration.httpCookieStorage = nil
+        configuration.httpShouldSetCookies = false
+        configuration.urlCache = nil
+        configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
+        configuration.timeoutIntervalForRequest = 30
+        return URLSession(configuration: configuration, delegate: self, delegateQueue: .main)
+    }()
+
+    func start(
+        encodedHandoff: String,
+        schemeTask: WKURLSchemeTask,
+        isActive: @escaping () -> Bool,
+        onComplete: @escaping () -> Void
+    ) {
+        guard let json = Data(base64Encoded: encodedHandoff.trimmingCharacters(in: .whitespaces)),
+              let handoff = try? JSONDecoder().decode(Handoff.self, from: json),
+              let url = URL(string: handoff.url),
+              url.scheme == "https" || url.scheme == "http" else {
+            print("NativeFetchStreamer: invalid handoff")
+            if isActive() {
+                schemeTask.didFailWithError(NSError(domain: "NativeFetchStreamer", code: 500, userInfo: [NSLocalizedDescriptionKey: "Invalid native fetch handoff"]))
+                onComplete()
+            }
+            return
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        for (name, value) in handoff.headers {
+            request.setValue(value, forHTTPHeaderField: name)
+        }
+        if let range = schemeTask.request.value(forHTTPHeaderField: "Range") {
+            request.setValue(range, forHTTPHeaderField: "Range")
+        }
+
+        let dataTask = session.dataTask(with: request)
+        entries[dataTask.taskIdentifier] = Entry(schemeTask: schemeTask, isActive: isActive, onComplete: onComplete)
+        dataTasks[ObjectIdentifier(schemeTask)] = dataTask
+        print("NativeFetchStreamer: GET \(url.absoluteString) range: \(request.value(forHTTPHeaderField: "Range") ?? "-")")
+        dataTask.resume()
+    }
+
+    /// Called from `webView(_:stop:)` (main queue) when WebKit no longer wants the data.
+    func cancel(_ schemeTask: WKURLSchemeTask) {
+        guard let dataTask = dataTasks.removeValue(forKey: ObjectIdentifier(schemeTask)) else { return }
+        entries.removeValue(forKey: dataTask.taskIdentifier)
+        dataTask.cancel()
+    }
+
+    func urlSession(
+        _ session: URLSession,
+        dataTask: URLSessionDataTask,
+        didReceive response: URLResponse,
+        completionHandler: @escaping (URLSession.ResponseDisposition) -> Void
+    ) {
+        guard let entry = entries[dataTask.taskIdentifier], entry.isActive() else {
+            completionHandler(.cancel)
+            return
+        }
+
+        let upstream = response as? HTTPURLResponse
+        var headers: [String: String] = [:]
+        for (key, value) in upstream?.allHeaderFields ?? [:] {
+            guard let name = (key as? String)?.lowercased(),
+                  Self.relayedHeaders.contains(name) else { continue }
+            headers[name] = "\(value)"
+        }
+        // URLSession transparently decompresses, so the upstream length no longer
+        // matches the bytes we relay.
+        if upstream?.value(forHTTPHeaderField: "Content-Encoding") != nil {
+            headers.removeValue(forKey: "content-length")
+        }
+        headers["cache-control"] = "no-store"
+
+        guard let schemeURL = entry.schemeTask.request.url,
+              let relayed = HTTPURLResponse(url: schemeURL, statusCode: upstream?.statusCode ?? 200, httpVersion: "HTTP/1.1", headerFields: headers) else {
+            completionHandler(.cancel)
+            return
+        }
+
+        print("NativeFetchStreamer: <- \(upstream?.statusCode ?? 0) headers: \(headers)")
+        entry.schemeTask.didReceive(relayed)
+        completionHandler(.allow)
+    }
+
+    func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
+        guard let entry = entries[dataTask.taskIdentifier], entry.isActive() else { return }
+        entry.schemeTask.didReceive(data)
+    }
+
+    func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
+        guard let entry = entries.removeValue(forKey: task.taskIdentifier) else { return }
+        dataTasks.removeValue(forKey: ObjectIdentifier(entry.schemeTask))
+
+        guard entry.isActive() else { return }
+
+        if let error = error {
+            print("NativeFetchStreamer: failed \(error.localizedDescription)")
+            entry.schemeTask.didFailWithError(error)
+        } else {
+            entry.schemeTask.didFinish()
+        }
+        entry.onComplete()
     }
 }
 

@@ -8,8 +8,7 @@ use Illuminate\Support\Facades\Facade;
 
 /**
  * @method static object|null download(string $url, ?string $filename = null)
- * @method static object|null openUrl(string $url, array $cookies = [], string $method = 'GET', array $postForm = [])
- * @method static object|null openInBrowser(string $url, array $cookies = [], string $method = 'GET', array $postForm = [])
+ * @method static object|null openUrl(string $url, array $cookies = [], string $method = 'GET', array $postForm = [], ?string $css = null)
  *
  * @see \AltUU\AttachmentBridge\AttachmentBridge
  */

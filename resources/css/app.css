@@ -13,16 +13,36 @@
 
 @theme {
     --font-sans: system-ui, sans-serif;
-    --color-warm-50: oklch(0.98 0.01 40);
-    --color-warm-100: oklch(0.96 0.02 40);
-    --color-warm-200: oklch(0.93 0.04 40);
-    --color-warm-300: oklch(0.88 0.07 40);
-    --color-warm-400: oklch(0.8 0.12 40);
-    --color-warm-500: oklch(0.72 0.15 40);
-    --color-warm-600: oklch(0.65 0.15 35);
-    --color-warm-700: oklch(0.55 0.13 35);
-    --color-warm-800: oklch(0.45 0.1 35);
-    --color-warm-900: oklch(0.35 0.08 35);
+
+    /* Scaled by native shell patches from OS text-size preference (Android
+     * Configuration.fontScale / iOS Dynamic Type) — see
+     * packages/altuu/plugin-nativephp-patch. Only font-size tokens scale;
+     * spacing/sizing utilities intentionally stay fixed to avoid layout
+     * distortion. */
+    --text-xs: calc(0.75rem * var(--text-scale, 1));
+    --text-sm: calc(0.875rem * var(--text-scale, 1));
+    --text-base: calc(1rem * var(--text-scale, 1));
+    --text-lg: calc(1.125rem * var(--text-scale, 1));
+    --text-xl: calc(1.25rem * var(--text-scale, 1));
+    --text-2xl: calc(1.5rem * var(--text-scale, 1));
+    --text-3xl: calc(1.875rem * var(--text-scale, 1));
+    --text-4xl: calc(2.25rem * var(--text-scale, 1));
+    --text-5xl: calc(3rem * var(--text-scale, 1));
+    --text-6xl: calc(3.75rem * var(--text-scale, 1));
+    --text-7xl: calc(4.5rem * var(--text-scale, 1));
+    --text-8xl: calc(6rem * var(--text-scale, 1));
+    --text-9xl: calc(8rem * var(--text-scale, 1));
+
+    --color-theme-50: oklch(0.98 0.01 40);
+    --color-theme-100: oklch(0.96 0.02 40);
+    --color-theme-200: oklch(0.93 0.04 40);
+    --color-theme-300: oklch(0.88 0.07 40);
+    --color-theme-400: oklch(0.8 0.12 40);
+    --color-theme-500: oklch(0.72 0.15 40);
+    --color-theme-600: oklch(0.65 0.15 35);
+    --color-theme-700: oklch(0.52 0.13 35);
+    --color-theme-800: oklch(0.45 0.1 35);
+    --color-theme-900: oklch(0.35 0.08 35);
 }
 
 @layer base {
@@ -50,358 +70,237 @@
         user-drag: none;
     }
 
+    html[data-accent='ocean'] {
+        --color-theme-50: oklch(0.98 0.01 230);
+        --color-theme-100: oklch(0.96 0.02 230);
+        --color-theme-200: oklch(0.93 0.04 230);
+        --color-theme-300: oklch(0.88 0.07 230);
+        --color-theme-400: oklch(0.8 0.12 230);
+        --color-theme-500: oklch(0.72 0.15 230);
+        --color-theme-600: oklch(0.65 0.15 235);
+        --color-theme-700: oklch(0.52 0.13 235);
+        --color-theme-800: oklch(0.45 0.1 235);
+        --color-theme-900: oklch(0.35 0.08 235);
+    }
+
+    html[data-accent='forest'] {
+        --color-theme-50: oklch(0.98 0.01 150);
+        --color-theme-100: oklch(0.96 0.02 150);
+        --color-theme-200: oklch(0.93 0.04 150);
+        --color-theme-300: oklch(0.88 0.07 150);
+        --color-theme-400: oklch(0.8 0.12 150);
+        --color-theme-500: oklch(0.72 0.15 150);
+        --color-theme-600: oklch(0.65 0.15 145);
+        --color-theme-700: oklch(0.52 0.13 145);
+        --color-theme-800: oklch(0.45 0.1 145);
+        --color-theme-900: oklch(0.35 0.08 145);
+    }
+
+    html[data-accent='purple'] {
+        --color-theme-50: oklch(0.98 0.01 300);
+        --color-theme-100: oklch(0.96 0.02 300);
+        --color-theme-200: oklch(0.93 0.04 300);
+        --color-theme-300: oklch(0.88 0.07 300);
+        --color-theme-400: oklch(0.8 0.12 300);
+        --color-theme-500: oklch(0.72 0.15 300);
+        --color-theme-600: oklch(0.65 0.15 295);
+        --color-theme-700: oklch(0.52 0.13 295);
+        --color-theme-800: oklch(0.45 0.1 295);
+        --color-theme-900: oklch(0.35 0.08 295);
+    }
+
+    html[data-accent='pink'] {
+        --color-theme-50: oklch(0.98 0.01 352);
+        --color-theme-100: oklch(0.96 0.02 352);
+        --color-theme-200: oklch(0.93 0.04 352);
+        --color-theme-300: oklch(0.88 0.08 352);
+        --color-theme-400: oklch(0.8 0.16 351);
+        --color-theme-500: oklch(0.72 0.2 350);
+        --color-theme-600: oklch(0.65 0.2 349);
+        --color-theme-700: oklch(0.52 0.17 349);
+        --color-theme-800: oklch(0.45 0.13 349);
+        --color-theme-900: oklch(0.35 0.1 349);
+    }
+
+    html[data-accent='red'] {
+        --color-theme-50: oklch(0.98 0.01 25);
+        --color-theme-100: oklch(0.96 0.02 25);
+        --color-theme-200: oklch(0.93 0.04 25);
+        --color-theme-300: oklch(0.88 0.08 25);
+        --color-theme-400: oklch(0.8 0.14 24);
+        --color-theme-500: oklch(0.72 0.17 23);
+        --color-theme-600: oklch(0.65 0.17 22);
+        --color-theme-700: oklch(0.52 0.15 22);
+        --color-theme-800: oklch(0.45 0.12 22);
+        --color-theme-900: oklch(0.35 0.09 22);
+    }
+
+    html[data-accent='grey'] {
+        --color-theme-50: oklch(0.98 0.002 250);
+        --color-theme-100: oklch(0.96 0.003 250);
+        --color-theme-200: oklch(0.93 0.005 250);
+        --color-theme-300: oklch(0.88 0.008 250);
+        --color-theme-400: oklch(0.8 0.012 250);
+        --color-theme-500: oklch(0.72 0.015 250);
+        --color-theme-600: oklch(0.65 0.015 250);
+        --color-theme-700: oklch(0.52 0.013 250);
+        --color-theme-800: oklch(0.45 0.01 250);
+        --color-theme-900: oklch(0.35 0.008 250);
+    }
+
+    /* High-contrast palette: lightness is amplified, but hue and chroma still
+     * follow the selected accent (warm is the default when none is set). */
+    html[data-accent='ocean'] {
+        --hc-hue-light: 230;
+        --hc-hue-dark: 235;
+    }
+
+    html[data-accent='forest'] {
+        --hc-hue-light: 150;
+        --hc-hue-dark: 145;
+    }
+
+    html[data-accent='purple'] {
+        --hc-hue-light: 300;
+        --hc-hue-dark: 295;
+    }
+
+    html[data-accent='pink'] {
+        --hc-hue-light: 352;
+        --hc-hue-dark: 349;
+        --hc-chroma-scale: 1.3;
+    }
+
+    html[data-accent='red'] {
+        --hc-hue-light: 25;
+        --hc-hue-dark: 22;
+        --hc-chroma-scale: 1.1;
+    }
+
+    html[data-accent='grey'] {
+        --hc-hue-light: 250;
+        --hc-hue-dark: 250;
+        --hc-chroma-scale: 0.1;
+    }
+
     @media (prefers-contrast: more) {
+        /* Steps 50-300 are fills that carry text (7:1+ with 700-900); borders
+         * would need 3:1, so they are remapped to step 400 instead. */
         body {
-            /* amplify lightness differences so every step passes AA/AAA */
-            --color-warm-50: oklch(0.99 0.01 40 / 1);
-            --color-warm-100: oklch(0.9 0.02 40 / 1);
-            --color-warm-200: oklch(0.8 0.04 40 / 1);
-            --color-warm-300: oklch(0.6 0.07 40 / 1);
-            --color-warm-400: oklch(0.4 0.12 40 / 1);
-            --color-warm-500: oklch(0.2 0.15 40 / 1);
-            --color-warm-600: oklch(0.15 0.15 35 / 1);
-            --color-warm-700: oklch(0.1 0.13 35 / 1);
-            --color-warm-800: oklch(0.05 0.1 35 / 1);
-            --color-warm-900: oklch(0.02 0.08 35 / 1);
+            --hc-scale: var(--hc-chroma-scale, 1);
+            --color-theme-50: oklch(
+                0.99 calc(0.01 * var(--hc-scale)) var(--hc-hue-light, 40)
+            );
+            --color-theme-100: oklch(
+                0.93 calc(0.02 * var(--hc-scale)) var(--hc-hue-light, 40)
+            );
+            --color-theme-200: oklch(
+                0.86 calc(0.04 * var(--hc-scale)) var(--hc-hue-light, 40)
+            );
+            --color-theme-300: oklch(
+                0.78 calc(0.07 * var(--hc-scale)) var(--hc-hue-light, 40)
+            );
+            --color-theme-400: oklch(
+                0.42 calc(0.12 * var(--hc-scale)) var(--hc-hue-light, 40)
+            );
+            --color-theme-500: oklch(
+                0.3 calc(0.15 * var(--hc-scale)) var(--hc-hue-dark, 35)
+            );
+            --color-theme-600: oklch(
+                0.22 calc(0.15 * var(--hc-scale)) var(--hc-hue-dark, 35)
+            );
+            --color-theme-700: oklch(
+                0.14 calc(0.13 * var(--hc-scale)) var(--hc-hue-dark, 35)
+            );
+            --color-theme-800: oklch(
+                0.08 calc(0.1 * var(--hc-scale)) var(--hc-hue-dark, 35)
+            );
+            --color-theme-900: oklch(
+                0.03 calc(0.08 * var(--hc-scale)) var(--hc-hue-dark, 35)
+            );
+        }
+
+        .border-theme-100,
+        .border-theme-200,
+        .border-theme-300 {
+            border-color: var(--color-theme-400);
+        }
+
+        /* Dark surfaces: 600-900 stay dark enough for white text (7:1+). */
+        .dark body {
+            --hc-scale: var(--hc-chroma-scale, 1);
+            --color-theme-50: oklch(
+                0.99 calc(0.01 * var(--hc-scale)) var(--hc-hue-light, 40)
+            );
+            --color-theme-100: oklch(
+                0.97 calc(0.02 * var(--hc-scale)) var(--hc-hue-light, 40)
+            );
+            --color-theme-200: oklch(
+                0.95 calc(0.03 * var(--hc-scale)) var(--hc-hue-light, 40)
+            );
+            --color-theme-300: oklch(
+                0.9 calc(0.05 * var(--hc-scale)) var(--hc-hue-light, 40)
+            );
+            --color-theme-400: oklch(
+                0.75 calc(0.12 * var(--hc-scale)) var(--hc-hue-light, 40)
+            );
+            --color-theme-500: oklch(
+                0.6 calc(0.15 * var(--hc-scale)) var(--hc-hue-dark, 35)
+            );
+            --color-theme-600: oklch(
+                0.42 calc(0.15 * var(--hc-scale)) var(--hc-hue-dark, 35)
+            );
+            --color-theme-700: oklch(
+                0.4 calc(0.13 * var(--hc-scale)) var(--hc-hue-dark, 35)
+            );
+            --color-theme-800: oklch(
+                0.36 calc(0.1 * var(--hc-scale)) var(--hc-hue-dark, 35)
+            );
+            --color-theme-900: oklch(
+                0.2 calc(0.08 * var(--hc-scale)) var(--hc-hue-dark, 35)
+            );
         }
     }
 
     th {
         @apply text-left;
     }
-
-    /** make view-transition feels like a native app */
-    @supports (view-transition-name: page-shell) {
-        :root {
-            --native-transition-duration: 460ms;
-            --native-transition-ease: cubic-bezier(0.22, 1, 0.36, 1);
-            --native-transition-shared-ease: cubic-bezier(0.2, 0.9, 0.2, 1);
-            --native-forward-enter-x: 22px;
-            --native-forward-exit-x: -14px;
-            --native-back-enter-x: -18px;
-            --native-back-exit-x: 28px;
-            --native-lateral-enter-y: 14px;
-        }
-
-        :root::view-transition-group(root) {
-            animation-duration: var(--native-transition-duration);
-            animation-timing-function: var(--native-transition-ease);
-        }
-
-        :root::view-transition-old(root),
-        :root::view-transition-new(root) {
-            animation-duration: var(--native-transition-duration);
-            animation-fill-mode: both;
-            animation-timing-function: var(--native-transition-ease);
-            backface-visibility: hidden;
-            height: 100%;
-            mix-blend-mode: normal;
-            transform-origin: center top;
-            will-change: opacity, transform, filter;
-        }
-
-        :root::view-transition-old(root) {
-            z-index: 1;
-        }
-
-        :root::view-transition-new(root) {
-            z-index: 2;
-            box-shadow: 0 18px 48px rgb(15 23 42 / 12%);
-        }
-
-        :root[data-native-navigation='forward']::view-transition-old(root) {
-            animation-name: native-page-old-forward;
-        }
-
-        :root[data-native-navigation='forward']::view-transition-new(root) {
-            animation-name: native-page-new-forward;
-        }
-
-        :root[data-native-navigation='back']::view-transition-old(root) {
-            animation-name: native-page-old-back;
-        }
-
-        :root[data-native-navigation='back']::view-transition-new(root) {
-            animation-name: native-page-new-back;
-        }
-
-        :root[data-native-navigation='lateral']::view-transition-old(root) {
-            animation-name: native-page-old-lateral;
-        }
-
-        :root[data-native-navigation='lateral']::view-transition-new(root) {
-            animation-name: native-page-new-lateral;
-        }
-
-        :root::view-transition-group(page-header),
-        :root::view-transition-group(page-header-title),
-        :root::view-transition-group(page-header-subtitle),
-        :root::view-transition-group(page-header-actions),
-        :root::view-transition-group(page-header-back-button),
-        :root::view-transition-group(nav) {
-            animation-duration: 380ms;
-            animation-timing-function: var(--native-transition-shared-ease);
-        }
-
-        :root::view-transition-old(page-header),
-        :root::view-transition-old(page-header-title),
-        :root::view-transition-old(page-header-subtitle),
-        :root::view-transition-old(page-header-actions),
-        :root::view-transition-old(page-header-back-button),
-        :root::view-transition-old(mobile-nav),
-        :root::view-transition-old(pad-nav),
-        :root::view-transition-new(page-header),
-        :root::view-transition-new(page-header-title),
-        :root::view-transition-new(page-header-subtitle),
-        :root::view-transition-new(page-header-actions),
-        :root::view-transition-new(page-header-back-button),
-        :root::view-transition-new(mobile-nav),
-        :root::view-transition-new(pad-nav) {
-            animation-duration: 380ms;
-            animation-fill-mode: both;
-            animation-timing-function: var(--native-transition-shared-ease);
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-            :root::view-transition-group(root),
-            :root::view-transition-old(root),
-            :root::view-transition-new(root),
-            :root::view-transition-group(page-header),
-            :root::view-transition-group(page-header-title),
-            :root::view-transition-group(page-header-subtitle),
-            :root::view-transition-group(page-header-actions),
-            :root::view-transition-group(page-header-back-button),
-            :root::view-transition-group(mobile-nav),
-            :root::view-transition-group(pad-nav),
-            :root::view-transition-old(page-header),
-            :root::view-transition-old(page-header-title),
-            :root::view-transition-old(page-header-subtitle),
-            :root::view-transition-old(page-header-actions),
-            :root::view-transition-old(page-header-back-button),
-            :root::view-transition-old(mobile-nav),
-            :root::view-transition-old(pad-nav),
-            :root::view-transition-new(page-header),
-            :root::view-transition-new(page-header-title),
-            :root::view-transition-new(page-header-subtitle),
-            :root::view-transition-new(page-header-actions),
-            :root::view-transition-new(page-header-back-button),
-            :root::view-transition-new(mobile-nav),
-            :root::view-transition-new(pad-nav) {
-                animation-duration: 1ms;
-            }
-        }
-
-        :root.device-android::view-transition-group(root),
-        :root.device-android::view-transition-group(page-header),
-        :root.device-android::view-transition-group(page-header-title),
-        :root.device-android::view-transition-group(page-header-subtitle),
-        :root.device-android::view-transition-group(page-header-actions),
-        :root.device-android::view-transition-group(page-header-back-button),
-        :root.device-android::view-transition-group(nav),
-        :root.device-android::view-transition-group(mobile-nav),
-        :root.device-android::view-transition-group(pad-nav),
-        :root.device-android::view-transition-old(root),
-        :root.device-android::view-transition-old(page-header),
-        :root.device-android::view-transition-old(page-header-title),
-        :root.device-android::view-transition-old(page-header-subtitle),
-        :root.device-android::view-transition-old(page-header-actions),
-        :root.device-android::view-transition-old(page-header-back-button),
-        :root.device-android::view-transition-old(mobile-nav),
-        :root.device-android::view-transition-old(pad-nav),
-        :root.device-android::view-transition-new(root),
-        :root.device-android::view-transition-new(page-header),
-        :root.device-android::view-transition-new(page-header-title),
-        :root.device-android::view-transition-new(page-header-subtitle),
-        :root.device-android::view-transition-new(page-header-actions),
-        :root.device-android::view-transition-new(page-header-back-button),
-        :root.device-android::view-transition-new(mobile-nav),
-        :root.device-android::view-transition-new(pad-nav) {
-            animation-duration: var(--native-transition-duration) !important;
-            animation-fill-mode: both !important;
-            animation-timing-function: linear !important;
-            box-shadow: none !important;
-            transform: none !important;
-        }
-
-        :root.device-android::view-transition-old(root),
-        :root.device-android::view-transition-old(page-header),
-        :root.device-android::view-transition-old(page-header-title),
-        :root.device-android::view-transition-old(page-header-subtitle),
-        :root.device-android::view-transition-old(page-header-actions),
-        :root.device-android::view-transition-old(page-header-back-button),
-        :root.device-android::view-transition-old(mobile-nav),
-        :root.device-android::view-transition-old(pad-nav) {
-            animation-name: native-page-old-fade !important;
-        }
-
-        :root.device-android::view-transition-new(root),
-        :root.device-android::view-transition-new(page-header),
-        :root.device-android::view-transition-new(page-header-title),
-        :root.device-android::view-transition-new(page-header-subtitle),
-        :root.device-android::view-transition-new(page-header-actions),
-        :root.device-android::view-transition-new(page-header-back-button),
-        :root.device-android::view-transition-new(mobile-nav),
-        :root.device-android::view-transition-new(pad-nav) {
-            animation-name: native-page-new-fade !important;
-        }
-
-        @keyframes native-page-old-forward {
-            from {
-                opacity: 1;
-                transform: translate3d(0, 0, 0) scale(1);
-                filter: none;
-            }
-
-            to {
-                opacity: 0.48;
-                transform: translate3d(var(--native-forward-exit-x), 0, 0)
-                    scale(0.972);
-                filter: saturate(0.92);
-            }
-        }
-
-        @keyframes native-page-new-forward {
-            from {
-                opacity: 0.82;
-                transform: translate3d(var(--native-forward-enter-x), 0, 0)
-                    scale(0.985);
-                filter: saturate(0.96) blur(1px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translate3d(0, 0, 0) scale(1);
-                filter: none;
-            }
-        }
-
-        @keyframes native-page-old-back {
-            from {
-                opacity: 1;
-                transform: translate3d(0, 0, 0) scale(1);
-                filter: none;
-            }
-
-            to {
-                opacity: 0.32;
-                transform: translate3d(var(--native-back-exit-x), 0, 0)
-                    scale(0.985);
-                filter: saturate(0.9);
-            }
-        }
-
-        @keyframes native-page-new-back {
-            from {
-                opacity: 0.7;
-                transform: translate3d(var(--native-back-enter-x), 0, 0)
-                    scale(0.992);
-                filter: blur(0.5px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translate3d(0, 0, 0) scale(1);
-                filter: none;
-            }
-        }
-
-        @keyframes native-page-old-lateral {
-            from {
-                opacity: 1;
-                transform: translate3d(0, 0, 0) scale(1);
-                filter: none;
-            }
-
-            to {
-                opacity: 0.18;
-                transform: translate3d(
-                        0,
-                        calc(var(--native-lateral-enter-y) * -1),
-                        0
-                    )
-                    scale(0.99);
-                filter: saturate(0.94);
-            }
-        }
-
-        @keyframes native-page-new-lateral {
-            from {
-                opacity: 0.68;
-                transform: translate3d(0, var(--native-lateral-enter-y), 0)
-                    scale(0.996);
-                filter: blur(0.5px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translate3d(0, 0, 0) scale(1);
-                filter: none;
-            }
-        }
-
-        @keyframes native-page-old-fade {
-            from {
-                opacity: 1;
-                transform: none;
-                filter: none;
-            }
-
-            to {
-                opacity: 0;
-                transform: none;
-                filter: none;
-            }
-        }
-
-        @keyframes native-page-new-fade {
-            from {
-                opacity: 0;
-                transform: none;
-                filter: none;
-            }
-
-            to {
-                opacity: 1;
-                transform: none;
-                filter: none;
-            }
-        }
-    }
 }
 
-@utility prose-warm {
-    --tw-prose-body: var(--color-warm-800);
-    --tw-prose-headings: var(--color-warm-900);
-    --tw-prose-lead: var(--color-warm-700);
-    --tw-prose-links: var(--color-warm-900);
-    --tw-prose-bold: var(--color-warm-900);
-    --tw-prose-counters: var(--color-warm-600);
-    --tw-prose-bullets: var(--color-warm-400);
-    --tw-prose-hr: var(--color-warm-300);
-    --tw-prose-quotes: var(--color-warm-900);
-    --tw-prose-quote-borders: var(--color-warm-300);
-    --tw-prose-captions: var(--color-warm-700);
-    --tw-prose-code: var(--color-warm-900);
-    --tw-prose-pre-code: var(--color-warm-100);
-    --tw-prose-pre-bg: var(--color-warm-900);
-    --tw-prose-th-borders: var(--color-warm-300);
-    --tw-prose-td-borders: var(--color-warm-200);
-    --tw-prose-invert-body: var(--color-warm-200);
+/* Dark-mode (`prose-invert`) values alias Tailwind Typography's zinc palette; a theme-tinted invert reads oddly. */
+@utility prose-theme {
+    --tw-prose-body: var(--color-theme-800);
+    --tw-prose-headings: var(--color-theme-900);
+    --tw-prose-lead: var(--color-theme-700);
+    --tw-prose-links: var(--color-theme-900);
+    --tw-prose-bold: var(--color-theme-900);
+    --tw-prose-counters: var(--color-theme-600);
+    --tw-prose-bullets: var(--color-theme-400);
+    --tw-prose-hr: var(--color-theme-300);
+    --tw-prose-quotes: var(--color-theme-900);
+    --tw-prose-quote-borders: var(--color-theme-300);
+    --tw-prose-captions: var(--color-theme-700);
+    --tw-prose-code: var(--color-theme-900);
+    --tw-prose-pre-code: var(--color-theme-100);
+    --tw-prose-pre-bg: var(--color-theme-900);
+    --tw-prose-th-borders: var(--color-theme-300);
+    --tw-prose-td-borders: var(--color-theme-200);
+    --tw-prose-invert-body: var(--color-zinc-300);
     --tw-prose-invert-headings: var(--color-white);
-    --tw-prose-invert-lead: var(--color-warm-300);
+    --tw-prose-invert-lead: var(--color-zinc-400);
     --tw-prose-invert-links: var(--color-white);
     --tw-prose-invert-bold: var(--color-white);
-    --tw-prose-invert-counters: var(--color-warm-400);
-    --tw-prose-invert-bullets: var(--color-warm-600);
-    --tw-prose-invert-hr: var(--color-warm-700);
-    --tw-prose-invert-quotes: var(--color-warm-100);
-    --tw-prose-invert-quote-borders: var(--color-warm-700);
-    --tw-prose-invert-captions: var(--color-warm-400);
+    --tw-prose-invert-counters: var(--color-zinc-400);
+    --tw-prose-invert-bullets: var(--color-zinc-600);
+    --tw-prose-invert-hr: var(--color-zinc-700);
+    --tw-prose-invert-quotes: var(--color-zinc-100);
+    --tw-prose-invert-quote-borders: var(--color-zinc-700);
+    --tw-prose-invert-captions: var(--color-zinc-400);
     --tw-prose-invert-code: var(--color-white);
-    --tw-prose-invert-pre-code: var(--color-warm-300);
+    --tw-prose-invert-pre-code: var(--color-zinc-300);
     --tw-prose-invert-pre-bg: rgb(0 0 0 / 50%);
-    --tw-prose-invert-th-borders: var(--color-warm-600);
-    --tw-prose-invert-td-borders: var(--color-warm-700);
+    --tw-prose-invert-th-borders: var(--color-zinc-600);
+    --tw-prose-invert-td-borders: var(--color-zinc-700);
 }
 
 @utility prose {
@@ -426,5 +325,92 @@
         display: none;
         width: 0;
         height: 0;
+    }
+}
+
+/*
+ * Directional page transitions (push/pop) driven by the browser View
+ * Transitions API. router.ts sets html[data-page-transition] to "forward" or
+ * "back" before starting each transition. The whole page is the default `root`
+ * group, so sticky headers slide with the page — the intended native feel.
+ * The courses tab bars and transparent header opt out of that via their own
+ * view-transition-name (see CoursesBottomNav.vue / CoursesTopNav.vue /
+ * TransparentPageHeader.vue) so only the tab content slides underneath them
+ * when switching tabs. Only active on platforms/engines gated in
+ * lib/viewTransitions.ts.
+ */
+@keyframes vt-slide-in-right {
+    from {
+        transform: translateX(100%);
+    }
+}
+
+@keyframes vt-slide-out-left {
+    to {
+        transform: translateX(-25%);
+    }
+}
+
+@keyframes vt-slide-in-left {
+    from {
+        transform: translateX(-25%);
+    }
+}
+
+@keyframes vt-slide-out-right {
+    to {
+        transform: translateX(100%);
+    }
+}
+
+/* Replace the API's default cross-fade; we drive full-page transforms instead. */
+::view-transition-old(root),
+::view-transition-new(root) {
+    animation: none;
+    mix-blend-mode: normal;
+}
+
+/* Forward: new page slides in from the right over the outgoing page. */
+html[data-page-transition='forward']::view-transition-old(root) {
+    animation: vt-slide-out-left 300ms ease both;
+}
+
+html[data-page-transition='forward']::view-transition-new(root) {
+    z-index: 1;
+    animation: vt-slide-in-right 300ms ease both;
+}
+
+/* Back: outgoing page slides out to the right, revealing the previous page. */
+html[data-page-transition='back']::view-transition-old(root) {
+    z-index: 1;
+    animation: vt-slide-out-right 300ms ease both;
+}
+
+html[data-page-transition='back']::view-transition-new(root) {
+    animation: vt-slide-in-left 300ms ease both;
+}
+
+/* Tab bars and header stay put; only the tab content underneath them slides. */
+::view-transition-group(courses-bottom-nav),
+::view-transition-group(courses-top-nav),
+::view-transition-group(courses-transparent-header) {
+    animation: none;
+}
+
+::view-transition-old(courses-bottom-nav),
+::view-transition-new(courses-bottom-nav),
+::view-transition-old(courses-top-nav),
+::view-transition-new(courses-top-nav),
+::view-transition-old(courses-transparent-header),
+::view-transition-new(courses-transparent-header) {
+    animation: none;
+    mix-blend-mode: normal;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    ::view-transition-group(*),
+    ::view-transition-old(root),
+    ::view-transition-new(root) {
+        animation: none !important;
     }
 }

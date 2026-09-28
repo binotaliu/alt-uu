@@ -4,56 +4,44 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Models\KeyValueStore;
-use Illuminate\Support\Facades\Crypt;
+use App\Models\Account;
 
 class UUSessionStore
 {
+    public function __construct(
+        private readonly AccountActiveProfile $activeProfile,
+    ) {}
+
     /**
      * @return array<string, mixed>|null
      */
-    public function get(): ?array
+    public function get(?int $accountId = null): ?array
     {
-        $record = KeyValueStore::query()->find($this->storageKey());
-        if (! $record instanceof KeyValueStore) {
-            return null;
-        }
-
-        try {
-            $decrypted = Crypt::decryptString($record->value);
-            $decoded = json_decode($decrypted, true);
-
-            return is_array($decoded) ? $decoded : null;
-        } catch (\Exception) {
-            return null;
-        }
+        return $this->resolveAccount($accountId)?->hungu_session;
     }
 
     /**
      * @param  array<string, mixed>  $session
      */
-    public function put(array $session): void
+    public function put(array $session, ?int $accountId = null): void
     {
-        $json = json_encode($session, JSON_THROW_ON_ERROR);
-
-        KeyValueStore::query()->updateOrCreate(
-            ['key' => $this->storageKey()],
-            ['value' => Crypt::encryptString($json)],
-        );
+        $this->resolveAccount($accountId)?->update(['hungu_session' => $session]);
     }
 
-    public function forget(): void
+    public function forget(?int $accountId = null): void
     {
-        KeyValueStore::query()->where('key', $this->storageKey())->delete();
+        $this->resolveAccount($accountId)?->update(['hungu_session' => null]);
     }
 
-    public function has(): bool
+    public function has(?int $accountId = null): bool
     {
-        return $this->get() !== null;
+        return $this->get($accountId) !== null;
     }
 
-    public function storageKey(): string
+    private function resolveAccount(?int $accountId): ?Account
     {
-        return (string) config('hungu.cookie_name', 'hungu_session');
+        $accountId ??= $this->activeProfile->get();
+
+        return $accountId !== null ? Account::find($accountId) : null;
     }
 }

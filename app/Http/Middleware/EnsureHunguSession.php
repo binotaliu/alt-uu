@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Services\AccountActiveProfile;
 use App\Services\UUProfileSession;
 use App\Services\UUSessionAuthenticator;
 use App\Services\UUSessionStore;
@@ -21,6 +22,7 @@ final class EnsureHunguSession
         private readonly UUSessionStore $sessionStore,
         private readonly UUSessionAuthenticator $authenticator,
         private readonly UUProfileSession $profileSession,
+        private readonly AccountActiveProfile $activeProfile,
     ) {}
 
     /**
@@ -30,6 +32,11 @@ final class EnsureHunguSession
      */
     public function handle(Request $request, Closure $next): Response
     {
+        // Captured before attemptRememberedLogin runs: a failed remembered
+        // login soft-deletes the active account and clears this pointer, so
+        // reading it afterwards would lose track of which account just died.
+        $attemptedAccountId = $this->activeProfile->get();
+
         $session = $this->sessionStore->get();
 
         if (! is_array($session) && $this->authenticator->attemptRememberedLogin($request)) {
@@ -39,7 +46,7 @@ final class EnsureHunguSession
         if (! is_array($session)) {
             $this->profileSession->forget($request);
 
-            return $this->unauthenticatedResponse($request);
+            return $this->unauthenticatedResponse($request, $attemptedAccountId);
         }
 
         if ($this->shouldDeferBootValidation($request)) {
@@ -79,11 +86,10 @@ final class EnsureHunguSession
             return response([
                 'code' => 'boot_validation_required',
                 'message' => '請先完成啟動驗證。',
-                'redirect' => route('auth.booting'),
             ], 409);
         }
 
-        return redirect()->route('auth.booting');
+        return redirect('/courses');
     }
 
     private function queueAppBootCookie(): void
@@ -100,11 +106,13 @@ final class EnsureHunguSession
         return (string) config('hungu.app_boot_cookie_name', 'hungu_app_boot');
     }
 
-    private function unauthenticatedResponse(Request $request): Response
+    private function unauthenticatedResponse(Request $request, ?int $failedAccountId): Response
     {
         if ($request->expectsJson()) {
             return response([
                 'message' => '請先登入課程平台。',
+                'code' => 'session_invalid',
+                'accountId' => $failedAccountId,
             ], 401);
         }
 

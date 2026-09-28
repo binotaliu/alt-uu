@@ -71,3 +71,78 @@ it('android video fullscreen uses a dedicated fullscreen overlay instead of only
         ->toContain('WindowCompat.setDecorFitsSystemWindows(window, !isFullscreen)')
         ->not->toContain('private fun Activity.toggleFullscreenMode(currentlyFullscreen: Boolean)');
 });
+
+it('media player nativephp manifest registers the ios frame capture bridge function', function () {
+    $manifest = json_decode(File::get(base_path('packages/altuu/plugin-media-player/nativephp.json')), true);
+
+    $capture = collect($manifest['bridge_functions'])->firstWhere('name', 'MediaPlayer.CaptureFrame');
+
+    expect($capture)->not->toBeNull();
+    expect($capture['ios'])->toBe('MediaPlayerFunctions.CaptureFrame');
+});
+
+it('ios frame capture watermarks the student id and appends the disclaimer footer', function () {
+    $source = File::get(base_path('packages/altuu/plugin-media-player/resources/ios/Sources/MediaFrameCapture.swift'));
+
+    expect($source)
+        ->toContain('class CaptureFrame: BridgeFunction')
+        ->toContain('Missing studentId parameter')
+        ->toContain('此截圖僅供個人保存學術使用，請遵循合理使用原則，合法使用教材，遵守智慧財產權。此截圖由 Alt UU 產生。')
+        ->toContain('Int.random(in: 4...6)')
+        ->toContain('UIActivityViewController');
+});
+
+it('media player nativephp manifest registers the android frame capture bridge function', function () {
+    $manifest = json_decode(File::get(base_path('packages/altuu/plugin-media-player/nativephp.json')), true);
+
+    $capture = collect($manifest['bridge_functions'])->firstWhere('name', 'MediaPlayer.CaptureFrame');
+
+    expect($capture['android'])->toBe('com.altuu.plugins.media_player.MediaPlayerFunctions.CaptureFrame');
+});
+
+it('android frame capture copies the video surface, watermarks the student id and shares via the file provider', function () {
+    $capture = File::get(base_path('packages/altuu/plugin-media-player/resources/android/src/MediaFrameCapture.kt'));
+    $functions = File::get(base_path('packages/altuu/plugin-media-player/resources/android/src/MediaPlayerFunctions.kt'));
+    $overlay = File::get(base_path('packages/altuu/plugin-media-player/resources/android/src/NativeMediaPlayerOverlay.kt'));
+
+    expect($capture)
+        ->toContain('PixelCopy.request')
+        ->toContain('此截圖僅供個人保存學術使用，請遵循合理使用原則，合法使用教材，遵守智慧財產權。此截圖由 Alt UU 產生。')
+        ->toContain('Random.nextInt(4, 7)')
+        ->toContain('.fileprovider')
+        ->toContain('Intent.ACTION_SEND');
+
+    expect($functions)
+        ->toContain('class CaptureFrame(private val activity: FragmentActivity) : BridgeFunction')
+        ->toContain('Missing studentId parameter');
+
+    expect($overlay)->toContain('MediaFrameCapture.registerPlayerView');
+});
+
+it('ios SetPlayer accepts a force flag that skips the same-source shortcut and resumes position', function () {
+    $source = File::get(base_path('packages/altuu/plugin-media-player/resources/ios/Sources/MediaPlayerFunctions.swift'));
+
+    expect($source)
+        ->toContain('let force = (parameters["force"] as? Bool) ?? false')
+        ->toContain('force: Bool = false')
+        ->toContain('let isSameSource = !force &&')
+        ->toContain('let resumeTime: Double?');
+});
+
+it('android SetPlayer accepts a force flag that skips the same-source shortcut and resumes position', function () {
+    $source = File::get(base_path('packages/altuu/plugin-media-player/resources/android/src/MediaPlayerFunctions.kt'));
+
+    expect($source)
+        ->toContain('val force = parameters["force"] as? Boolean ?: false')
+        ->toContain('force: Boolean = false')
+        ->toContain('val isSameSource = !force &&')
+        ->toContain('val resumePositionMs');
+});
+
+it('media player php and js bridges forward the force flag', function () {
+    $php = File::get(base_path('packages/altuu/plugin-media-player/src/MediaPlayer.php'));
+    $js = File::get(base_path('packages/altuu/plugin-media-player/resources/js/mediaPlayer.js'));
+
+    expect($php)->toContain("\$payload['force'] = true;");
+    expect($js)->toContain('force = false')->toContain('...(force ? { force: true } : {})');
+});

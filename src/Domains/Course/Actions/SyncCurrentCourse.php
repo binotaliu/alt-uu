@@ -9,13 +9,14 @@ use Illuminate\Http\Request;
 
 class SyncCurrentCourse
 {
-    private const CURRENT_COURSE_SESSION_KEY = 'hungu.current_course_id';
+    private const CURRENT_COURSE_SESSION_KEY_PREFIX = 'hungu.current_course_id.';
 
     public function __construct(private UUCourseClient $courseClient) {}
 
     public function __invoke(Request $request, string $cid, bool $force = false): void
     {
-        $currentCourseId = (string) $request->session()->get(self::CURRENT_COURSE_SESSION_KEY, '');
+        $sessionKey = self::CURRENT_COURSE_SESSION_KEY_PREFIX.($this->courseClient->currentAccountId() ?? 0);
+        $currentCourseId = (string) $request->session()->get($sessionKey, '');
 
         if ($currentCourseId === $cid && ! $force) {
             return;
@@ -30,7 +31,7 @@ class SyncCurrentCourse
             $this->courseClient->setCookie('browserTabIdx', $browserTabIdx);
         }
 
-        $request->session()->put(self::CURRENT_COURSE_SESSION_KEY, $cid);
+        $request->session()->put($sessionKey, $cid);
     }
 
     private function extractBrowserTabIdx(string $body): ?string

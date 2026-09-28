@@ -17,6 +17,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Display Version
+    |--------------------------------------------------------------------------
+    |
+    | The exact string the Settings page shows as the app version, so it can
+    | differ from the store version (e.g. "v1.1.0-RC1"). When unset, it is
+    | derived from NATIVEPHP_APP_VERSION.
+    |
+    */
+
+    'display_version' => env('ALT_UU_DISPLAY_VERSION'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Environment
     |--------------------------------------------------------------------------
     |

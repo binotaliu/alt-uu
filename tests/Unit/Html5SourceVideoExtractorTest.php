@@ -4,9 +4,9 @@ use AltUU\Domains\Course\Support\VideoExtractors\Html5SourceVideoExtractor;
 
 test('it extracts an m3u8 src from a declarative flowplayer video source', function () {
     $html = <<<'HTML'
-        <div id="video" class="flowplayer no-toggle" data-key="$519606731317810">
-            <video data-title="" poster="../images/780042.jpg">
-                <source type="application/x-mpegurl" src="https://lodm.nou.edu.tw/vod/_definst_/780042/01/01.mp4/playlist.m3u8">
+        <div id="video" class="flowplayer no-toggle" data-key="$000000000000000">
+            <video data-title="" poster="../images/900001.jpg">
+                <source type="application/x-mpegurl" src="https://media.example.com/vod/_definst_/900001/01/01.mp4/playlist.m3u8">
             </video>
         </div>
     HTML;
@@ -14,7 +14,7 @@ test('it extracts an m3u8 src from a declarative flowplayer video source', funct
     $extracted = (new Html5SourceVideoExtractor)->extract($html);
 
     expect($extracted)->not->toBeNull();
-    expect($extracted->videoUrl)->toBe('https://lodm.nou.edu.tw/vod/_definst_/780042/01/01.mp4/playlist.m3u8');
+    expect($extracted->videoUrl)->toBe('https://media.example.com/vod/_definst_/900001/01/01.mp4/playlist.m3u8');
     expect($extracted->subtitleUrl)->toBeNull();
 });
 

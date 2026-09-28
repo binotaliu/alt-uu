@@ -1,13 +1,20 @@
 <?php
 
+use AltUU\AltUUPlus\AltUUPlus as AltUUPlusPlugin;
+use AltUU\AltUUPlus\Facades\AltUUPlus;
 use AltUU\AttachmentBridge\Facades\AttachmentBridge;
 use AltUU\Domains\Course\Actions\SyncCurrentCourse;
 use AltUU\MediaPlayer\Facades\MediaPlayer;
 use App\Providers\AppServiceProvider;
+use App\Services\AccountActiveProfile;
+use App\Services\AccountCredentialsStore;
+use App\Services\LocalAltUUPlus;
+use App\Services\SchoolPortalProxyClient;
+use App\Services\SchoolPortalSessionAuthenticator;
+use App\Services\SchoolPortalSessionStore;
 use App\Services\UUCrypto;
 use App\Services\UUProfileSession;
 use App\Services\UUProxyClient;
-use App\Services\UURememberedCredentialsStore;
 use App\Services\UUSessionAuthenticator;
 use App\Services\UUSessionStore;
 use Carbon\Carbon;
@@ -26,14 +33,20 @@ arch()->preset()->strict()
         UUCrypto::class,
         UUProfileSession::class,
         UUProxyClient::class,
-        UURememberedCredentialsStore::class,
+        AccountCredentialsStore::class,
         UUSessionAuthenticator::class,
         UUSessionStore::class,
         SyncCurrentCourse::class,
+        SchoolPortalProxyClient::class,
+        SchoolPortalSessionAuthenticator::class,
+        SchoolPortalSessionStore::class,
+        AltUUPlusPlugin::class,
+        LocalAltUUPlus::class,
 
         // False-positive on facade protected static method
         AttachmentBridge::class,
         MediaPlayer::class,
+        AltUUPlus::class,
     ]);
 
 arch('No Direct Hungu Usage in Domains: inject a domain-specific Hungu*Client service instead')
@@ -42,9 +55,13 @@ arch('No Direct Hungu Usage in Domains: inject a domain-specific Hungu*Client se
         UUCrypto::class,
         UUProfileSession::class,
         UUProxyClient::class,
-        UURememberedCredentialsStore::class,
+        AccountCredentialsStore::class,
+        AccountActiveProfile::class,
         UUSessionAuthenticator::class,
         UUSessionStore::class,
+        SchoolPortalProxyClient::class,
+        SchoolPortalSessionAuthenticator::class,
+        SchoolPortalSessionStore::class,
     ]);
 
 arch('Actions')

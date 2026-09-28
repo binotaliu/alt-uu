@@ -17,8 +17,7 @@ final class QueueAttachmentDownload
         QueueAttachmentDownloadInputData $input,
         CleanupAttachmentDownloads $cleanupAttachmentDownloads,
     ): AttachmentDownloadTaskViewModel {
-        $session = $request->hunguSession();
-        $baseHost = parse_url((string) ($session['base_url'] ?? ''), PHP_URL_HOST);
+        $baseHost = parse_url($this->resolveAllowedBaseUrl($request, $input->source), PHP_URL_HOST);
         $urlHost = parse_url($input->sourceUrl, PHP_URL_HOST);
 
         if (! is_string($baseHost) || ! is_string($urlHost) || $baseHost !== $urlHost) {
@@ -30,6 +29,7 @@ final class QueueAttachmentDownload
 
         $task = AttachmentDownload::query()->create([
             'cid' => $input->cid,
+            'source' => $input->source,
             'source_url' => $input->sourceUrl,
             'file_name' => $input->filename,
             'status' => AttachmentDownload::STATUS_QUEUED,
@@ -38,5 +38,16 @@ final class QueueAttachmentDownload
         DownloadAttachmentJob::dispatch($task->id);
 
         return AttachmentDownloadTaskViewModel::fromModel($task);
+    }
+
+    private function resolveAllowedBaseUrl(Request $request, string $source): string
+    {
+        if ($source === 'school_portal') {
+            return (string) config('school_portal.base_url', '');
+        }
+
+        $session = $request->hunguSession();
+
+        return (string) ($session['base_url'] ?? '');
     }
 }

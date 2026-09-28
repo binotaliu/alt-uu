@@ -63,6 +63,17 @@
             "ios": "MediaPlayerFunctions.GetState",
             "android": "com.altuu.plugins.media_player.MediaPlayerFunctions.GetState",
             "description": "Get the current player state and restore context"
+        },
+        {
+            "name": "MediaPlayer.CaptureFrame",
+            "ios": "MediaPlayerFunctions.CaptureFrame",
+            "android": "com.altuu.plugins.media_player.MediaPlayerFunctions.CaptureFrame",
+            "description": "Capture the current video frame with a student ID watermark and footer, then present the share sheet"
+        },
+        {
+            "name": "AppAccent.SetColor",
+            "ios": "AppAccentFunctions.SetColor",
+            "description": "Set the app-wide iOS tint color and native media player accent (iOS only)"
         }
     ],
     "ios": {

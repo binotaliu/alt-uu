@@ -1,11 +1,18 @@
 <script setup lang="ts">
+import ErrorRetry from '@/components/ErrorRetry.vue';
+import type { ApiError } from '@/lib/apiError';
 import type { DiscussBoardSection } from '@/types';
 
 const props = defineProps<{
     courseId: string;
     boardSections: DiscussBoardSection[];
     boardLoadError?: string | null;
+    boardLoadErrorDetail?: ApiError | null;
     isBoardsLoading: boolean;
+}>();
+
+const emit = defineEmits<{
+    retry: [];
 }>();
 
 function boardLink(boardCid: string, bid: string): string {
@@ -15,10 +22,10 @@ function boardLink(boardCid: string, bid: string): string {
 
 <template>
     <div
-        class="mx-auto max-w-4xl rounded-2xl border border-warm-200 bg-white/90 p-4 shadow-sm backdrop-blur sm:p-5 dark:border-zinc-700 dark:bg-zinc-900/90"
+        class="mx-auto max-w-4xl rounded-2xl border border-theme-200 bg-white/90 p-4 shadow-sm backdrop-blur sm:p-5 dark:border-zinc-700 dark:bg-zinc-900/90"
     >
         <div
-            class="mb-3 flex items-center gap-2 text-warm-900 dark:text-zinc-100"
+            class="mb-3 flex items-center gap-2 text-theme-900 dark:text-zinc-100"
         >
             <svg
                 class="h-5 w-5"
@@ -36,12 +43,13 @@ function boardLink(boardCid: string, bid: string): string {
             <h2 class="font-semibold">看板列表</h2>
         </div>
 
-        <div
+        <ErrorRetry
             v-if="boardLoadError"
-            class="rounded-xl border border-dashed border-rose-300 bg-rose-50 p-5 text-sm text-rose-700 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-300"
-        >
-            {{ boardLoadError || '載入討論板失敗' }}
-        </div>
+            :message="boardLoadError || '載入討論板失敗'"
+            :retrying="isBoardsLoading"
+            :detail="boardLoadErrorDetail"
+            @retry="emit('retry')"
+        />
 
         <div
             v-else-if="
@@ -52,12 +60,12 @@ function boardLink(boardCid: string, bid: string): string {
         >
             <div v-for="section in 2" :key="section" class="space-y-2">
                 <div
-                    class="h-4 w-24 animate-pulse rounded bg-warm-200 dark:bg-zinc-700"
+                    class="h-4 w-24 animate-pulse rounded bg-theme-200 dark:bg-zinc-700"
                 />
                 <div
                     v-for="row in 3"
                     :key="row"
-                    class="h-14 animate-pulse rounded-xl bg-warm-100 dark:bg-zinc-800"
+                    class="h-14 animate-pulse rounded-xl bg-theme-100 dark:bg-zinc-800"
                 />
             </div>
         </div>
@@ -69,10 +77,10 @@ function boardLink(boardCid: string, bid: string): string {
                 class="space-y-2"
             >
                 <header
-                    class="border-b border-warm-200 pb-2 dark:border-zinc-700"
+                    class="border-b border-theme-200 pb-2 dark:border-zinc-700"
                 >
                     <h3
-                        class="text-sm font-semibold text-warm-900 md:text-base dark:text-zinc-100"
+                        class="text-sm font-semibold text-theme-900 md:text-base dark:text-zinc-100"
                     >
                         {{ section.title }}
                     </h3>
@@ -83,7 +91,7 @@ function boardLink(boardCid: string, bid: string): string {
                         v-for="board in section.boards"
                         :key="`${section.courseId}-${board.boardId}`"
                         :to="boardLink(section.courseId, board.boardId)"
-                        class="block w-full rounded-xl border border-warm-200 bg-white px-3 py-2 text-left text-base text-warm-700 transition hover:border-warm-400 md:text-lg dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-500"
+                        class="block w-full rounded-xl border border-theme-200 bg-white px-3 py-2 text-left text-base text-theme-700 transition hover:border-theme-400 md:text-lg dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-zinc-500"
                     >
                         <div class="flex items-center justify-between gap-2">
                             <p class="truncate font-medium">
@@ -97,7 +105,7 @@ function boardLink(boardCid: string, bid: string): string {
                             </span>
                         </div>
                         <p
-                            class="text-sm text-warm-600 md:text-base dark:text-zinc-300"
+                            class="text-sm text-theme-700 md:text-base dark:text-zinc-300"
                         >
                             主題數：{{ board.subjectCount ?? 0 }}
                         </p>
@@ -106,7 +114,7 @@ function boardLink(boardCid: string, bid: string): string {
 
                 <p
                     v-else
-                    class="rounded-xl border border-dashed border-warm-300 bg-warm-50 p-4 text-sm text-warm-700 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"
+                    class="rounded-xl border border-dashed border-theme-300 bg-theme-50 p-4 text-sm text-theme-700 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"
                 >
                     目前沒有可顯示的討論板。
                 </p>

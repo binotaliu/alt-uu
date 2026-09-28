@@ -6,7 +6,15 @@ namespace App\Services;
 
 final class UUStudyTimeClient
 {
-    public function __construct(private readonly UUProxyClient $proxyClient) {}
+    public function __construct(
+        private readonly UUProxyClient $proxyClient,
+        private readonly AccountActiveProfile $activeProfile,
+    ) {}
+
+    public function currentAccountId(): ?int
+    {
+        return $this->activeProfile->get();
+    }
 
     /**
      * @return array{payload: array<string, mixed>}

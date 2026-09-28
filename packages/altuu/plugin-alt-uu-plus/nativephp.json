@@ -1,0 +1,54 @@
+{
+    "name": "altuu/plugin-alt-uu-plus",
+    "version": "1.0.0",
+    "description": "NativePHP in-app purchase bridge for subscription entitlement (StoreKit 2 / Play Billing)",
+    "namespace": "AltUUPlus",
+    "category": "utilities",
+    "platforms": ["ios", "android"],
+    "bridge_functions": [
+        {
+            "name": "AltUUPlus.FetchProducts",
+            "ios": "AltUUPlusFunctions.FetchProducts",
+            "android": "com.altuu.plugins.altuuplus.AltUUPlusFunctions.FetchProducts",
+            "description": "Fetch localized product/price info for the configured subscription product identifiers"
+        },
+        {
+            "name": "AltUUPlus.Purchase",
+            "ios": "AltUUPlusFunctions.Purchase",
+            "android": "com.altuu.plugins.altuuplus.AltUUPlusFunctions.Purchase",
+            "description": "Start the native purchase flow for a product identifier and return the resulting transaction"
+        },
+        {
+            "name": "AltUUPlus.RestorePurchases",
+            "ios": "AltUUPlusFunctions.RestorePurchases",
+            "android": "com.altuu.plugins.altuuplus.AltUUPlusFunctions.RestorePurchases",
+            "description": "Re-surface the user's existing purchases/entitlements from the platform store"
+        },
+        {
+            "name": "AltUUPlus.CurrentEntitlements",
+            "ios": "AltUUPlusFunctions.CurrentEntitlements",
+            "android": "com.altuu.plugins.altuuplus.AltUUPlusFunctions.CurrentEntitlements",
+            "description": "Return the transactions/purchases currently granting entitlement on this device"
+        }
+    ],
+    "ios": {
+        "min_version": "18.0",
+        "permissions": [],
+        "dependencies": {
+            "swift_packages": [],
+            "pods": []
+        }
+    },
+    "android": {
+        "min_version": 31,
+        "permissions": ["com.android.vending.BILLING"],
+        "dependencies": {
+            "implementation": ["com.android.billingclient:billing-ktx:9.1.0"]
+        }
+    },
+    "events": [],
+    "hooks": {
+        "pre_compile": "nativephp:alt-uu-plus:pre-compile"
+    },
+    "service_provider": "AltUU\\AltUUPlus\\AltUUPlusServiceProvider"
+}

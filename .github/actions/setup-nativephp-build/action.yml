@@ -1,0 +1,73 @@
+name: Setup NativePHP build environment
+description: >
+  Installs PHP/Node toolchains, production Composer/npm dependencies, writes the
+  production .env from the ALTUU_PRODUCTION_ENV secret, and decodes the mobile
+  signing credentials into credentials/ so native:package can sign iOS/Android builds.
+
+inputs:
+  production-env:
+    description: Full contents of the production .env file (from the ALTUU_PRODUCTION_ENV secret)
+    required: true
+  ios-certificate-base64:
+    description: Base64-encoded iOS distribution certificate (.p12)
+    required: true
+  ios-provisioning-profile-base64:
+    description: Base64-encoded iOS provisioning profile (.mobileprovision)
+    required: true
+  app-store-api-key-base64:
+    description: Base64-encoded App Store Connect API key (.p8)
+    required: true
+  android-keystore-base64:
+    description: Base64-encoded Android release keystore (.jks)
+    required: true
+  google-service-account-key-base64:
+    description: Base64-encoded Google Play service account key (.json)
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.4'
+        tools: composer:v2
+        extensions: mbstring, bcmath, sqlite3, gd, zip, intl
+
+    - name: Setup Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+        cache: npm
+
+    - name: Install Composer dependencies
+      shell: bash
+      run: composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
+
+    - name: Install npm dependencies
+      shell: bash
+      run: npm ci
+
+    - name: Write production .env
+      shell: bash
+      run: printf '%s' "$PRODUCTION_ENV" > .env
+      env:
+        PRODUCTION_ENV: ${{ inputs.production-env }}
+
+    - name: Decode signing credentials
+      shell: bash
+      run: |
+        set -euo pipefail
+        mkdir -p credentials/ios credentials/android
+
+        printf '%s' "$IOS_CERT" | base64 --decode > credentials/ios/Apple_Dist.p12
+        printf '%s' "$IOS_PROFILE" | base64 --decode > credentials/ios/altuuprofile.mobileprovision
+        printf '%s' "$APP_STORE_KEY" | base64 --decode > credentials/ios/AuthKey.p8
+        printf '%s' "$ANDROID_KEYSTORE" | base64 --decode > credentials/app-release-key.jks
+        printf '%s' "$GOOGLE_SERVICE_KEY" | base64 --decode > credentials/android/google-service-account.json
+      env:
+        IOS_CERT: ${{ inputs.ios-certificate-base64 }}
+        IOS_PROFILE: ${{ inputs.ios-provisioning-profile-base64 }}
+        APP_STORE_KEY: ${{ inputs.app-store-api-key-base64 }}
+        ANDROID_KEYSTORE: ${{ inputs.android-keystore-base64 }}
+        GOOGLE_SERVICE_KEY: ${{ inputs.google-service-account-key-base64 }}

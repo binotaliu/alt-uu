@@ -13,6 +13,7 @@ export function useCourses() {
         isLoading: computed(() => store.isLoading),
         hasFetched: computed(() => store.hasFetched),
         error: computed(() => store.error),
+        errorDetail: computed(() => store.errorDetail),
         fetchCourses,
         clearCourses: store.clearCourses,
     };

@@ -19,8 +19,13 @@ final class AttachmentDownload extends Model
 
     public const STATUS_FAILED = 'failed';
 
+    public const SOURCE_HUNGU = 'hungu';
+
+    public const SOURCE_SCHOOL_PORTAL = 'school_portal';
+
     protected $fillable = [
         'cid',
+        'source',
         'source_url',
         'file_name',
         'status',

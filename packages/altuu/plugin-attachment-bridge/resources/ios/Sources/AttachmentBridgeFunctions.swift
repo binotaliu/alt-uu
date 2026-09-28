@@ -74,18 +74,14 @@ enum AttachmentBridgeFunctions {
                 }
             }
 
-            AttachmentBridgeCoordinator.shared.openInBrowser(urlString: rawURL, cookies: cookies, postForm: postForm)
+            let css = parameters["css"] as? String
+
+            AttachmentBridgeCoordinator.shared.openInBrowser(urlString: rawURL, cookies: cookies, postForm: postForm, css: css)
 
             return BridgeResponse.success(data: [
                 "opened": true,
                 "platform": "ios"
             ])
-        }
-    }
-
-    class OpenInBrowser: BridgeFunction {
-        func execute(parameters: [String: Any]) throws -> [String: Any] {
-            return try OpenURL().execute(parameters: parameters)
         }
     }
 
@@ -106,57 +102,6 @@ enum AttachmentBridgeFunctions {
                     UIApplication.shared.open(url, options: [:], completionHandler: nil)
                 }
             }
-
-            return BridgeResponse.success(data: [
-                "opened": true,
-                "platform": "ios"
-            ])
-        }
-    }
-
-    class OpenDiscussAttachment: BridgeFunction {
-        func execute(parameters: [String: Any]) throws -> [String: Any] {
-            guard let cid = parameters["cid"] as? String, !cid.isEmpty else {
-                throw NSError(domain: "AttachmentBridge", code: 422, userInfo: [NSLocalizedDescriptionKey: "Missing cid parameter"])
-            }
-
-            guard let bid = parameters["bid"] as? String, !bid.isEmpty else {
-                throw NSError(domain: "AttachmentBridge", code: 422, userInfo: [NSLocalizedDescriptionKey: "Missing bid parameter"])
-            }
-
-            guard let nid = parameters["nid"] as? String, !nid.isEmpty else {
-                throw NSError(domain: "AttachmentBridge", code: 422, userInfo: [NSLocalizedDescriptionKey: "Missing nid parameter"])
-            }
-
-            guard let attachmentUrl = parameters["attachmentUrl"] as? String, !attachmentUrl.isEmpty else {
-                throw NSError(domain: "AttachmentBridge", code: 422, userInfo: [NSLocalizedDescriptionKey: "Missing attachmentUrl parameter"])
-            }
-
-            let cookiesPayload = parameters["cookies"] as? [[String: Any]] ?? []
-            let cookies = cookiesPayload.compactMap { item -> HTTPCookie? in
-                guard let name = item["name"] as? String,
-                      let value = item["value"] as? String,
-                      let domain = item["domain"] as? String,
-                      !name.isEmpty,
-                      !domain.isEmpty else {
-                    return nil
-                }
-
-                return HTTPCookie(properties: [
-                    .name: name,
-                    .value: value,
-                    .domain: domain,
-                    .path: "/",
-                ])
-            }
-
-            AttachmentBridgeCoordinator.shared.openDiscussAttachment(
-                cid: cid,
-                bid: bid,
-                nid: nid,
-                attachmentUrl: attachmentUrl,
-                cookies: cookies
-            )
 
             return BridgeResponse.success(data: [
                 "opened": true,
@@ -199,8 +144,8 @@ private final class AttachmentBridgeCoordinator: NSObject, QLPreviewControllerDa
         }
     }
 
-    func openInBrowser(urlString: String, cookies: [HTTPCookie], postForm: [String: String]? = nil) {
-        DebugLogger.shared.log("[AttachmentBridge] openInBrowser: url=\(urlString), cookies=\(cookies.count), postForm=\(postForm ?? [:])")
+    func openInBrowser(urlString: String, cookies: [HTTPCookie], postForm: [String: String]? = nil, css: String? = nil) {
+        DebugLogger.shared.log("[AttachmentBridge] openInBrowser: url=\(urlString), cookies=\(cookies.count), postForm=\(postForm ?? [:]), css=\(css != nil)")
 
         guard let url = URL(string: urlString) else {
             DispatchQueue.main.async {
@@ -210,33 +155,7 @@ private final class AttachmentBridgeCoordinator: NSObject, QLPreviewControllerDa
         }
 
         DispatchQueue.main.async {
-            self.presentInAppBrowser(url: url, cookies: cookies, postForm: postForm)
-        }
-    }
-
-    func openDiscussAttachment(cid: String, bid: String, nid: String, attachmentUrl: String, cookies: [HTTPCookie]) {
-        let threadURL = URL(string: "https://uu.nou.edu.tw/forum/m_node_chain.php")
-
-        guard let threadURL else {
-            DispatchQueue.main.async {
-                self.presentError(message: "討論串頁面網址格式不正確。")
-            }
-            return
-        }
-
-        DebugLogger.shared.log("[AttachmentBridge] openDiscussAttachment: cid=\(cid), bid=\(bid), nid=\(nid), attachment=\(attachmentUrl)")
-
-        DispatchQueue.main.async {
-            self.presentInAppBrowser(
-                url: threadURL,
-                cookies: cookies,
-                postForm: [
-                    "cid": cid,
-                    "bid": bid,
-                    "nid": nid,
-                ],
-                autoClickAttachmentURL: attachmentUrl
-            )
+            self.presentInAppBrowser(url: url, cookies: cookies, postForm: postForm, css: css)
         }
     }
 
@@ -318,7 +237,7 @@ private final class AttachmentBridgeCoordinator: NSObject, QLPreviewControllerDa
         }
     }
 
-    private func presentInAppBrowser(url: URL, cookies: [HTTPCookie], postForm: [String: String]? = nil, autoClickAttachmentURL: String? = nil) {
+    private func presentInAppBrowser(url: URL, cookies: [HTTPCookie], postForm: [String: String]? = nil, css: String? = nil) {
         guard let topController = topViewController() else {
             return
         }
@@ -327,18 +246,22 @@ private final class AttachmentBridgeCoordinator: NSObject, QLPreviewControllerDa
             url: url,
             cookies: cookies,
             postForm: postForm,
-            autoClickAttachmentURL: autoClickAttachmentURL
+            css: css
         )
         let nav = UINavigationController(rootViewController: browserVC)
         nav.modalPresentationStyle = .fullScreen
         topController.present(nav, animated: true)
     }
 
-    private func fetchAttachment(urlString: String, preferredFilename: String?, redirectCount: Int, completion: @escaping (Result<DownloadedAttachment, Error>) -> Void) {
+    private func fetchAttachment(urlString rawURLString: String, preferredFilename: String?, redirectCount: Int, completion: @escaping (Result<DownloadedAttachment, Error>) -> Void) {
         if redirectCount > 8 {
             completion(.failure(AttachmentBridgeError.tooManyRedirects))
             return
         }
+
+        // App-relative paths (e.g. "/api/diagnostics/log/bundle") carry no scheme, so route them through the embedded Laravel runtime.
+        let trimmedURLString = rawURLString.trimmingCharacters(in: .whitespacesAndNewlines)
+        let urlString = trimmedURLString.hasPrefix("/") ? "php://127.0.0.1\(trimmedURLString)" : rawURLString
 
         guard let url = URL(string: urlString), let scheme = url.scheme?.lowercased() else {
             completion(.failure(AttachmentBridgeError.invalidURL))
@@ -771,17 +694,16 @@ private final class AttachmentInAppBrowserViewController: UIViewController, WKNa
     private var progressObservation: NSKeyValueObservation?
     private var titleObservation: NSKeyValueObservation?
     private var downloadedFileURL: URL?
-    private var autoClickAttempts = 0
     private let targetURL: URL
     private let cookies: [HTTPCookie]
     private let postForm: [String: String]?
-    private let autoClickAttachmentURL: String?
+    private let css: String?
 
-    init(url: URL, cookies: [HTTPCookie], postForm: [String: String]? = nil, autoClickAttachmentURL: String? = nil) {
+    init(url: URL, cookies: [HTTPCookie], postForm: [String: String]? = nil, css: String? = nil) {
         self.targetURL = url
         self.cookies = cookies
         self.postForm = postForm
-        self.autoClickAttachmentURL = autoClickAttachmentURL
+        self.css = css
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -805,6 +727,13 @@ private final class AttachmentInAppBrowserViewController: UIViewController, WKNa
     private func setupWebView() {
         let config = WKWebViewConfiguration()
         config.websiteDataStore = WKWebsiteDataStore.nonPersistent()
+
+        if let css, !css.isEmpty {
+            let userContentController = WKUserContentController()
+            userContentController.addUserScript(Self.makeViewportInjectionScript())
+            userContentController.addUserScript(Self.makeCssInjectionScript(css: css))
+            config.userContentController = userContentController
+        }
 
         webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = self
@@ -882,6 +811,49 @@ private final class AttachmentInAppBrowserViewController: UIViewController, WKNa
         dismiss(animated: true)
     }
 
+    /// These legacy pages ship no viewport meta tag, so WKWebView falls back to a
+    /// desktop-width layout (~980pt) and shrinks it to fit the screen, making
+    /// everything tiny. Force a device-width viewport before layout so the
+    /// responsive CSS below actually takes effect.
+    private static func makeViewportInjectionScript() -> WKUserScript {
+        let source = """
+        (function () {
+            try {
+                var meta = document.querySelector('meta[name="viewport"]');
+                if (!meta) {
+                    meta = document.createElement('meta');
+                    meta.name = 'viewport';
+                    (document.head || document.documentElement).appendChild(meta);
+                }
+                meta.content = 'width=device-width, initial-scale=1';
+            } catch (e) {}
+        })();
+        """
+
+        return WKUserScript(source: source, injectionTime: .atDocumentStart, forMainFrameOnly: true)
+    }
+
+    private static func makeCssInjectionScript(css: String) -> WKUserScript {
+        let encoded = Data(css.utf8).base64EncodedString()
+        let source = """
+        (function () {
+            try {
+                var bytes = Uint8Array.from(atob('\(encoded)'), function (c) { return c.charCodeAt(0); });
+                var css = new TextDecoder('utf-8').decode(bytes);
+                var style = document.getElementById('__altuu_attachment_css__');
+                if (!style) {
+                    style = document.createElement('style');
+                    style.id = '__altuu_attachment_css__';
+                    (document.head || document.documentElement).appendChild(style);
+                }
+                style.textContent = css;
+            } catch (e) {}
+        })();
+        """
+
+        return WKUserScript(source: source, injectionTime: .atDocumentEnd, forMainFrameOnly: true)
+    }
+
     private func setupProgressView() {
         progressView = UIProgressView(progressViewStyle: .bar)
         progressView.translatesAutoresizingMaskIntoConstraints = false
@@ -944,74 +916,6 @@ private final class AttachmentInAppBrowserViewController: UIViewController, WKNa
         return Data(body.utf8)
     }
 
-    private func tryAutoClickAttachmentLink() {
-        guard let target = autoClickAttachmentURL, !target.isEmpty else {
-            return
-        }
-
-        autoClickAttempts += 1
-
-        let escapedTarget = target.javaScriptEscaped
-        let script = """
-        (() => {
-          const targetRaw = '\(escapedTarget)';
-          const safeDecode = (value) => {
-            try {
-              return decodeURIComponent(value || '');
-            } catch {
-              return value || '';
-            }
-          };
-          const target = safeDecode(targetRaw);
-          const links = Array.from(document.querySelectorAll('a[href]'));
-
-          const normalize = (value) => safeDecode(String(value || '')).trim();
-          const match = links.find((link) => {
-            const attrHref = normalize(link.getAttribute('href'));
-            const absHref = normalize(link.href);
-            const candidates = [attrHref, absHref];
-
-            return candidates.some((candidate) => {
-              if (!candidate) {
-                return false;
-              }
-
-              return candidate === target || candidate.includes(target) || target.includes(candidate);
-            });
-          });
-
-          if (!match) {
-            return JSON.stringify({ clicked: false, reason: 'not-found', totalLinks: links.length });
-          }
-
-          match.click();
-          return JSON.stringify({ clicked: true, href: match.getAttribute('href') || match.href });
-        })();
-        """
-
-        webView.evaluateJavaScript(script) { [weak self] result, error in
-            guard let self else { return }
-
-            if let error {
-                DebugLogger.shared.log("[AttachmentBridge] InAppBrowser auto-click JS error: \(error.localizedDescription)")
-                return
-            }
-
-            let payload = (result as? String) ?? ""
-            DebugLogger.shared.log("[AttachmentBridge] InAppBrowser auto-click attempt #\(self.autoClickAttempts): \(payload)")
-
-            if payload.contains("\"clicked\":true") {
-                return
-            }
-
-            if self.autoClickAttempts < 5 {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
-                    self?.tryAutoClickAttachmentLink()
-                }
-            }
-        }
-    }
-
     @objc private func dismissSelf() {
         dismiss(animated: true)
     }
@@ -1058,12 +962,6 @@ private final class AttachmentInAppBrowserViewController: UIViewController, WKNa
 
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
         DebugLogger.shared.log("[AttachmentBridge] InAppBrowser navigation failed: \(error.localizedDescription)")
-    }
-
-    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-        if autoClickAttachmentURL != nil {
-            tryAutoClickAttachmentLink()
-        }
     }
 
     func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
@@ -1147,13 +1045,6 @@ private extension String {
     var urlFormEncoded: String {
         let allowed = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~")
         return addingPercentEncoding(withAllowedCharacters: allowed) ?? self
-    }
-
-    var javaScriptEscaped: String {
-        replacingOccurrences(of: "\\", with: "\\\\")
-            .replacingOccurrences(of: "'", with: "\\'")
-            .replacingOccurrences(of: "\n", with: "\\n")
-            .replacingOccurrences(of: "\r", with: "\\r")
     }
 }
 

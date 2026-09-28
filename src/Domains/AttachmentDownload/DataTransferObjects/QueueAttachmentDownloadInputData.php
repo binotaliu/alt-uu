@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace AltUU\Domains\AttachmentDownload\DataTransferObjects;
 
+use Spatie\LaravelData\Attributes\Validation\In;
 use Spatie\LaravelData\Attributes\Validation\Max;
 use Spatie\LaravelData\Attributes\Validation\Nullable;
 use Spatie\LaravelData\Attributes\Validation\Required;
@@ -21,5 +22,7 @@ final class QueueAttachmentDownloadInputData extends Data
         public string $sourceUrl,
         #[Nullable, Max(255)]
         public ?string $filename = null,
+        #[In(['hungu', 'school_portal'])]
+        public string $source = 'hungu',
     ) {}
 }

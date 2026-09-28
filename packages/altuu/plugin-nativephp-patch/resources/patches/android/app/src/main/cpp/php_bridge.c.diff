@@ -1,0 +1,231 @@
+--- /Users/binota/Developer/alt-uu-internal/vendor/nativephp/mobile/resources/androidstudio/app/src/main/cpp/php_bridge.c
++++ /Users/binota/Developer/alt-uu-internal/packages/altuu/plugin-nativephp-patch/resources/patches/android/app/src/main/cpp/php_bridge.c
+@@ -49,6 +49,47 @@
+ static pthread_mutex_t g_persistent_boot_mutex = PTHREAD_MUTEX_INITIALIZER;
+ static pthread_cond_t  g_persistent_boot_cond  = PTHREAD_COND_INITIALIZER;
+ 
++// ── altuu patch: cross-context TSRM structural lock ─────────────────────
++// Root-caused from a production crash (Play Console, Android, ~14 crashes /
++// 12 users / 28 days): SIGSEGV inside ts_resource_ex, reached via
++// php_tsrm_startup_ex <- php_embed_init <- run_php_request. The stack showed
++// classic-mode's run_php_request() (full php_embed_init()/php_embed_shutdown()
++// per request) executing concurrently with another thread mutating TSRM's
++// process-wide resource table.
++//
++// g_php_request_mutex, g_ephemeral_mutex and g_worker_mutex each serialize
++// calls *within* their own context (classic/persistent, ephemeral, worker),
++// but nothing serializes *across* contexts. ts_resource(0), php_embed_init(),
++// php_embed_shutdown() and ts_free_thread() all mutate the same process-wide
++// TSRM resource array — the boot gate above (wait_for_persistent_boot_settled)
++// only covers persistent-vs-ephemeral, not classic-mode run_php_request vs.
++// the ephemeral/worker contexts. When a WebView request falls back to classic
++// mode (persistent boot not yet settled, or failed) at the same moment a
++// background WorkManager job or the queue worker calls ts_resource(0)/
++// php_embed_init() on its own mutex, both threads race on the shared TSRM
++// table -> corrupted pointer -> the observed ts_resource_ex crash.
++//
++// Fix: every call site that performs one of these four structural TSRM
++// mutations also takes g_php_request_mutex for just that mutation (lock
++// order is always this thread's own mutex first, g_php_request_mutex second,
++// consistently, so this cannot deadlock against classic/persistent code,
++// which never acquires g_ephemeral_mutex or g_worker_mutex). Steady-state
++// script execution on an already-established thread-local TSRM slot is left
++// unlocked, so this doesn't serialize the worker/ephemeral runtimes against
++// ordinary request handling — only their init/shutdown moments.
++//
++// This closes the boot/shutdown race that matches the observed crash
++// signature. It does not fully close a deeper, harder risk: classic mode's
++// per-request tsrm_shutdown() frees ALL registered thread resources,
++// including a worker/ephemeral thread's slot even while that thread is mid
++// script execution (not just mid-init) elsewhere. That would need classic
++// mode to skip its per-request tsrm_shutdown() whenever another TSRM
++// context is alive — a larger change we haven't made here. In practice the
++// worker only ever boots after persistent mode has already succeeded (see
++// MainActivity.initializeEnvironmentAsync), so the residual window is
++// classic-mode fallback (persistent boot failed/pending) overlapping with a
++// background WorkManager ephemeral job.
++
+ static void set_persistent_boot_state(persistent_boot_state_t state) {
+     pthread_mutex_lock(&g_persistent_boot_mutex);
+     g_persistent_boot_state = state;
+@@ -859,6 +900,12 @@
+         return (*env)->NewStringUTF(env, "");
+     }
+ 
++    // altuu patch: hold g_php_request_mutex across the hot/cold branch below
++    // (php_initialized read + ts_resource/php_embed_init) — the same
++    // structural-TSRM race as ephemeral_embed_init(); see the comment near
++    // g_persistent_boot_cond for the crash this closes.
++    pthread_mutex_lock(&g_php_request_mutex);
++
+     int artisan_hot_path = php_initialized;
+     if (artisan_hot_path) {
+         // Hot path: a PHP runtime is already live on another thread. Allocate a
+@@ -868,6 +915,7 @@
+         setup_embed_module();
+         if (php_embed_module.startup(&php_embed_module) == FAILURE) {
+             LOGE("runArtisanCommand: hot-path module startup failed");
++            pthread_mutex_unlock(&g_php_request_mutex);
+             pthread_mutex_unlock(&g_ephemeral_mutex);
+             (*env)->ReleaseStringUTFChars(env, jcommand, command);
+             (*env)->ReleaseStringUTFChars(env, jLaravelPath, cLaravelPath);
+@@ -878,6 +926,7 @@
+             LOGE("runArtisanCommand: hot-path request startup failed");
+             php_request_shutdown(NULL);
+             ts_free_thread();
++            pthread_mutex_unlock(&g_php_request_mutex);
+             pthread_mutex_unlock(&g_ephemeral_mutex);
+             (*env)->ReleaseStringUTFChars(env, jcommand, command);
+             (*env)->ReleaseStringUTFChars(env, jLaravelPath, cLaravelPath);
+@@ -892,6 +941,7 @@
+         php_embed_module.ini_entries = "display_errors=1\nimplicit_flush=1\noutput_buffering=0\n";
+         if (php_embed_init(0, NULL) != SUCCESS) {
+             LOGE("Failed to initialize PHP for artisan");
++            pthread_mutex_unlock(&g_php_request_mutex);
+             pthread_mutex_unlock(&g_ephemeral_mutex);
+             (*env)->ReleaseStringUTFChars(env, jcommand, command);
+             (*env)->ReleaseStringUTFChars(env, jLaravelPath, cLaravelPath);
+@@ -902,6 +952,11 @@
+         php_initialized = 1;
+     }
+ 
++    // Structural TSRM mutation for this call is done — script execution below
++    // runs on this thread's own established context and doesn't need to block
++    // other contexts, so release here rather than holding for the duration.
++    pthread_mutex_unlock(&g_php_request_mutex);
++
+     char artisanPath[1024];
+     snprintf(artisanPath, sizeof(artisanPath), "%s/../artisan.php", cLaravelPath);
+     char basePath[1024];
+@@ -948,6 +1003,8 @@
+     zend_stream_init_filename(&file_handle, artisanPath);
+     php_execute_script(&file_handle);
+ 
++    // altuu patch: re-acquire for the matching structural teardown.
++    pthread_mutex_lock(&g_php_request_mutex);
+     if (artisan_hot_path) {
+         // Tear down only this thread's context — leave the live runtime's
+         // global TSRM (and php_initialized) intact.
+@@ -957,6 +1014,7 @@
+         safe_php_embed_shutdown();
+         php_initialized = 0;
+     }
++    pthread_mutex_unlock(&g_php_request_mutex);
+ 
+     pthread_mutex_unlock(&g_ephemeral_mutex);
+ 
+@@ -1133,6 +1191,14 @@
+ static int worker_embed_init(void) {
+     LOGI("worker_embed_init: allocating TSRM context for worker thread");
+ 
++    // altuu patch: ts_resource(0) is the exact call that crashed in
++    // production (ts_resource_ex, see the comment near g_persistent_boot_cond)
++    // — it mutates the process-wide TSRM resource table and must not race a
++    // concurrent classic/persistent/ephemeral structural TSRM call, which is
++    // why this is wrapped in g_php_request_mutex (called here already under
++    // the caller's g_worker_mutex, so lock order stays outer-then-inner).
++    pthread_mutex_lock(&g_php_request_mutex);
++
+     // Allocate thread-local TSRM storage for this thread
+     ts_resource(0);
+ 
+@@ -1143,15 +1209,18 @@
+     // but it will call sapi_activate() for this thread's context
+     if (php_embed_module.startup(&php_embed_module) == FAILURE) {
+         LOGE("worker_embed_init: module startup failed");
++        pthread_mutex_unlock(&g_php_request_mutex);
+         return FAILURE;
+     }
+ 
+     // Initialize request for this thread (executor, compiler globals)
+     if (php_request_startup() == FAILURE) {
+         LOGE("worker_embed_init: request startup failed");
++        pthread_mutex_unlock(&g_php_request_mutex);
+         return FAILURE;
+     }
+ 
++    pthread_mutex_unlock(&g_php_request_mutex);
+     LOGI("worker_embed_init: worker PHP context ready");
+     return SUCCESS;
+ }
+@@ -1162,8 +1231,12 @@
+  */
+ static void worker_embed_shutdown(void) {
+     LOGI("worker_embed_shutdown: cleaning up worker thread");
++    // altuu patch: ts_free_thread() is the same class of structural TSRM
++    // mutation as ts_resource(0) above — guard it the same way.
++    pthread_mutex_lock(&g_php_request_mutex);
+     php_request_shutdown(NULL);
+     ts_free_thread();
++    pthread_mutex_unlock(&g_php_request_mutex);
+     LOGI("worker_embed_shutdown: done");
+ }
+ 
+@@ -1315,6 +1388,13 @@
+         return FAILURE;
+     }
+ 
++    // altuu patch: serialize against classic/persistent's structural TSRM
++    // calls (see the g_php_request_mutex comment above ts_resource_ex crash
++    // fix rationale near g_persistent_boot_cond). php_initialized itself is
++    // only ever written under g_php_request_mutex, so it must also be read
++    // under it here to avoid taking the wrong (racy) branch below.
++    pthread_mutex_lock(&g_php_request_mutex);
++
+     if (php_initialized) {
+         // Hot path: persistent runtime is alive, allocate a TSRM thread context
+         LOGI("ephemeral_embed_init: hot path — using existing TSRM");
+@@ -1324,16 +1404,19 @@
+ 
+         if (php_embed_module.startup(&php_embed_module) == FAILURE) {
+             LOGE("ephemeral_embed_init: module startup failed");
++            pthread_mutex_unlock(&g_php_request_mutex);
+             return FAILURE;
+         }
+ 
+         if (php_request_startup() == FAILURE) {
+             LOGE("ephemeral_embed_init: request startup failed");
++            pthread_mutex_unlock(&g_php_request_mutex);
+             return FAILURE;
+         }
+ 
+         ephemeral_cold_booted = 0;
+ 
++        pthread_mutex_unlock(&g_php_request_mutex);
+         LOGI("ephemeral_embed_init: hot path ready");
+         return SUCCESS;
+     }
+@@ -1352,16 +1435,24 @@
+     setup_embed_module();
+     if (php_embed_init(0, NULL) != SUCCESS) {
+         LOGE("ephemeral_embed_init: cold path php_embed_init() FAILED");
++        pthread_mutex_unlock(&g_php_request_mutex);
+         return FAILURE;
+     }
+     sapi_module.header_handler = android_header_handler;
+     ephemeral_cold_booted = 1;
+ 
++    pthread_mutex_unlock(&g_php_request_mutex);
+     LOGI("ephemeral_embed_init: cold path ready");
+     return SUCCESS;
+ }
+ 
+ static void ephemeral_embed_shutdown(void) {
++    // altuu patch: same structural-TSRM race as ephemeral_embed_init() above
++    // — safe_php_embed_shutdown()/ts_free_thread() mutate the process-wide
++    // TSRM resource table and must not race a concurrent classic/persistent
++    // structural call.
++    pthread_mutex_lock(&g_php_request_mutex);
++
+     if (ephemeral_cold_booted) {
+         LOGI("ephemeral_embed_shutdown: cold path — full php_embed_shutdown");
+         safe_php_embed_shutdown();
+@@ -1370,6 +1461,8 @@
+         php_request_shutdown(NULL);
+         ts_free_thread();
+     }
++
++    pthread_mutex_unlock(&g_php_request_mutex);
+     LOGI("ephemeral_embed_shutdown: done");
+ }
+ 

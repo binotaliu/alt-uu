@@ -1,0 +1,638 @@
+/* Mobile-friendly overrides for the legacy 教務系統/數位學習平台 homework pages,
+   injected into the in-app browser. These pages have no viewport meta tag
+   (see the <meta viewport> added alongside this <style> in the dev route)
+   and are built from fixed-width nested tables, so this file both fixes
+   scale and restyles the layout to match the app's warm/zinc visual
+   language.
+
+   Two page shapes share this stylesheet:
+   - the "answer" page (homework.html): <form id="homeworkForm"> wrapping a
+     table.cssTable of label/value rows, one of which contains a NESTED
+     table.cssTable used as a real attachment-list data grid.
+   - the "start" page (homework1.html): no form, a single table.cssTable of
+     label/value rows plus a notice row (cssTrHelp) and a button row, no
+     nested grid.
+   Rules below key off table.cssTable / row classes directly (not an id)
+   so they apply to any page with this shape. Where a table.cssTable is
+   nested inside another table.cssTable (the attachment grid case), a
+   higher-specificity override reverts it to real tabular layout. */
+
+:root {
+    --hw-theme-50: oklch(0.98 0.01 40);
+    --hw-theme-100: oklch(0.96 0.02 40);
+    --hw-theme-200: oklch(0.93 0.04 40);
+    --hw-theme-300: oklch(0.88 0.07 40);
+    --hw-theme-400: oklch(0.8 0.12 40);
+    --hw-theme-600: oklch(0.65 0.15 35);
+    --hw-theme-700: oklch(0.55 0.13 35);
+    --hw-theme-800: oklch(0.45 0.1 35);
+    --hw-theme-900: oklch(0.35 0.08 35);
+    --hw-surface: #fff;
+    --hw-border: var(--hw-theme-200);
+    --hw-radius: 0.9rem;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --hw-theme-50: oklch(0.22 0.02 40);
+        --hw-theme-100: oklch(0.26 0.02 40);
+        --hw-theme-200: oklch(0.32 0.03 40);
+        --hw-theme-300: oklch(0.4 0.04 40);
+        --hw-theme-400: oklch(0.55 0.06 40);
+        --hw-theme-600: oklch(0.75 0.08 35);
+        --hw-theme-700: oklch(0.82 0.06 35);
+        --hw-theme-800: oklch(0.9 0.03 35);
+        --hw-theme-900: oklch(0.96 0.01 35);
+        --hw-surface: oklch(0.24 0.015 40);
+        --hw-border: oklch(0.34 0.03 40);
+    }
+}
+
+/* ---- reset & base ------------------------------------------------------ */
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    -webkit-text-size-adjust: 100%;
+}
+
+html,
+body {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+body {
+    background: var(--hw-theme-50) !important;
+    color: var(--hw-theme-900) !important;
+    font-family:
+        system-ui,
+        -apple-system,
+        'Segoe UI',
+        sans-serif !important;
+    font-size: 16px;
+    line-height: 1.7;
+    padding: 0.75rem !important;
+}
+
+img {
+    max-width: 100%;
+    height: auto;
+}
+
+/* All layout tables should flow with the viewport instead of forcing a fixed
+   desktop width; only the attachment-list data grid keeps a real table
+   layout, scrollable if content is still too wide. */
+table {
+    width: 100% !important;
+    max-width: 100%;
+}
+
+.cssTrOdd:has(> input[type='button']) {
+    background: transparent !important;
+}
+
+/* the legacy pages render radios/checkboxes at native ~13px size, too
+   small a tap target on a phone */
+input[type='radio'],
+input[type='checkbox'] {
+    width: 1.2rem;
+    height: 1.2rem;
+    margin: 0 0.4rem 0 0;
+    accent-color: var(--hw-theme-600);
+    vertical-align: middle;
+}
+
+/* ---- top title bar(s) -----------------------------------------------------
+   The corner decoration images and tab-shaped title are desktop chrome with
+   no purpose on a phone; keep only the readable heading. Pages can repeat
+   this title bar more than once (e.g. selfexam.html has both "測驗次別"
+   as ImgL1/ImgR1/TitleID1 and "試卷內容" as ImgL2/ImgR2/TitleID2), so match
+   on the numbered id prefix rather than a single fixed id. */
+
+[id^='ImgL'],
+[id^='ImgR'] {
+    display: none !important;
+}
+
+[id^='TitleID'] {
+    display: block !important;
+    background: none !important;
+    padding: 0.25rem 0 0.75rem !important;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--hw-theme-900) !important;
+    text-align: left !important;
+}
+
+/* the red "deadline" banner cell, when present */
+body table td[style*='color:red'] {
+    display: block;
+    background: var(--hw-theme-100);
+    border: 1px solid var(--hw-border);
+    border-radius: var(--hw-radius);
+    padding: 0.6rem 0.85rem !important;
+    margin-bottom: 0.75rem;
+    font-size: 0.85rem !important;
+    color: var(--hw-theme-800) !important;
+    font-weight: 500 !important;
+}
+
+/* ---- homework tables: turn each row into a stacked card ----------------- */
+
+table.cssTable {
+    background: transparent !important;
+    border: none !important;
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+}
+
+tr.cssTrOdd,
+tr.cssTrEvn {
+    background-color: transparent;
+}
+
+/* cssTrHelp is the plain notice row on the "start" page; cssTrHead/Evn/Odd
+   are the label/value + button rows on both pages. #fileUploadTraditional
+   is a legacy fallback upload widget the page's own JS hides via inline
+   style.display on capable browsers — never force it visible. */
+table.cssTable > tbody > tr.cssTrHead,
+table.cssTable > tbody > tr.cssTrEvn,
+table.cssTable > tbody > tr.cssTrOdd:not(#fileUploadTraditional) {
+    display: block !important;
+    background: var(--hw-surface);
+    border: 1px solid var(--hw-border);
+    border-radius: var(--hw-radius);
+    margin-bottom: 0.85rem;
+    padding: 0.9rem 1rem;
+    box-shadow: 0 1px 2px oklch(0 0 0 / 0.04);
+}
+
+table.cssTable > tbody > tr.cssTrHead > .cssTd,
+table.cssTable > tbody > tr.cssTrEvn > .cssTd,
+table.cssTable > tbody > tr.cssTrOdd > .cssTd {
+    display: block !important;
+    width: 100% !important;
+    padding: 0 !important;
+    border: none !important;
+    background: transparent !important;
+    font-size: 1rem;
+    color: var(--hw-theme-900) !important;
+    text-align: left !important;
+    word-break: break-word;
+}
+
+/* cssTrHelp is a class on the notice <td> itself (its <tr> is plain
+   class="cssTr"), so it's styled directly as its own card rather than via
+   a row-level rule. */
+table.cssTable > tbody > tr > td.cssTrHelp {
+    display: block !important;
+    width: 100% !important;
+    background: var(--hw-theme-100);
+    border: 1px solid var(--hw-theme-200);
+    border-radius: var(--hw-radius);
+    margin-bottom: 0.85rem;
+    padding: 0.9rem 1rem;
+    box-shadow: 0 1px 2px oklch(0 0 0 / 0.04);
+    font-size: 0.9rem;
+    color: var(--hw-theme-800) !important;
+}
+
+/* label cell = the first of exactly two cells that doesn't span the row
+   (作業名稱, 作答起訖日期, ...). A lone spanning cell (colspan, e.g. the
+   notice row or the button row) is never treated as a label. This holds
+   for both pages even though homework.html marks the value cell with
+   colspan="2" and homework1.html marks the label cell with align="right"
+   instead — either way the label is always the non-spanning first cell. */
+table.cssTable > tbody > tr > .cssTd:first-child:not([colspan]) {
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: var(--hw-theme-700) !important;
+    margin-bottom: 0.4rem;
+}
+
+table.cssTable > tbody > tr.cssTrHead {
+    background: var(--hw-theme-100);
+    border-color: var(--hw-theme-200);
+}
+
+/* A table.cssTable nested inside another table.cssTable is the attachment
+   list data grid — revert it to real tabular layout instead of stacking,
+   and let it scroll horizontally rather than blow out the page width. */
+table.cssTable table.cssTable {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border: 1px solid var(--hw-border);
+    border-radius: 0.6rem;
+    margin: 0.5rem 0;
+}
+
+table.cssTable table.cssTable > tbody > tr {
+    display: table-row !important;
+    background: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    margin-bottom: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+}
+
+table.cssTable table.cssTable > tbody > tr > .cssTd {
+    display: table-cell !important;
+    width: auto !important;
+    padding: 0.4rem 0.5rem !important;
+    font-size: 0.85rem !important;
+    color: var(--hw-theme-800) !important;
+    margin-bottom: 0 !important;
+    font-weight: normal;
+}
+
+table.cssTable table.cssTable > tbody > tr.cssTrHead {
+    background: var(--hw-theme-100) !important;
+}
+
+table.cssTable table.cssTable > tbody > tr.cssTrHead > .cssTd {
+    font-weight: 700;
+}
+
+/* A plain (non-cssTable) nested table inside a content cell wraps a single
+   control, e.g. the submit button — make it act like a full-width block
+   instead of shrinking to its content. */
+.cssTd table:not(.cssTable) {
+    display: block;
+    width: 100% !important;
+    border: none !important;
+    margin: 0.5rem 0;
+}
+
+.cssTd table:not(.cssTable) .bg03,
+.cssTd table:not(.cssTable) .bg04 {
+    background: white !important;
+}
+
+.cssTd table:not(.cssTable) tbody,
+.cssTd table:not(.cssTable) tr,
+.cssTd table:not(.cssTable) td {
+    display: block !important;
+    width: 100% !important;
+}
+
+/* attachment download links rendered as small pill buttons */
+.cssTd a {
+    display: inline-block;
+    margin: 0.15rem 0.3rem 0.15rem 0;
+    padding: 0.4rem 0.75rem;
+    border-radius: 999px;
+    background: var(--hw-theme-100);
+    color: var(--hw-theme-800) !important;
+    text-decoration: none !important;
+    font-size: 0.85rem;
+    border: 1px solid var(--hw-border);
+}
+
+/* ---- CKEditor answer boxes ---------------------------------------------
+   The inline stylesheet on the homework.html answer page hard-codes
+   width:525px, which is what forces the horizontal scroll on a
+   phone-sized viewport. */
+
+.cke_textarea_inline {
+    width: 100% !important;
+    min-height: 160px !important;
+    height: auto !important;
+    padding: 0.75rem !important;
+    font-size: 1rem !important;
+    border: 1px solid var(--hw-border) !important;
+    border-radius: 0.6rem !important;
+    background: var(--hw-surface) !important;
+    color: var(--hw-theme-900) !important;
+}
+
+.cke {
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+.cke_top {
+    white-space: normal !important;
+    padding: 0.4rem !important;
+    background: var(--hw-theme-100) !important;
+    border-color: var(--hw-border) !important;
+}
+
+.cke_toolbar {
+    display: inline-flex;
+    flex-wrap: wrap;
+    margin-bottom: 0.25rem !important;
+}
+
+.cke_button {
+    padding: 0.35rem !important;
+}
+
+.cke_button_icon {
+    /* keep native CKEditor sprite icon size; just give the tap target
+       more surrounding padding via .cke_button above */
+    transform: scale(1.1);
+}
+
+/* ---- file upload controls & action buttons ------------------------------ */
+
+.cssInput,
+input.cssInput {
+    width: 100% !important;
+    max-width: 100% !important;
+    font-size: 1rem !important;
+    padding: 0.6rem !important;
+    border: 1px dashed var(--hw-border) !important;
+    border-radius: 0.6rem !important;
+    background: var(--hw-theme-50) !important;
+    color: var(--hw-theme-800) !important;
+}
+
+.cssBtn,
+input.cssBtn {
+    display: block;
+    width: 100%;
+    margin: 0.5rem 0 !important;
+    padding: 0.75rem 1rem !important;
+    font-size: 1rem !important;
+    height: auto !important;
+    font-weight: 600;
+    color: #fff !important;
+    background: var(--hw-theme-800) !important;
+    border: none !important;
+    border-radius: 0.6rem !important;
+}
+
+/* secondary/cancel actions (放棄此檔, 下次再來, ...) get a quieter outline
+   style so the primary action on the same row still stands out */
+input.cssBtn[value='放棄此檔'],
+input.cssBtn[value='下次再來'],
+input.cssBtn[value='取消'] {
+    background: white !important;
+    color: var(--hw-theme-800) !important;
+    border: 1px solid var(--hw-border) !important;
+}
+
+#iframeFileUpload {
+    width: 100% !important;
+    max-width: 100%;
+    border: none;
+}
+
+/* ---- jQuery UI confirm dialog -------------------------------------------- */
+
+.ui-dialog {
+    width: 90vw !important;
+    max-width: 22rem !important;
+    left: 50% !important;
+    top: 50% !important;
+    transform: translate(-50%, -50%);
+    border-radius: var(--hw-radius) !important;
+    background: var(--hw-surface) !important;
+    border: 1px solid var(--hw-border) !important;
+    box-shadow: 0 10px 30px oklch(0 0 0 / 0.2) !important;
+}
+
+.ui-dialog .ui-dialog-content {
+    color: var(--hw-theme-900) !important;
+    font-size: 1rem !important;
+    padding: 1rem !important;
+}
+
+.ui-dialog .ui-dialog-buttonpane {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem !important;
+    background: transparent !important;
+    border-top: 1px solid var(--hw-border) !important;
+}
+
+.ui-dialog .ui-dialog-buttonpane button {
+    flex: 1;
+    padding: 0.65rem !important;
+    border-radius: 0.6rem !important;
+    background: var(--hw-theme-800) !important;
+    color: #fff !important;
+    border: none !important;
+}
+
+.ui-widget-overlay {
+    background: oklch(0 0 0 / 0.4) !important;
+}
+
+/* ---- self-exam result page (view_result.php) -----------------------------
+   Shares table.cssTable/cssTrHead with the homework pages above, but adds
+   a shape neither of those has: the "總分/及格標準" summary is a single
+   colspan cell carrying the cssTrHead class itself (not its <tr>), and each
+   question is a <tr class="bg03 font01"> / <tr class="bg04 font01"> row of
+   four plain (non-.cssTd) cells — 配分, 得分 input, .item_content
+   (question + <ol> options), and 詳解 — that none of the rules above touch. */
+
+/* the "總分 = 0 / 及格標準 = ... " summary when class lands on the <td> */
+table.cssTable > tbody > tr > td.cssTrHead {
+    display: block !important;
+    background: var(--hw-theme-100) !important;
+    border: 1px solid var(--hw-theme-200) !important;
+    border-radius: var(--hw-radius);
+    margin-bottom: 0.85rem;
+    padding: 0.9rem 1rem !important;
+    box-shadow: 0 1px 2px oklch(0 0 0 / 0.04);
+    font-size: 0.9rem;
+    line-height: 1.9;
+    color: var(--hw-theme-800) !important;
+}
+
+/* the page's own JS colors 及格/不及格 with inline style="color:green|red",
+   which otherwise loses to the !important color on body above */
+[style*='color: green'] {
+    color: var(--hw-theme-600) !important;
+}
+
+[style*='color: red']:not(td) {
+    color: oklch(0.6 0.19 25) !important;
+}
+
+/* the "標準答案 / 學生答案" legend row: two bare radios with text runs
+   between them, which without flex just word-wraps mid-character */
+table.cssTable > tbody > tr.cssTrHead > .cssTd:has(> input[type='radio']) {
+    display: flex !important;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem 1.5rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+/* each question as its own card */
+table.cssTable > tbody > tr.font01 {
+    display: block !important;
+    background: var(--hw-surface);
+    border: 1px solid var(--hw-border);
+    border-radius: var(--hw-radius);
+    margin-bottom: 0.85rem;
+    padding: 0.9rem 1rem;
+    box-shadow: 0 1px 2px oklch(0 0 0 / 0.04);
+}
+
+table.cssTable > tbody > tr.font01 > td {
+    display: block !important;
+    width: 100% !important;
+    padding: 0 !important;
+    border: none !important;
+    background: transparent !important;
+    text-align: left !important;
+    word-break: break-word;
+}
+
+/* 配分 / 得分 as a pair of small pill badges above the question text */
+table.cssTable > tbody > tr.font01 > td:nth-child(1),
+table.cssTable > tbody > tr.font01 > td:nth-child(2) {
+    display: inline-flex !important;
+    width: auto !important;
+    align-items: center;
+    gap: 0.3rem;
+    margin: 0 0.4rem 0.5rem 0;
+    padding: 0.25rem 0.6rem !important;
+    background: var(--hw-theme-100);
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--hw-theme-700) !important;
+}
+
+table.cssTable > tbody > tr.font01 > td:nth-child(2) br {
+    display: none;
+}
+
+/* the legacy right/wrong marker is a tiny bitmap icon (icon_wrong.gif etc.)
+   that clashes with the app's flat style — hide it and draw a small chip
+   with the pseudo-element instead, keyed off the image's own filename
+   since that's the only signal available for which state it represents. */
+table.cssTable > tbody > tr.font01 > td:nth-child(2) img[src*='wrong'],
+table.cssTable > tbody > tr.font01 > td:nth-child(2) img[src*='right'],
+table.cssTable > tbody > tr.font01 > td:nth-child(2) img[src*='correct'],
+table.cssTable > tbody > tr.font01 > td:nth-child(2) img[src*='currect'] {
+    display: none;
+}
+
+table.cssTable
+    > tbody
+    > tr.font01
+    > td:nth-child(2):has(img[src*='wrong'])::before,
+table.cssTable
+    > tbody
+    > tr.font01
+    > td:nth-child(2):has(img[src*='right'])::before,
+table.cssTable
+    > tbody
+    > tr.font01
+    > td:nth-child(2):has(img[src*='correct'])::before,
+table.cssTable
+    > tbody
+    > tr.font01
+    > td:nth-child(2):has(img[src*='currect'])::before {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 1.1rem;
+    height: 1.1rem;
+    border-radius: 999px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #fff;
+}
+
+table.cssTable
+    > tbody
+    > tr.font01
+    > td:nth-child(2):has(img[src*='wrong'])::before {
+    content: '\2715';
+    background: oklch(0.6 0.19 25);
+}
+
+/* "currect" is the vendor's own (long-standing) typo for "correct" in
+   their icon filename — matched as-is since that's the real asset name */
+table.cssTable
+    > tbody
+    > tr.font01
+    > td:nth-child(2):has(img[src*='right'])::before,
+table.cssTable
+    > tbody
+    > tr.font01
+    > td:nth-child(2):has(img[src*='correct'])::before,
+table.cssTable
+    > tbody
+    > tr.font01
+    > td:nth-child(2):has(img[src*='currect'])::before {
+    content: '\2713';
+    background: oklch(0.6 0.19 145);
+}
+
+table.cssTable > tbody > tr.font01 > td:nth-child(2) input.cssInput {
+    display: inline-block;
+    width: 3.2rem !important;
+    padding: 0.15rem 0.35rem !important;
+    font-size: 0.78rem !important;
+    border-style: solid !important;
+}
+
+table.cssTable > tbody > tr.font01 > td.item_content {
+    font-size: 1rem;
+    color: var(--hw-theme-900) !important;
+    margin-bottom: 0.5rem;
+}
+
+table.cssTable > tbody > tr.font01 > td.item_content p {
+    margin: 0 0 0.5rem;
+}
+
+table.cssTable > tbody > tr.font01 > td.item_content ol {
+    margin: 0.5rem 0 0;
+    padding-left: 1.4rem;
+}
+
+table.cssTable > tbody > tr.font01 > td.item_content ol li {
+    margin-bottom: 0.6rem;
+    padding: 0.3rem 0;
+    line-height: 1.6;
+}
+
+/* the teacher-marked correct option is wrapped in a raw
+   <span style="background-color: green"> around just the radio — recolor
+   the whole option's text instead of leaving a small solid-green swatch */
+table.cssTable
+    > tbody
+    > tr.font01
+    > td.item_content
+    li
+    span[style*='background-color: green'] {
+    background: none !important;
+}
+
+table.cssTable
+    > tbody
+    > tr.font01
+    > td.item_content
+    li:has(span[style*='background-color: green']) {
+    color: var(--hw-theme-600) !important;
+    font-weight: 600;
+}
+
+/* 詳解 footer */
+table.cssTable > tbody > tr.font01 > td:last-child {
+    margin-top: 0.5rem;
+    padding-top: 0.6rem !important;
+    border-top: 1px dashed var(--hw-border) !important;
+    font-size: 0.85rem;
+    color: var(--hw-theme-700) !important;
+}
+
+table.cssTable > tbody > tr.font01 > td:last-child p {
+    margin: 0.25rem 0 0;
+}

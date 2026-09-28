@@ -5,6 +5,7 @@
 /public/ios-hot
 /public/hot
 /public/storage
+/tests/Browser/Screenshots
 /storage/*.key
 /storage/pail
 /resources/js/actions
@@ -30,3 +31,7 @@ yarn-error.log
 
 # Credential files (keystores, private keys, etc.)
 /credentials/
+
+# Agents
+CLAUDE.local.md
+.claude/settings.local.json

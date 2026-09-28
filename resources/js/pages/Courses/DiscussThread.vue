@@ -15,6 +15,8 @@ import AndroidBottomControlBackground from '@/components/AndroidBottomControlBac
 import AppLayout from '@/components/AppLayout.vue';
 import BackButton from '@/components/BackButton.vue';
 import DiscussComposeModal from '@/components/DiscussComposeModal.vue';
+import ErrorRetry from '@/components/ErrorRetry.vue';
+import ImageLightbox from '@/components/ImageLightbox.vue';
 import PageHeader from '@/components/PageHeader.vue';
 import ReportModal from '@/components/ReportModal.vue';
 import { useCourses } from '@/composables/useCourses';
@@ -22,6 +24,7 @@ import { useDiscuss } from '@/composables/useDiscuss';
 import { useIsDark } from '@/composables/useIsDark';
 import { useModeration } from '@/composables/useModeration';
 import { useTitle } from '@/composables/useTitle';
+import { isImageAttachment } from '@/lib/attachmentImage';
 import { processHtmlForColorScheme } from '@/lib/htmlColorScheme';
 import {
     isNativeAttachmentBridgeAvailable,
@@ -30,6 +33,8 @@ import {
     waitForAttachmentDownloadCompletion,
 } from '@/lib/nativeAttachment';
 import type { CourseItem } from '@/types';
+
+type AttachmentViewModel = AltUU.Domains.Discuss.ViewModels.AttachmentViewModel;
 
 const props = defineProps<{
     cid: string;
@@ -43,6 +48,7 @@ const {
     data,
     isLoading,
     error,
+    errorDetail,
     fetchDiscuss,
     setForumRead,
     createPost,
@@ -136,11 +142,46 @@ const isAttachmentConfirmOpen = ref(false);
 const isAttachmentDownloadInProgress = ref(false);
 const attachmentDownloadStatus = ref('');
 const attachmentDownloadError = ref<string | null>(null);
+const lightboxImage = ref<{ src: string; alt: string } | null>(null);
+const failedImageAttachments = ref<Set<string>>(new Set());
 
 function buildProxyUrl(url: string): string {
     const proxyPath = `/material-proxy/${btoa(url).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')}?cid=${encodeURIComponent(props.cid)}`;
 
     return new URL(proxyPath, window.location.origin).toString();
+}
+
+function attachmentKey(attachment: AttachmentViewModel): string {
+    return attachment.href ?? attachment.filename ?? '';
+}
+
+function isDisplayableImageAttachment(
+    attachment: AttachmentViewModel,
+): boolean {
+    return (
+        !!attachment.href &&
+        isImageAttachment(attachment.filename, attachment.href) &&
+        !failedImageAttachments.value.has(attachmentKey(attachment))
+    );
+}
+
+function attachmentImageSrc(attachment: AttachmentViewModel): string {
+    return buildProxyUrl(attachment.href as string);
+}
+
+function markImageAttachmentFailed(attachment: AttachmentViewModel): void {
+    failedImageAttachments.value.add(attachmentKey(attachment));
+}
+
+function openImageLightbox(attachment: AttachmentViewModel): void {
+    lightboxImage.value = {
+        src: attachmentImageSrc(attachment),
+        alt: attachment.filename ?? '附件圖片',
+    };
+}
+
+function closeImageLightbox(): void {
+    lightboxImage.value = null;
 }
 
 const closeAttachmentConfirm = () => {
@@ -349,7 +390,7 @@ const submitPostEdit = async () => {
 //     });
 // };
 
-const pushPost = async (postId?: string, liked?: boolean) => {
+const pushPost = async (postId?: string | null, liked?: boolean) => {
     if (!postId) {
         return;
     }
@@ -528,6 +569,12 @@ onMounted(async () => {
         console.error('setForumRead failed', error);
     }
 });
+
+function retryFetchDiscuss(): void {
+    fetchDiscuss(props.boardCid, props.bid, props.nid, {
+        includeCourses: false,
+    });
+}
 </script>
 
 <template>
@@ -547,7 +594,7 @@ onMounted(async () => {
                 <div class="flex items-center gap-3">
                     <button
                         type="button"
-                        class="inline-flex items-center gap-1 rounded-xl bg-warm-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-warm-800 dark:bg-warm-800 dark:hover:bg-warm-700"
+                        class="inline-flex items-center gap-1 rounded-xl bg-theme-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-theme-800 dark:bg-theme-800 dark:hover:bg-theme-700"
                         @click="isReplyModalOpen = true"
                     >
                         <PlusIcon class="size-4 md:size-5" />
@@ -559,21 +606,22 @@ onMounted(async () => {
 
         <section class="px-3 py-4 pb-24 sm:px-4">
             <div
-                class="mx-auto max-w-4xl rounded-2xl border border-warm-200 bg-white/90 p-4 shadow-sm backdrop-blur sm:p-5 dark:border-zinc-700 dark:bg-zinc-900/90"
+                class="mx-auto max-w-4xl rounded-2xl border border-theme-200 bg-white/90 p-4 shadow-sm backdrop-blur sm:p-5 dark:border-zinc-700 dark:bg-zinc-900/90"
             >
                 <div
-                    class="mb-3 flex items-center gap-2 text-warm-900 dark:text-zinc-100"
+                    class="mb-3 flex items-center gap-2 text-theme-900 dark:text-zinc-100"
                 >
                     <ChatBubbleLeftRightIcon class="h-5 w-5" />
                     <h2 class="font-semibold">{{ threadTitle }}</h2>
                 </div>
 
-                <div
+                <ErrorRetry
                     v-if="error"
-                    class="rounded-xl border border-dashed border-rose-300 bg-rose-50 p-4 text-sm text-rose-700 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-300"
-                >
-                    {{ error }}
-                </div>
+                    :message="error"
+                    :detail="errorDetail"
+                    :retrying="isLoading"
+                    @retry="retryFetchDiscuss"
+                />
 
                 <div
                     v-else-if="isLoading && (!data || data.posts.length === 0)"
@@ -582,7 +630,7 @@ onMounted(async () => {
                     <div
                         v-for="row in 3"
                         :key="row"
-                        class="h-24 animate-pulse rounded-xl bg-warm-100 dark:bg-zinc-700"
+                        class="h-24 animate-pulse rounded-xl bg-theme-100 dark:bg-zinc-700"
                     />
                 </div>
 
@@ -593,7 +641,7 @@ onMounted(async () => {
                     <article
                         v-for="(post, index) in data.posts"
                         :key="post.floor ?? index"
-                        class="rounded-xl border border-warm-200 bg-warm-50 px-3 py-3 dark:border-zinc-700 dark:bg-zinc-800"
+                        class="rounded-xl border border-theme-200 bg-theme-50 px-3 py-3 dark:border-zinc-700 dark:bg-zinc-800"
                     >
                         <!-- Blocked content -->
                         <div
@@ -619,7 +667,7 @@ onMounted(async () => {
                             </div>
                             <button
                                 type="button"
-                                class="mt-2 text-xs font-medium text-amber-600 underline hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-200"
+                                class="mt-2 text-xs font-medium text-amber-700 underline hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-200"
                                 @click="revealedPosts.add(post.node)"
                             >
                                 仍要檢視
@@ -657,7 +705,7 @@ onMounted(async () => {
                         <!-- Normal post -->
                         <template v-else>
                             <header
-                                class="mb-1 flex items-center justify-between gap-2 text-sm text-warm-600 md:text-base dark:text-zinc-400"
+                                class="mb-1 flex items-center justify-between gap-2 text-sm text-theme-700 md:text-base dark:text-zinc-400"
                             >
                                 <span
                                     >樓層 {{ post.floor ?? index + 1 }} ·
@@ -670,8 +718,8 @@ onMounted(async () => {
                                         :class="[
                                             'inline-flex items-center gap-1 rounded border px-2 py-1 text-xs transition',
                                             post.liked
-                                                ? 'border-warm-800 bg-warm-800 text-white dark:border-warm-700 dark:bg-warm-700 dark:text-zinc-100'
-                                                : 'border-warm-300 bg-white text-warm-700 hover:bg-warm-100 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700',
+                                                ? 'border-theme-800 bg-theme-800 text-white dark:border-theme-800 dark:bg-theme-800 dark:text-zinc-100'
+                                                : 'border-theme-300 bg-white text-theme-700 hover:bg-theme-100 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700',
                                         ]"
                                         @click.stop.prevent="
                                             pushPost(post.node, post.liked)
@@ -695,20 +743,20 @@ onMounted(async () => {
                             >
                                 <textarea
                                     v-model="editingPostContent"
-                                    class="w-full rounded border border-warm-300 px-2 py-1 text-sm dark:border-zinc-600 dark:bg-zinc-900"
+                                    class="w-full rounded border border-theme-300 px-2 py-1 text-sm dark:border-zinc-600 dark:bg-zinc-900"
                                     rows="4"
                                 />
                                 <div class="mt-2 flex gap-2">
                                     <button
                                         type="button"
-                                        class="rounded-xl bg-warm-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-warm-800 dark:bg-warm-500 dark:hover:bg-warm-600"
+                                        class="rounded-xl bg-theme-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-theme-800 dark:bg-theme-800 dark:hover:bg-theme-700"
                                         @click="submitPostEdit"
                                     >
                                         儲存
                                     </button>
                                     <button
                                         type="button"
-                                        class="rounded-xl border border-warm-300 bg-white px-4 py-2 text-sm font-semibold text-warm-700 transition hover:border-warm-400 hover:bg-warm-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:border-zinc-500"
+                                        class="rounded-xl border border-theme-300 bg-white px-4 py-2 text-sm font-semibold text-theme-700 transition hover:border-theme-400 hover:bg-theme-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:border-zinc-500"
                                         @click="
                                             () => {
                                                 editingPostId = null;
@@ -722,7 +770,7 @@ onMounted(async () => {
                             </div>
                             <div
                                 v-else
-                                class="prose prose-sm mt-1 overflow-auto text-sm prose-warm select-auto md:prose-lg dark:prose-zinc dark:prose-invert"
+                                class="prose prose-sm mt-1 overflow-auto text-sm prose-theme select-auto md:prose-lg dark:prose-zinc dark:prose-invert"
                                 v-html="
                                     adjustedContent(post.content) ||
                                     '（無內容）'
@@ -735,32 +783,80 @@ onMounted(async () => {
                                     post.attachments &&
                                     post.attachments.length > 0
                                 "
-                                class="mt-3 rounded-lg border border-warm-200 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900"
+                                class="mt-3 rounded-lg border border-theme-200 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900"
                             >
                                 <h4
-                                    class="mb-2 text-xs font-semibold text-warm-700 dark:text-zinc-300"
+                                    class="mb-2 text-xs font-semibold text-theme-700 dark:text-zinc-300"
                                 >
                                     附件 ({{ post.attachments.length }})
                                 </h4>
-                                <ul class="space-y-1">
+                                <div
+                                    v-if="
+                                        post.attachments.some(
+                                            isDisplayableImageAttachment,
+                                        )
+                                    "
+                                    class="mb-2 flex flex-wrap gap-2"
+                                >
+                                    <button
+                                        v-for="(
+                                            attachment, ai
+                                        ) in post.attachments.filter(
+                                            isDisplayableImageAttachment,
+                                        )"
+                                        :key="attachmentKey(attachment) || ai"
+                                        type="button"
+                                        class="block overflow-hidden rounded-lg border border-theme-200 dark:border-zinc-700"
+                                        @click="openImageLightbox(attachment)"
+                                    >
+                                        <img
+                                            :src="
+                                                attachmentImageSrc(attachment)
+                                            "
+                                            :alt="
+                                                attachment.filename ??
+                                                '附件圖片'
+                                            "
+                                            loading="lazy"
+                                            class="h-24 w-24 object-cover"
+                                            @error="
+                                                markImageAttachmentFailed(
+                                                    attachment,
+                                                )
+                                            "
+                                        />
+                                    </button>
+                                </div>
+                                <ul
+                                    v-if="
+                                        post.attachments.some(
+                                            (attachment) =>
+                                                !isDisplayableImageAttachment(
+                                                    attachment,
+                                                ),
+                                        )
+                                    "
+                                    class="space-y-1"
+                                >
                                     <li
                                         v-for="(
                                             attachment, ai
-                                        ) in post.attachments"
-                                        :key="
-                                            attachment.href ??
-                                            attachment.filename ??
-                                            ai
-                                        "
-                                        class="flex items-center gap-2 text-sm text-warm-700 dark:text-zinc-300"
+                                        ) in post.attachments.filter(
+                                            (attachment) =>
+                                                !isDisplayableImageAttachment(
+                                                    attachment,
+                                                ),
+                                        )"
+                                        :key="attachmentKey(attachment) || ai"
+                                        class="flex items-center gap-2 text-sm text-theme-700 dark:text-zinc-300"
                                     >
                                         <PaperClipIcon
-                                            class="h-4 w-4 shrink-0 text-warm-500 dark:text-zinc-500"
+                                            class="h-4 w-4 shrink-0 text-theme-700 dark:text-zinc-500"
                                         />
                                         <a
                                             v-if="attachment.href"
                                             :href="attachment.href"
-                                            class="underline hover:text-warm-900 dark:hover:text-zinc-300"
+                                            class="underline hover:text-theme-900 dark:hover:text-zinc-300"
                                             :download="
                                                 attachment.filename
                                                     ? attachment.filename
@@ -791,14 +887,14 @@ onMounted(async () => {
                                     post.whisperCount ||
                                     (post.whispers && post.whispers.length > 0)
                                 "
-                                class="mt-3 rounded-lg border border-warm-200 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900"
+                                class="mt-3 rounded-lg border border-theme-200 bg-white p-3 dark:border-zinc-700 dark:bg-zinc-900"
                             >
                                 <div
                                     class="flex items-center justify-between"
                                     :class="{ 'mb-2': post.whisperCount }"
                                 >
                                     <h4
-                                        class="text-xs font-semibold text-warm-700 dark:text-zinc-300"
+                                        class="text-xs font-semibold text-theme-700 dark:text-zinc-300"
                                     >
                                         留言 ({{
                                             post.whisperCount ??
@@ -808,7 +904,7 @@ onMounted(async () => {
                                     </h4>
                                     <button
                                         type="button"
-                                        class="rounded bg-warm-700 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-warm-800 dark:bg-warm-800 dark:hover:bg-warm-600"
+                                        class="rounded bg-theme-700 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-theme-800 dark:bg-theme-800 dark:hover:bg-theme-600"
                                         @click="
                                             openWhisperModal(
                                                 post.node ?? null,
@@ -824,10 +920,10 @@ onMounted(async () => {
                                         v-for="(whisper, wi) in post.whispers ??
                                         []"
                                         :key="whisper.wid ?? whisper.sid ?? wi"
-                                        class="rounded-md border border-warm-100 bg-warm-50 px-3 py-2 dark:border-zinc-800 dark:bg-zinc-800"
+                                        class="rounded-md border border-theme-100 bg-theme-50 px-3 py-2 dark:border-zinc-800 dark:bg-zinc-800"
                                     >
                                         <header
-                                            class="mb-1 flex flex-wrap items-center gap-2 text-sm text-warm-600 dark:text-zinc-400"
+                                            class="mb-1 flex flex-wrap items-center gap-2 text-sm text-theme-700 dark:text-zinc-400"
                                         >
                                             <span>{{
                                                 whisper.realname ??
@@ -847,13 +943,13 @@ onMounted(async () => {
                                         >
                                             <textarea
                                                 v-model="editingWhisperContent"
-                                                class="w-full rounded border border-warm-300 px-2 py-1 text-sm dark:border-zinc-600 dark:bg-zinc-900"
+                                                class="w-full rounded border border-theme-300 px-2 py-1 text-sm dark:border-zinc-600 dark:bg-zinc-900"
                                                 rows="3"
                                             />
                                             <div class="mt-2 flex gap-2">
                                                 <button
                                                     type="button"
-                                                    class="rounded-xl bg-warm-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-warm-800 dark:bg-warm-500 dark:hover:bg-warm-600"
+                                                    class="rounded-xl bg-theme-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-theme-800 dark:bg-theme-800 dark:hover:bg-theme-700"
                                                     @click="
                                                         submitWhisperEdit(
                                                             post.node ?? '',
@@ -864,7 +960,7 @@ onMounted(async () => {
                                                 </button>
                                                 <button
                                                     type="button"
-                                                    class="rounded-xl border border-warm-300 bg-white px-4 py-2 text-sm font-semibold text-warm-700 transition hover:border-warm-400 hover:bg-warm-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:border-zinc-500"
+                                                    class="rounded-xl border border-theme-300 bg-white px-4 py-2 text-sm font-semibold text-theme-700 transition hover:border-theme-400 hover:bg-theme-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:border-zinc-500"
                                                     @click="
                                                         () => {
                                                             editingWhisperId =
@@ -881,7 +977,7 @@ onMounted(async () => {
 
                                         <p
                                             v-else
-                                            class="overflow-auto text-sm whitespace-pre-wrap text-warm-800 select-auto md:text-base dark:text-zinc-200"
+                                            class="overflow-auto text-sm whitespace-pre-wrap text-theme-800 select-auto md:text-base dark:text-zinc-200"
                                         >
                                             {{
                                                 whisper.content ?? '（無內容）'
@@ -893,12 +989,12 @@ onMounted(async () => {
 
                             <!-- Report / Block actions -->
                             <div
-                                class="mt-2 flex items-center gap-2 border-t border-warm-200 pt-2 dark:border-zinc-700"
+                                class="mt-2 flex items-center gap-2 border-t border-theme-200 pt-2 dark:border-zinc-700"
                             >
                                 <button
                                     v-if="post.node"
                                     type="button"
-                                    class="inline-flex items-center gap-1 rounded border border-warm-300 bg-white px-2 py-1 text-xs text-warm-600 transition hover:bg-warm-100 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700"
+                                    class="inline-flex items-center gap-1 rounded border border-theme-300 bg-white px-2 py-1 text-xs text-theme-700 transition hover:bg-theme-100 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700"
                                     @click="
                                         openReportModal(
                                             post.node,
@@ -912,7 +1008,7 @@ onMounted(async () => {
                                 <button
                                     v-if="post.poster && post.realname"
                                     type="button"
-                                    class="inline-flex items-center gap-1 rounded border border-warm-300 bg-white px-2 py-1 text-xs text-warm-600 transition hover:bg-warm-100 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700"
+                                    class="inline-flex items-center gap-1 rounded border border-theme-300 bg-white px-2 py-1 text-xs text-theme-700 transition hover:bg-theme-100 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700"
                                     @click="
                                         openBlockConfirm(
                                             post.poster,
@@ -930,7 +1026,7 @@ onMounted(async () => {
 
                 <div
                     v-else
-                    class="rounded-xl border border-dashed border-warm-300 bg-warm-50 p-4 text-sm text-warm-700 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"
+                    class="rounded-xl border border-dashed border-theme-300 bg-theme-50 p-4 text-sm text-theme-700 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"
                 >
                     目前沒有可顯示的討論內容。
                 </div>
@@ -948,13 +1044,13 @@ onMounted(async () => {
         >
             <input
                 v-model="newPostSubject"
-                class="w-full rounded-xl border border-warm-300 bg-white px-3 py-2 text-sm text-warm-900 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
+                class="w-full rounded-xl border border-theme-300 bg-white px-3 py-2 text-sm text-theme-900 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
                 type="text"
                 placeholder="主題（選填）"
             />
             <textarea
                 v-model="newPostContent"
-                class="h-36 w-full rounded-xl border border-warm-300 bg-white px-3 py-2 text-sm text-warm-900 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
+                class="h-36 w-full rounded-xl border border-theme-300 bg-white px-3 py-2 text-sm text-theme-900 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
                 placeholder="內容"
             />
         </DiscussComposeModal>
@@ -972,7 +1068,7 @@ onMounted(async () => {
         >
             <textarea
                 v-model="whisperModalContent"
-                class="h-24 w-full rounded-xl border border-warm-300 bg-white px-3 py-2 text-sm text-warm-900 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
+                class="h-24 w-full rounded-xl border border-theme-300 bg-white px-3 py-2 text-sm text-theme-900 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
                 placeholder="留言內容"
             />
         </DiscussComposeModal>
@@ -1000,11 +1096,11 @@ onMounted(async () => {
                     class="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl dark:bg-zinc-900"
                 >
                     <h3
-                        class="mb-3 text-lg font-semibold text-warm-900 dark:text-zinc-100"
+                        class="mb-3 text-lg font-semibold text-theme-900 dark:text-zinc-100"
                     >
                         下載附件
                     </h3>
-                    <p class="text-sm text-warm-600 dark:text-zinc-400">
+                    <p class="text-sm text-theme-700 dark:text-zinc-400">
                         確定要下載並開啟「{{
                             pendingAttachmentDownload?.filename ?? '此附件'
                         }}」嗎？
@@ -1012,14 +1108,14 @@ onMounted(async () => {
                     <div class="mt-4 flex justify-end gap-2">
                         <button
                             type="button"
-                            class="rounded-xl border border-warm-300 bg-white px-4 py-2 text-sm font-semibold text-warm-700 transition hover:bg-warm-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200"
+                            class="rounded-xl border border-theme-300 bg-white px-4 py-2 text-sm font-semibold text-theme-700 transition hover:bg-theme-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200"
                             @click="closeAttachmentConfirm"
                         >
                             取消
                         </button>
                         <button
                             type="button"
-                            class="rounded-xl bg-warm-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-warm-800 dark:bg-warm-800 dark:hover:bg-warm-700"
+                            class="rounded-xl bg-theme-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-theme-800 dark:bg-theme-800 dark:hover:bg-theme-700"
                             @click="confirmAttachmentDownload"
                         >
                             確認下載
@@ -1035,21 +1131,21 @@ onMounted(async () => {
                 class="fixed inset-0 z-[70] flex items-center justify-center bg-zinc-950/50 p-6 backdrop-blur-sm"
             >
                 <div
-                    class="w-full max-w-xs rounded-2xl border border-warm-200 bg-white/95 px-5 py-4 shadow-xl dark:border-zinc-700 dark:bg-zinc-900/95"
+                    class="w-full max-w-xs rounded-2xl border border-theme-200 bg-white/95 px-5 py-4 shadow-xl dark:border-zinc-700 dark:bg-zinc-900/95"
                 >
                     <div class="flex items-center gap-3">
                         <span
-                            class="inline-block h-6 w-6 animate-spin rounded-full border-2 border-warm-600 border-r-transparent dark:border-zinc-100 dark:border-r-transparent"
+                            class="inline-block h-6 w-6 animate-spin rounded-full border-2 border-theme-700 border-r-transparent dark:border-zinc-100 dark:border-r-transparent"
                             aria-hidden="true"
                         />
                         <div>
                             <p
-                                class="text-sm font-semibold text-warm-900 dark:text-zinc-100"
+                                class="text-sm font-semibold text-theme-900 dark:text-zinc-100"
                             >
                                 正在處理附件
                             </p>
                             <p
-                                class="mt-1 text-xs text-warm-600 dark:text-zinc-400"
+                                class="mt-1 text-xs text-theme-700 dark:text-zinc-400"
                             >
                                 {{ attachmentDownloadStatus }}
                             </p>
@@ -1070,11 +1166,11 @@ onMounted(async () => {
                     class="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl dark:bg-zinc-900"
                 >
                     <h3
-                        class="mb-3 text-lg font-semibold text-warm-900 dark:text-zinc-100"
+                        class="mb-3 text-lg font-semibold text-theme-900 dark:text-zinc-100"
                     >
                         封鎖使用者
                     </h3>
-                    <p class="text-sm text-warm-600 dark:text-zinc-400">
+                    <p class="text-sm text-theme-700 dark:text-zinc-400">
                         確定要封鎖名稱為「{{
                             blockTargetRealname
                         }}」、帳號為「{{
@@ -1084,7 +1180,7 @@ onMounted(async () => {
                     <div class="mt-4 flex justify-end gap-2">
                         <button
                             type="button"
-                            class="rounded-xl border border-warm-300 bg-white px-4 py-2 text-sm font-semibold text-warm-700 transition hover:bg-warm-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200"
+                            class="rounded-xl border border-theme-300 bg-white px-4 py-2 text-sm font-semibold text-theme-700 transition hover:bg-theme-50 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200"
                             @click="isBlockConfirmOpen = false"
                         >
                             取消
@@ -1112,17 +1208,17 @@ onMounted(async () => {
                     class="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl dark:bg-zinc-900"
                 >
                     <h3
-                        class="mb-3 text-lg font-semibold text-warm-900 dark:text-zinc-100"
+                        class="mb-3 text-lg font-semibold text-theme-900 dark:text-zinc-100"
                     >
                         下載失敗
                     </h3>
-                    <p class="text-sm text-warm-600 dark:text-zinc-400">
+                    <p class="text-sm text-theme-700 dark:text-zinc-400">
                         {{ attachmentDownloadError }}
                     </p>
                     <div class="mt-4 flex justify-end">
                         <button
                             type="button"
-                            class="rounded-xl bg-warm-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-warm-800 dark:bg-warm-800 dark:hover:bg-warm-700"
+                            class="rounded-xl bg-theme-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-theme-800 dark:bg-theme-800 dark:hover:bg-theme-700"
                             @click="closeAttachmentDownloadError"
                         >
                             確定
@@ -1131,6 +1227,13 @@ onMounted(async () => {
                 </div>
             </div>
         </Teleport>
+
+        <ImageLightbox
+            :is-open="lightboxImage !== null"
+            :src="lightboxImage?.src ?? null"
+            :alt="lightboxImage?.alt"
+            @close="closeImageLightbox"
+        />
 
         <AndroidBottomControlBackground />
     </AppLayout>

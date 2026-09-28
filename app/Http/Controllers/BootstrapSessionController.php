@@ -13,7 +13,7 @@ use Symfony\Component\HttpFoundation\Response;
 final class BootstrapSessionController
 {
     /**
-     * @return array{ok: bool, redirect: string, showOnboarding: bool, nouToolsIntegrationEnabled: bool}|Response
+     * @return array{ok: bool, redirect: string, nouToolsIntegrationEnabled: bool}|Response
      */
     public function __invoke(
         Request $request,

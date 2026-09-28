@@ -9,11 +9,13 @@ import AndroidBottomControlBackground from '@/components/AndroidBottomControlBac
 import AppLayout from '@/components/AppLayout.vue';
 import BackButton from '@/components/BackButton.vue';
 import DiscussComposeModal from '@/components/DiscussComposeModal.vue';
+import ErrorRetry from '@/components/ErrorRetry.vue';
 import PageHeader from '@/components/PageHeader.vue';
 import { useCourses } from '@/composables/useCourses';
 import { useDiscuss } from '@/composables/useDiscuss';
 import { useModeration } from '@/composables/useModeration';
 import { useTitle } from '@/composables/useTitle';
+import { asApiError } from '@/lib/apiError';
 import type { CourseItem } from '@/types';
 
 useTitle('文章列表');
@@ -25,7 +27,8 @@ const props = defineProps<{
 }>();
 
 const { courses, fetchCourses } = useCourses();
-const { data, isLoading, error, fetchDiscuss, createPost } = useDiscuss();
+const { data, isLoading, error, errorDetail, fetchDiscuss, createPost } =
+    useDiscuss();
 const { loadBlockedUsers, getReasonLabel } = useModeration();
 
 const revealedNodes = ref<Set<string>>(new Set());
@@ -68,6 +71,7 @@ function nodeLink(nid: string): string {
 const submitNewPost = async () => {
     if (!canCreatePost.value) {
         error.value = '本討論板禁止發文。';
+        errorDetail.value = null;
 
         return;
     }
@@ -93,6 +97,7 @@ const submitNewPost = async () => {
         console.error('createPost failed', createError);
         error.value =
             createError instanceof Error ? createError.message : '送出文章失敗';
+        errorDetail.value = asApiError(createError);
     } finally {
         isSubmittingPost.value = false;
     }
@@ -108,6 +113,13 @@ onMounted(async () => {
         loadBlockedUsers(),
     ]);
 });
+
+function retryFetchDiscuss(): void {
+    fetchDiscuss(props.boardCid, props.bid, undefined, {
+        includeCourses: false,
+        force: true,
+    });
+}
 </script>
 
 <template>
@@ -128,7 +140,7 @@ onMounted(async () => {
                 >
                     <button
                         type="button"
-                        class="inline-flex items-center gap-1 rounded-xl bg-warm-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-warm-800 dark:bg-warm-800 dark:hover:bg-warm-700"
+                        class="inline-flex items-center gap-1 rounded-xl bg-theme-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-theme-800 dark:bg-theme-800 dark:hover:bg-theme-700"
                         @click="isComposeModalOpen = true"
                     >
                         <PlusIcon class="size-4 md:size-5" />
@@ -140,21 +152,22 @@ onMounted(async () => {
 
         <section class="px-3 py-4 pb-24 sm:px-4">
             <div
-                class="mx-auto max-w-4xl rounded-2xl border border-warm-200 bg-white/90 p-4 shadow-sm backdrop-blur sm:p-5 dark:border-zinc-700 dark:bg-zinc-900/90"
+                class="mx-auto max-w-4xl rounded-2xl border border-theme-200 bg-white/90 p-4 shadow-sm backdrop-blur sm:p-5 dark:border-zinc-700 dark:bg-zinc-900/90"
             >
                 <div
-                    class="mb-3 flex items-center gap-2 text-warm-900 dark:text-zinc-100"
+                    class="mb-3 flex items-center gap-2 text-theme-900 dark:text-zinc-100"
                 >
                     <ChatBubbleLeftRightIcon class="h-5 w-5" />
                     <h2 class="font-semibold">文章列表</h2>
                 </div>
 
-                <div
+                <ErrorRetry
                     v-if="error"
-                    class="rounded-xl border border-dashed border-rose-300 bg-rose-50 p-4 text-sm text-rose-700 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-300"
-                >
-                    {{ error }}
-                </div>
+                    :message="error"
+                    :detail="errorDetail"
+                    :retrying="isLoading"
+                    @retry="retryFetchDiscuss"
+                />
 
                 <div
                     v-else-if="isLoading && (!data || data.nodes.length === 0)"
@@ -163,7 +176,7 @@ onMounted(async () => {
                     <div
                         v-for="row in 5"
                         :key="row"
-                        class="h-14 animate-pulse rounded-xl bg-warm-100 dark:bg-zinc-700"
+                        class="h-14 animate-pulse rounded-xl bg-theme-100 dark:bg-zinc-700"
                     />
                 </div>
 
@@ -186,7 +199,7 @@ onMounted(async () => {
                             </p>
                             <button
                                 type="button"
-                                class="mt-1 text-xs font-medium text-amber-600 underline hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-200"
+                                class="mt-1 text-xs font-medium text-amber-700 underline hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-200"
                                 @click="revealedNodes.add(node.node)"
                             >
                                 仍要檢視
@@ -196,7 +209,7 @@ onMounted(async () => {
                         <router-link
                             v-else
                             :to="nodeLink(node.node)"
-                            class="block w-full rounded-xl border border-warm-200 bg-white px-3 py-2 text-left text-sm text-warm-700 transition hover:border-warm-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
+                            class="block w-full rounded-xl border border-theme-200 bg-white px-3 py-2 text-left text-sm text-theme-700 transition hover:border-theme-400 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300"
                         >
                             <div class="flex items-start justify-between gap-3">
                                 <div class="min-w-0">
@@ -210,7 +223,7 @@ onMounted(async () => {
                                         </span>
                                     </p>
                                     <p
-                                        class="flex gap-1 text-sm text-warm-600 md:text-base dark:text-zinc-400"
+                                        class="flex gap-1 text-sm text-theme-700 md:text-base dark:text-zinc-400"
                                     >
                                         <span>{{ node.poster ?? '匿名' }}</span>
                                         <span>·</span>
@@ -227,7 +240,7 @@ onMounted(async () => {
                                     v-if="
                                         node.likesCount && node.likesCount > 0
                                     "
-                                    class="ml-2 inline-flex items-center gap-1 text-warm-500 md:gap-2 dark:text-zinc-500"
+                                    class="ml-2 inline-flex items-center gap-1 text-theme-700 md:gap-2 dark:text-zinc-400"
                                 >
                                     <HandThumbUpIcon class="size-4 md:size-5" />
                                     <span class="md:text-xl">{{
@@ -241,7 +254,7 @@ onMounted(async () => {
 
                 <div
                     v-else
-                    class="rounded-xl border border-dashed border-warm-300 bg-warm-50 p-4 text-sm text-warm-700 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"
+                    class="rounded-xl border border-dashed border-theme-300 bg-theme-50 p-4 text-sm text-theme-700 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"
                 >
                     目前沒有可顯示的文章主題。
                 </div>
@@ -259,12 +272,12 @@ onMounted(async () => {
         >
             <input
                 v-model="newPostSubject"
-                class="w-full rounded-xl border border-warm-300 bg-white px-3 py-2 text-sm text-warm-900 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
+                class="w-full rounded-xl border border-theme-300 bg-white px-3 py-2 text-sm text-theme-900 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
                 placeholder="主題（選填）"
             />
             <textarea
                 v-model="newPostContent"
-                class="h-36 w-full rounded-xl border border-warm-300 bg-white px-3 py-2 text-sm text-warm-900 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
+                class="h-36 w-full rounded-xl border border-theme-300 bg-white px-3 py-2 text-sm text-theme-900 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
                 placeholder="內容"
             />
         </DiscussComposeModal>

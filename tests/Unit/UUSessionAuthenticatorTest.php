@@ -1,24 +1,28 @@
 <?php
 
 use AltUU\Domains\Course\Actions\SyncCurrentCourse;
+use App\Services\AccountActiveProfile;
+use App\Services\AccountCredentialsStore;
 use App\Services\UUProfileSession;
 use App\Services\UUProxyClient;
-use App\Services\UURememberedCredentialsStore;
 use App\Services\UUSessionAuthenticator;
 use App\Services\UUSessionStore;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
 use Mockery as MockeryManager;
 use Tests\TestCase;
 
-uses(TestCase::class);
+uses(TestCase::class, RefreshDatabase::class);
 
 it('syncs current course when reauthentication succeeds', function () {
     $proxyClient = MockeryManager::mock(UUProxyClient::class);
     $profileSession = MockeryManager::mock(UUProfileSession::class);
     $sessionStore = MockeryManager::mock(UUSessionStore::class);
-    $rememberedCredentialsStore = MockeryManager::mock(UURememberedCredentialsStore::class);
+    $accountCredentialsStore = MockeryManager::mock(AccountCredentialsStore::class);
+    $activeProfile = new AccountActiveProfile;
+    $activeProfile->set(42);
 
-    $rememberedCredentialsStore->shouldReceive('get')
+    $accountCredentialsStore->shouldReceive('get')
         ->once()
         ->andReturn(['username' => 'u', 'password' => 'p']);
 
@@ -26,7 +30,8 @@ it('syncs current course when reauthentication succeeds', function () {
         $proxyClient,
         $profileSession,
         $sessionStore,
-        $rememberedCredentialsStore,
+        $accountCredentialsStore,
+        $activeProfile,
     ]);
 
     $authenticator->shouldReceive('attemptLogin')
@@ -46,7 +51,7 @@ it('syncs current course when reauthentication succeeds', function () {
 
     $request = Request::create('/test', 'GET');
     $request->setLaravelSession($this->app->make('session.store'));
-    $request->session()->put('hungu.current_course_id', '10050266');
+    $request->session()->put('hungu.current_course_id.42', '10050266');
 
     $result = $authenticator->attemptRememberedLogin($request);
 

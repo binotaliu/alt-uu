@@ -2,6 +2,7 @@
 
 use AltUU\Domains\Course\Actions\ParseMaterialContent;
 use AltUU\Domains\Course\Support\MaterialProxyUrl;
+use App\Services\AccountActiveProfile;
 use App\Services\UUCourseClient;
 use App\Services\UUProxyClient;
 use Mockery as MockeryManager;
@@ -20,7 +21,7 @@ it('parses html content and rewrites same-host resources into material proxy URL
             'body' => '<html><body><h2>第一章內容</h2><img src="/images/cover.jpg" alt="cover"></body></html>',
         ]);
 
-    $courseClient = new UUCourseClient($proxyClient);
+    $courseClient = new UUCourseClient($proxyClient, new AccountActiveProfile);
     $action = new ParseMaterialContent($courseClient);
 
     $parsed = $action('https://uu.nou.edu.tw/material/lesson-1.html', 'uu.nou.edu.tw');
@@ -47,7 +48,7 @@ it('extracts video and subtitle URLs when flowplayer payload exists', function (
                 <html><body>
                 <script>
                 flowplayer('#player', {
-                    src: "https://uu.nou.edu.tw/videos/lesson-2.mp4",
+                    src: "https://media.example.com/videos/lesson-2.mp4",
                     subtitles: { tracks: [{ src: "/subs/lesson-2.vtt", label: "zh-TW" }] }
                 });
                 </script>
@@ -55,12 +56,12 @@ it('extracts video and subtitle URLs when flowplayer payload exists', function (
             HTML,
         ]);
 
-    $courseClient = new UUCourseClient($proxyClient);
+    $courseClient = new UUCourseClient($proxyClient, new AccountActiveProfile);
     $action = new ParseMaterialContent($courseClient);
 
     $parsed = $action('https://uu.nou.edu.tw/material/lesson-2.html', 'uu.nou.edu.tw');
 
-    expect($parsed->videoUrl)->toBe('https://uu.nou.edu.tw/videos/lesson-2.mp4');
+    expect($parsed->videoUrl)->toBe('https://media.example.com/videos/lesson-2.mp4');
     expect($parsed->downloadUrl)->toBeNull();
 
     $expectedSubtitleProxy = route('material.content', [
