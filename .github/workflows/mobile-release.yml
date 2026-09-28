@@ -97,12 +97,16 @@ jobs:
       # native:package can swallow a Gradle/packaging failure and still exit 0
       # (its error paths return without setting Command::FAILURE), so check
       # for the artifact explicitly instead of trusting the step's exit code.
+      # On failure, re-run gradlew directly (bypassing native:package's PHP
+      # Process::run(), which captures Gradle's output without ever printing
+      # it) so the real compile/build error actually reaches the CI log.
       - name: Verify AAB was produced
         run: |
           set -euo pipefail
           if ! compgen -G "build-output/*.aab" > /dev/null; then
-            echo "::error::No .aab found in build-output/ - native:package likely failed silently. Gradle outputs:"
-            find nativephp/android/app/build/outputs -type f 2>/dev/null || echo "(nativephp/android/app/build/outputs does not exist)"
+            echo "::error::No .aab found in build-output/ - native:package likely failed silently."
+            echo "Re-running gradlew directly for a real error message:"
+            (cd nativephp/android && ./gradlew bundleRelease --stacktrace) || true
             exit 1
           fi
           ls -la build-output/
@@ -116,7 +120,10 @@ jobs:
   build-ios:
     name: Build iOS (unsigned upload)
     needs: determine-version
-    runs-on: macos-15
+    # macos-15's Xcode doesn't have the UIWindow corner-adaptation API used by
+    # plugin-nativephp-patch's ContentView.swift patch; macos-26 ships the
+    # Xcode/SDK that supports it.
+    runs-on: macos-26
     steps:
       - uses: actions/checkout@v6
 
@@ -199,8 +206,9 @@ jobs:
         run: |
           set -euo pipefail
           if ! compgen -G "build-output/*.aab" > /dev/null; then
-            echo "::error::No .aab found in build-output/ - native:package likely failed silently (Gradle build and/or Play Store upload). Gradle outputs:"
-            find nativephp/android/app/build/outputs -type f 2>/dev/null || echo "(nativephp/android/app/build/outputs does not exist)"
+            echo "::error::No .aab found in build-output/ - native:package likely failed silently (Gradle build and/or Play Store upload)."
+            echo "Re-running gradlew directly for a real error message:"
+            (cd nativephp/android && ./gradlew bundleRelease --stacktrace) || true
             exit 1
           fi
           ls -la build-output/
@@ -216,7 +224,8 @@ jobs:
     needs: [determine-version, build-ios]
     if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.publish == true)
     environment: release
-    runs-on: macos-15
+    # See build-ios: macos-26 has the Xcode/SDK the native patch needs.
+    runs-on: macos-26
     steps:
       - uses: actions/checkout@v6
 
