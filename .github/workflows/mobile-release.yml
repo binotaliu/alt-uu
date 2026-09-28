@@ -94,6 +94,19 @@ jobs:
       - name: Package signed Android bundle
         run: php artisan native:package android --build-type=bundle --output=build-output --rebuild --no-tty
 
+      # native:package can swallow a Gradle/packaging failure and still exit 0
+      # (its error paths return without setting Command::FAILURE), so check
+      # for the artifact explicitly instead of trusting the step's exit code.
+      - name: Verify AAB was produced
+        run: |
+          set -euo pipefail
+          if ! compgen -G "build-output/*.aab" > /dev/null; then
+            echo "::error::No .aab found in build-output/ - native:package likely failed silently. Gradle outputs:"
+            find nativephp/android/app/build/outputs -type f 2>/dev/null || echo "(nativephp/android/app/build/outputs does not exist)"
+            exit 1
+          fi
+          ls -la build-output/
+
       - uses: actions/upload-artifact@v4
         with:
           name: android-build
@@ -127,6 +140,18 @@ jobs:
 
       - name: Package signed iOS archive
         run: php artisan native:package ios --export-method=app-store --output=build-output --rebuild --no-tty
+
+      # See the matching Android step: native:package can swallow a build
+      # failure and still exit 0, so verify the artifact exists explicitly.
+      - name: Verify IPA was produced
+        run: |
+          set -euo pipefail
+          if ! compgen -G "build-output/*.ipa" > /dev/null; then
+            echo "::error::No .ipa found in build-output/ - native:package likely failed silently. Archive/export contents:"
+            find nativephp/ios/build -maxdepth 3 2>/dev/null || echo "(nativephp/ios/build does not exist)"
+            exit 1
+          fi
+          ls -la build-output/
 
       - uses: actions/upload-artifact@v4
         with:
@@ -167,6 +192,19 @@ jobs:
         # so "latest + 1" is always safe regardless of version name.
         run: php artisan native:package android --build-type=bundle --output=build-output --upload-to-play-store --play-store-track=internal --rebuild --no-tty
 
+      # native:package can swallow a Gradle/upload failure and still exit 0
+      # (its error paths return without setting Command::FAILURE), so check
+      # for the artifact explicitly instead of trusting the step's exit code.
+      - name: Verify AAB was produced and uploaded
+        run: |
+          set -euo pipefail
+          if ! compgen -G "build-output/*.aab" > /dev/null; then
+            echo "::error::No .aab found in build-output/ - native:package likely failed silently (Gradle build and/or Play Store upload). Gradle outputs:"
+            find nativephp/android/app/build/outputs -type f 2>/dev/null || echo "(nativephp/android/app/build/outputs does not exist)"
+            exit 1
+          fi
+          ls -la build-output/
+
       - uses: actions/upload-artifact@v4
         with:
           name: android-release-signed
@@ -201,15 +239,35 @@ jobs:
         run: rm -Rf nativephp/ios && php artisan native:install --force ios
 
       - name: Package, sign and upload to App Store Connect
+        # macOS runners ship bash 3.2, where "${arr[@]}" on a *declared but
+        # empty* array trips `set -u`'s unbound-variable check (fixed upstream
+        # only in bash 4.4+). Guard the expansion with a length check instead
+        # of relying on the array being safely empty-expandable.
         run: |
           set -euo pipefail
           jump_by_flag=()
           if [ -n "${JUMP_BY:-}" ]; then
             jump_by_flag=(--jump-by="$JUMP_BY")
           fi
-          php artisan native:package ios --export-method=app-store --output=build-output --upload-to-app-store --rebuild --no-tty "${jump_by_flag[@]}"
+          if [ "${#jump_by_flag[@]}" -gt 0 ]; then
+            php artisan native:package ios --export-method=app-store --output=build-output --upload-to-app-store --rebuild --no-tty "${jump_by_flag[@]}"
+          else
+            php artisan native:package ios --export-method=app-store --output=build-output --upload-to-app-store --rebuild --no-tty
+          fi
         env:
           JUMP_BY: ${{ inputs.jump_by }}
+
+      # See the matching Android step: native:package can swallow a build or
+      # upload failure and still exit 0, so verify the artifact exists explicitly.
+      - name: Verify IPA was produced and uploaded
+        run: |
+          set -euo pipefail
+          if ! compgen -G "build-output/*.ipa" > /dev/null; then
+            echo "::error::No .ipa found in build-output/ - native:package likely failed silently (build and/or App Store Connect upload). Archive/export contents:"
+            find nativephp/ios/build -maxdepth 3 2>/dev/null || echo "(nativephp/ios/build does not exist)"
+            exit 1
+          fi
+          ls -la build-output/
 
       - uses: actions/upload-artifact@v4
         with:
