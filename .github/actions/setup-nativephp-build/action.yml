@@ -8,6 +8,15 @@ inputs:
   production-env:
     description: Full contents of the production .env file (from the ALTUU_PRODUCTION_ENV secret)
     required: true
+  app-id:
+    description: NATIVEPHP_APP_ID (bundle identifier) to use for this build, overriding the value in production-env
+    required: true
+  app-version:
+    description: NATIVEPHP_APP_VERSION (store version name, e.g. "1.1.0") to use for this build
+    required: true
+  display-version:
+    description: ALT_UU_DISPLAY_VERSION (e.g. "v1.1.0-RC5") shown to users in-app, overriding the value in production-env
+    required: true
   ios-certificate-base64:
     description: Base64-encoded iOS distribution certificate (.p12)
     required: true
@@ -50,9 +59,25 @@ runs:
 
     - name: Write production .env
       shell: bash
-      run: printf '%s' "$PRODUCTION_ENV" > .env
+      run: |
+        set -euo pipefail
+        printf '%s' "$PRODUCTION_ENV" > .env
+
+        # Override build-specific values computed by the workflow (version, bundle
+        # id) rather than baking them into the static ALTUU_PRODUCTION_ENV secret.
+        # (grep -v, not `sed -i`, to stay portable between BSD/macOS and GNU sed.)
+        grep -vE '^(NATIVEPHP_APP_ID|NATIVEPHP_APP_VERSION|ALT_UU_DISPLAY_VERSION)=' .env > .env.tmp || true
+        mv .env.tmp .env
+        {
+          printf 'NATIVEPHP_APP_ID=%s\n' "$APP_ID"
+          printf 'NATIVEPHP_APP_VERSION=%s\n' "$APP_VERSION"
+          printf 'ALT_UU_DISPLAY_VERSION=%s\n' "$DISPLAY_VERSION"
+        } >> .env
       env:
         PRODUCTION_ENV: ${{ inputs.production-env }}
+        APP_ID: ${{ inputs.app-id }}
+        APP_VERSION: ${{ inputs.app-version }}
+        DISPLAY_VERSION: ${{ inputs.display-version }}
 
     - name: Decode signing credentials
       shell: bash

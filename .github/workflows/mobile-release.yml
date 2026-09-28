@@ -16,14 +16,59 @@ on:
         description: 'Also upload to App Store Connect / Play Store (internal track) after building'
         type: boolean
         default: false
+      jump_by:
+        description: >
+          iOS only (native:package --jump-by). Extra amount to add on top of the
+          App Store Connect-suggested next build number. Use this when releasing
+          a marketing version that has never been uploaded to App Store Connect
+          before: Apple's build-number lookup only checks builds already used
+          *for that exact version string*, so a brand new version otherwise
+          restarts at build 1 and can collide with earlier, higher build
+          numbers. Play Store doesn't need this - its lookup already scans
+          every build across the whole app, regardless of version.
+        type: string
+        default: ''
 
 concurrency:
   group: mobile-release-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
+  determine-version:
+    name: Determine app version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      display_version: ${{ steps.version.outputs.display_version }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Determine version from most recent tag
+        id: version
+        run: |
+          set -euo pipefail
+
+          tag=$(git describe --tags --abbrev=0)
+          version=$(printf '%s' "$tag" | sed -E 's/^v//' | grep -oE '^[0-9]+\.[0-9]+\.[0-9]+')
+          display_version=$(git describe --tags)
+
+          if [ -z "$version" ]; then
+            echo "Could not extract a x.y.z version from tag '$tag'" >&2
+            exit 1
+          fi
+
+          echo "Tag: $tag"
+          echo "App version: $version"
+          echo "Display version: $display_version"
+
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "display_version=${display_version}" >> "$GITHUB_OUTPUT"
+
   build-android:
     name: Build Android (unsigned upload)
+    needs: determine-version
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v6
@@ -31,6 +76,9 @@ jobs:
       - uses: ./.github/actions/setup-nativephp-build
         with:
           production-env: ${{ secrets.ALTUU_PRODUCTION_ENV }}
+          app-id: org.binota.alt_uu
+          app-version: ${{ needs.determine-version.outputs.version }}
+          display-version: ${{ needs.determine-version.outputs.display_version }}
           ios-certificate-base64: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64 }}
           ios-provisioning-profile-base64: ${{ secrets.IOS_DISTRIBUTION_PROVISIONING_PROFILE_BASE64 }}
           app-store-api-key-base64: ${{ secrets.APP_STORE_API_KEY_P8_BASE64 }}
@@ -54,6 +102,7 @@ jobs:
 
   build-ios:
     name: Build iOS (unsigned upload)
+    needs: determine-version
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v6
@@ -61,6 +110,9 @@ jobs:
       - uses: ./.github/actions/setup-nativephp-build
         with:
           production-env: ${{ secrets.ALTUU_PRODUCTION_ENV }}
+          app-id: org.binota.alt-uu
+          app-version: ${{ needs.determine-version.outputs.version }}
+          display-version: ${{ needs.determine-version.outputs.display_version }}
           ios-certificate-base64: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64 }}
           ios-provisioning-profile-base64: ${{ secrets.IOS_DISTRIBUTION_PROVISIONING_PROFILE_BASE64 }}
           app-store-api-key-base64: ${{ secrets.APP_STORE_API_KEY_P8_BASE64 }}
@@ -84,7 +136,7 @@ jobs:
 
   publish-android:
     name: Publish Android to Play Store (internal)
-    needs: build-android
+    needs: [determine-version, build-android]
     if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.publish == true)
     environment: release
     runs-on: macos-15
@@ -94,6 +146,9 @@ jobs:
       - uses: ./.github/actions/setup-nativephp-build
         with:
           production-env: ${{ secrets.ALTUU_PRODUCTION_ENV }}
+          app-id: org.binota.alt_uu
+          app-version: ${{ needs.determine-version.outputs.version }}
+          display-version: ${{ needs.determine-version.outputs.display_version }}
           ios-certificate-base64: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64 }}
           ios-provisioning-profile-base64: ${{ secrets.IOS_DISTRIBUTION_PROVISIONING_PROFILE_BASE64 }}
           app-store-api-key-base64: ${{ secrets.APP_STORE_API_KEY_P8_BASE64 }}
@@ -107,6 +162,9 @@ jobs:
         run: rm -Rf nativephp/android && php artisan native:install --force android
 
       - name: Package, sign and upload to Play Store internal testing
+        # No --jump-by here: Play Store's build-number lookup already scans every
+        # edit/track across the whole app (see PublishesToPlayStore::getLatestPlayStoreVersionCode),
+        # so "latest + 1" is always safe regardless of version name.
         run: php artisan native:package android --build-type=bundle --output=build-output --upload-to-play-store --play-store-track=internal --rebuild --no-tty
 
       - uses: actions/upload-artifact@v4
@@ -117,7 +175,7 @@ jobs:
 
   publish-ios:
     name: Publish iOS to App Store Connect
-    needs: build-ios
+    needs: [determine-version, build-ios]
     if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.publish == true)
     environment: release
     runs-on: macos-15
@@ -127,6 +185,9 @@ jobs:
       - uses: ./.github/actions/setup-nativephp-build
         with:
           production-env: ${{ secrets.ALTUU_PRODUCTION_ENV }}
+          app-id: org.binota.alt-uu
+          app-version: ${{ needs.determine-version.outputs.version }}
+          display-version: ${{ needs.determine-version.outputs.display_version }}
           ios-certificate-base64: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64 }}
           ios-provisioning-profile-base64: ${{ secrets.IOS_DISTRIBUTION_PROVISIONING_PROFILE_BASE64 }}
           app-store-api-key-base64: ${{ secrets.APP_STORE_API_KEY_P8_BASE64 }}
@@ -140,7 +201,15 @@ jobs:
         run: rm -Rf nativephp/ios && php artisan native:install --force ios
 
       - name: Package, sign and upload to App Store Connect
-        run: php artisan native:package ios --export-method=app-store --output=build-output --upload-to-app-store --rebuild --no-tty
+        run: |
+          set -euo pipefail
+          jump_by_flag=()
+          if [ -n "${JUMP_BY:-}" ]; then
+            jump_by_flag=(--jump-by="$JUMP_BY")
+          fi
+          php artisan native:package ios --export-method=app-store --output=build-output --upload-to-app-store --rebuild --no-tty "${jump_by_flag[@]}"
+        env:
+          JUMP_BY: ${{ inputs.jump_by }}
 
       - uses: actions/upload-artifact@v4
         with:
@@ -150,7 +219,7 @@ jobs:
 
   github-release:
     name: Create GitHub release
-    needs: [publish-android, publish-ios]
+    needs: [determine-version, publish-android, publish-ios]
     if: always() && needs.publish-android.result == 'success' && needs.publish-ios.result == 'success'
     runs-on: ubuntu-latest
     permissions:
@@ -168,20 +237,14 @@ jobs:
           name: ios-release-signed
           path: release-assets
 
-      - name: Determine app version
-        id: version
-        run: |
-          VERSION=$(printf '%s' "$ALTUU_PRODUCTION_ENV" | grep -m1 '^NATIVEPHP_APP_VERSION=' | cut -d= -f2-)
-          echo "version=${VERSION:-0.0.0}" >> "$GITHUB_OUTPUT"
-        env:
-          ALTUU_PRODUCTION_ENV: ${{ secrets.ALTUU_PRODUCTION_ENV }}
-
       - name: Create release
         env:
           GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.determine-version.outputs.version }}
+          DISPLAY_VERSION: ${{ needs.determine-version.outputs.display_version }}
         run: |
-          gh release create "mobile-v${{ steps.version.outputs.version }}-${{ github.run_number }}" \
+          gh release create "mobile-v${VERSION}-${{ github.run_number }}" \
             release-assets/*.aab release-assets/*.ipa \
-            --title "Mobile release v${{ steps.version.outputs.version }} (build ${{ github.run_number }})" \
+            --title "Mobile release ${DISPLAY_VERSION} (build ${{ github.run_number }})" \
             --notes "Automated mobile release from commit ${{ github.sha }}. Uploaded to Play Store internal testing and App Store Connect." \
             --target "${{ github.sha }}"
