@@ -9,15 +9,20 @@
  import androidx.compose.ui.viewinterop.AndroidView
  import androidx.core.view.WindowCompat
  import androidx.core.view.WindowInsetsControllerCompat
-@@ -66,6 +68,7 @@
+@@ -66,9 +68,11 @@
      private var shouldStopWatcher = false
      private var pendingInsets: Insets? = null
      private var showSplash by mutableStateOf(true)
 +    private var isInPiP by mutableStateOf(false)
  
      // Status bar style configuration - replaced during build
-     private val statusBarStyle = "REPLACE_STATUS_BAR_STYLE"
-@@ -158,11 +161,18 @@
+-    private val statusBarStyle = "REPLACE_STATUS_BAR_STYLE"
++    private val statusBarStyle = "auto"
++    private var runtimeStatusBarStyle = statusBarStyle
+ 
+     companion object {
+         // Static instance holder for accessing MainActivity from other activities
+@@ -158,11 +162,18 @@
              injectJavaScript(webView)
          }
  
@@ -40,7 +45,49 @@
              }
          }
      }
-@@ -305,6 +315,11 @@
+@@ -198,7 +209,7 @@
+         window.statusBarColor = android.graphics.Color.TRANSPARENT
+         window.navigationBarColor = android.graphics.Color.TRANSPARENT
+ 
+-        when (statusBarStyle) {
++        when (runtimeStatusBarStyle) {
+             "auto" -> {
+                 // Auto-detect from system theme
+                 val isSystemDarkMode = (resources.configuration.uiMode and
+@@ -227,7 +238,7 @@
+                 Log.d("StatusBar", "🎨 System bars style: dark (dark icons with transparent background)")
+             }
+             else -> {
+-                Log.w("StatusBar", "⚠️ Unknown status bar style: $statusBarStyle, defaulting to auto")
++                Log.w("StatusBar", "⚠️ Unknown status bar style: $runtimeStatusBarStyle, defaulting to auto")
+                 // Default to auto
+                 val isSystemDarkMode = (resources.configuration.uiMode and
+                     Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+@@ -237,6 +248,23 @@
+         }
+     }
+ 
++    private fun setStatusBarStyleFromWeb(rawStyle: String?) {
++        val nextStyle = when (rawStyle?.trim()?.lowercase()) {
++            "light" -> "light"
++            "dark" -> "dark"
++            "auto", "system" -> "auto"
++            else -> {
++                Log.w("StatusBar", "⚠️ Ignoring invalid status bar style from web: $rawStyle")
++                return
++            }
++        }
++
++        runtimeStatusBarStyle = nextStyle
++        runOnUiThread {
++            configureStatusBar()
++        }
++    }
++
+     private fun initializeEnvironmentAsync(onReady: () -> Unit) {
+         Thread {
+             Log.d("LaravelInit", "Starting async Laravel extraction...")
+@@ -305,6 +333,11 @@
          NativePHPLifecycle.post(NativePHPLifecycle.Events.ON_PAUSE)
      }
  
@@ -52,7 +99,7 @@
      private fun handleDeepLinkIntent(intent: Intent?) {
          // Check for notification URL extra (from local notification taps or foreground push)
          val notificationUrl = intent?.getStringExtra("notification_url")
-@@ -353,12 +368,12 @@
+@@ -353,12 +386,12 @@
              Log.d("OAuth", "🔐 OAuth callback host: ${uri.host}")
              Log.d("OAuth", "🔐 OAuth callback path: ${uri.path}")
              Log.d("OAuth", "🔐 OAuth callback query: ${uri.query}")
@@ -67,7 +114,25 @@
              if (code != null) {
                  Log.d("OAuth", "✅ OAuth authorization code received: ${code.take(10)}...")
              }
-@@ -891,16 +906,81 @@
+@@ -509,17 +542,10 @@
+             val reloadFile = File("${appStorageDir.absolutePath}/laravel/storage/framework/reload_signal.json")
+             var lastModified: Long = 0
+ 
+-            Log.d("HotReload", "Watcher started, persistent=${phpBridge.isPersistentMode()}")
+-
+             while (!shouldStopWatcher && !Thread.currentThread().isInterrupted) {
+                 try {
+                     if (reloadFile.exists() && reloadFile.lastModified() > lastModified) {
+                         lastModified = reloadFile.lastModified()
+-
+-                        // Reboot the persistent runtime so it picks up file changes
+-                        if (phpBridge.isPersistentMode()) {
+-                            phpBridge.rebootPersistentRuntime()
+-                        }
+ 
+                         runOnUiThread {
+                             webView.stopLoading()
+@@ -898,16 +924,81 @@
                  }
              )
  
@@ -149,8 +214,15 @@
      /**
       * Splash screen composable - shows custom image or fallback text
       */
-@@ -1040,4 +1120,4 @@
+@@ -1045,6 +1136,11 @@
+                 }
+             }
          }
++
++        @android.webkit.JavascriptInterface
++        fun setStatusBarStyle(style: String?) {
++            setStatusBarStyleFromWeb(style)
++        }
      }
  
 -}

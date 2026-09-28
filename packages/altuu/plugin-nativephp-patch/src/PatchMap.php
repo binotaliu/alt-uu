@@ -52,7 +52,7 @@ final class PatchMap
                     // 這裡的也是被修改 (REPLACE_STATUS_BAR_STYLE)
                     'upstream_hash' => '*',
                     'patched' => 'packages/altuu/plugin-nativephp-patch/resources/patches/android/app/src/main/java/com/nativephp/mobile/ui/MainActivity.kt',
-                    'patched_hash' => '859a2b44deb625c6a4a7042f4fb467ca286e1d90ffc166b176b1d08df03e4a5d',
+                    'patched_hash' => 'cef3d899cacf5c4fd2018ee0c4134807289e08503acfe49fc09fbc502762b18e',
                 ],
                 [
                     'target' => 'app/src/main/java/com/nativephp/mobile/ui/NativeUIModels.kt',
@@ -73,7 +73,7 @@ final class PatchMap
                     'upstream' => self::VENDOR_PATH.'/resources/androidstudio/app/src/main/java/com/nativephp/mobile/network/PHPWebViewClient.kt',
                     'upstream_hash' => '86810698435695dc0be8e9b635c7b4dc64115541125afe1b011f2594455c51ae',
                     'patched' => 'packages/altuu/plugin-nativephp-patch/resources/patches/android/app/src/main/java/com/nativephp/mobile/network/PHPWebViewClient.kt',
-                    'patched_hash' => '57e84a55b7cb397eeb599415cb29ce9cbb9d341c9607ad4d089622b684d57470',
+                    'patched_hash' => '7d541de21cdbb29a6da2ea0fd4a418ff4421814773eb7253d32c2043d2bef147',
                 ],
                 [
                     // Fixes a production SIGSEGV inside ts_resource_ex (Play Console:
