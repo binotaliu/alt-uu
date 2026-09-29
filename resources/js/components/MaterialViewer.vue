@@ -103,6 +103,7 @@ const captureError = ref<string | null>(null);
 const canCaptureFrame = computed(
     () =>
         usesNativeMediaPlayer.value &&
+        !!props.videoUrl &&
         !props.isAudioCourse &&
         !isYoutubeEmbed.value &&
         isNativeFrameCaptureAvailable(),
