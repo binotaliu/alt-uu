@@ -114,7 +114,7 @@ onBeforeUnmount(() => {
                         </div>
                         <button
                             type="button"
-                            class="inline-flex h-9 w-9 items-center justify-center text-theme-700 transition hover:border-theme-400 hover:text-theme-900 dark:text-zinc-300 dark:hover:border-zinc-400 dark:hover:text-zinc-100"
+                            class="inline-flex h-9 w-9 shrink-0 items-center justify-center text-theme-700 transition hover:border-theme-400 hover:text-theme-900 dark:text-zinc-300 dark:hover:border-zinc-400 dark:hover:text-zinc-100"
                             aria-label="關閉"
                             @click="closeModal"
                         >

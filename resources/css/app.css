@@ -52,6 +52,12 @@
         display: none !important;
     }
 
+    /* Keep icons at their intended size when adjacent text grows with the
+     * dynamic text size setting and would otherwise squeeze them in flex rows */
+    svg {
+        flex-shrink: 0;
+    }
+
     /* Prevent text selection to make it feels more like a native app */
     * {
         @apply select-none;

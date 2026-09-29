@@ -57,7 +57,7 @@ function formatExpiry(value: string | null): string {
                 :src="configStore.picture"
                 alt=""
                 draggable="false"
-                class="size-14 rounded-full object-cover select-none [-webkit-touch-callout:none]"
+                class="size-14 shrink-0 rounded-full object-cover select-none [-webkit-touch-callout:none]"
             />
             <UserCircleIcon
                 v-else

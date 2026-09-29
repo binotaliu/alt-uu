@@ -77,7 +77,7 @@ async function submit() {
                         :src="account.picture"
                         alt=""
                         draggable="false"
-                        class="size-16 rounded-full object-cover select-none [-webkit-touch-callout:none]"
+                        class="size-16 shrink-0 rounded-full object-cover select-none [-webkit-touch-callout:none]"
                     />
                     <UserCircleIcon
                         v-else

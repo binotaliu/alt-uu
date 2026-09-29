@@ -1053,7 +1053,7 @@ defineExpose({ getCurrentTime, getDuration, seekTo, closePlayer });
                     >
                         <button
                             type="button"
-                            class="flex h-8 w-8 items-center justify-center rounded-lg border border-theme-200 bg-white text-sm font-semibold transition hover:border-theme-400 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-100 dark:hover:border-zinc-400"
+                            class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-theme-200 bg-white text-sm font-semibold transition hover:border-theme-400 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-100 dark:hover:border-zinc-400"
                             :disabled="!canZoomOut || isSavingFontScale"
                             aria-label="縮小字體"
                             @click="adjustFontScale(-FONT_SCALE_STEP)"
@@ -1072,7 +1072,7 @@ defineExpose({ getCurrentTime, getDuration, seekTo, closePlayer });
                         </button>
                         <button
                             type="button"
-                            class="flex h-8 w-8 items-center justify-center rounded-lg border border-theme-200 bg-white text-sm font-semibold transition hover:border-theme-400 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-100 dark:hover:border-zinc-400"
+                            class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-theme-200 bg-white text-sm font-semibold transition hover:border-theme-400 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-100 dark:hover:border-zinc-400"
                             :disabled="!canZoomIn || isSavingFontScale"
                             aria-label="放大字體"
                             @click="adjustFontScale(FONT_SCALE_STEP)"

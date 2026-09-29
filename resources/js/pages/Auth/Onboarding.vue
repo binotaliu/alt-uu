@@ -214,7 +214,7 @@ async function handleContinue(): Promise<void> {
                                 :class="slide.accentClass"
                             >
                                 <div
-                                    class="inline-flex h-12 w-12 items-center justify-center rounded-2xl ring-1"
+                                    class="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ring-1"
                                     :class="slide.panelClass"
                                 >
                                     <component
