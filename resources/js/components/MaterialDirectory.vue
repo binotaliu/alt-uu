@@ -396,9 +396,9 @@ function handleNodeClick(node: DirectoryDisplayNode): void {
                             type="button"
                             class="block w-full rounded-xl border px-3 text-left transition"
                             :class="{
-                                'border-theme-700 bg-theme-50 text-theme-900 dark:border-zinc-500 dark:bg-zinc-800 dark:text-zinc-100':
+                                'border-theme-700 bg-white text-theme-900 dark:border-zinc-500 dark:bg-zinc-800 dark:text-zinc-100':
                                     isNodeInActivePath(node),
-                                'border-theme-100 bg-theme-50 text-theme-900 hover:border-theme-400 hover:bg-theme-100 dark:border-zinc-700/70 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:border-zinc-600 dark:hover:bg-zinc-800':
+                                'border-theme-100 bg-white text-theme-900 hover:border-theme-400 hover:bg-theme-50 dark:border-zinc-700/70 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:border-zinc-600 dark:hover:bg-zinc-800':
                                     !isNodeInActivePath(node),
                             }"
                             :aria-expanded="!isDirectoryCollapsed(node)"
