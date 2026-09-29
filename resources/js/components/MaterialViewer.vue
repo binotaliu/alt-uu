@@ -1039,45 +1039,55 @@ defineExpose({ getCurrentTime, getDuration, seekTo, closePlayer });
                               : '下載檔案'
                     }}</span>
                 </button>
-
-                <div
-                    v-else-if="hasHtmlContent"
-                    class="inline-flex h-10 items-center gap-2 rounded-xl border border-theme-200 bg-theme-50 px-2 text-theme-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
-                >
-                    <button
-                        type="button"
-                        class="flex h-8 w-8 items-center justify-center rounded-lg border border-theme-200 bg-white text-sm font-semibold transition hover:border-theme-400 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-100 dark:hover:border-zinc-400"
-                        :disabled="!canZoomOut || isSavingFontScale"
-                        @click="adjustFontScale(-FONT_SCALE_STEP)"
-                        aria-label="縮小字體"
-                    >
-                        A-
-                    </button>
-                    <button
-                        class="w-12 text-center text-sm font-semibold text-theme-900 tabular-nums dark:text-zinc-100"
-                        @click="adjustFontScale(FONT_SCALE_DEFAULT - fontScale)"
-                    >
-                        {{ scaleLabel }}
-                    </button>
-                    <button
-                        type="button"
-                        class="flex h-8 w-8 items-center justify-center rounded-lg border border-theme-200 bg-white text-sm font-semibold transition hover:border-theme-400 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-100 dark:hover:border-zinc-400"
-                        :disabled="!canZoomIn || isSavingFontScale"
-                        @click="adjustFontScale(FONT_SCALE_STEP)"
-                        aria-label="放大字體"
-                    >
-                        A+
-                    </button>
-                </div>
             </div>
 
-            <article
+            <div
                 v-if="hasHtmlContent && !hasDownloadableContent"
-                class="prose prose-sm max-w-none rounded-2xl border border-theme-200 bg-white px-4 py-5 text-theme-800 shadow-sm prose-theme sm:px-6 md:prose-base dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:prose-zinc dark:prose-invert"
-                :style="fontScaleStyle"
-                @click="handleContentClick"
-                v-html="processedHtmlContent"
-            />
+                class="overflow-hidden rounded-2xl border border-theme-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900"
+            >
+                <div
+                    class="flex items-center justify-end border-b border-theme-200 px-4 py-2 sm:px-6 dark:border-zinc-700"
+                >
+                    <div
+                        class="inline-flex items-center gap-1 rounded-xl border border-theme-200 bg-theme-50 p-1 text-theme-900 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+                    >
+                        <button
+                            type="button"
+                            class="flex h-8 w-8 items-center justify-center rounded-lg border border-theme-200 bg-white text-sm font-semibold transition hover:border-theme-400 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-100 dark:hover:border-zinc-400"
+                            :disabled="!canZoomOut || isSavingFontScale"
+                            aria-label="縮小字體"
+                            @click="adjustFontScale(-FONT_SCALE_STEP)"
+                        >
+                            A-
+                        </button>
+                        <button
+                            type="button"
+                            class="h-8 w-12 rounded-lg text-center text-sm font-semibold text-theme-900 tabular-nums dark:text-zinc-100"
+                            aria-label="重設字體大小"
+                            @click="
+                                adjustFontScale(FONT_SCALE_DEFAULT - fontScale)
+                            "
+                        >
+                            {{ scaleLabel }}
+                        </button>
+                        <button
+                            type="button"
+                            class="flex h-8 w-8 items-center justify-center rounded-lg border border-theme-200 bg-white text-sm font-semibold transition hover:border-theme-400 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-100 dark:hover:border-zinc-400"
+                            :disabled="!canZoomIn || isSavingFontScale"
+                            aria-label="放大字體"
+                            @click="adjustFontScale(FONT_SCALE_STEP)"
+                        >
+                            A+
+                        </button>
+                    </div>
+                </div>
+                <article
+                    class="prose prose-sm max-w-none px-4 py-5 text-theme-800 prose-theme sm:px-6 md:prose-base dark:text-zinc-300 dark:prose-zinc dark:prose-invert"
+                    :style="fontScaleStyle"
+                    @click="handleContentClick"
+                    v-html="processedHtmlContent"
+                />
+            </div>
 
             <div
                 v-else-if="hasDownloadableContent"
