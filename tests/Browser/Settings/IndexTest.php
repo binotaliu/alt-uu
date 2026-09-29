@@ -189,3 +189,18 @@ it('hides the accent color picker when Alt UU+ features are hidden', function ()
         ->assertSee('外觀')
         ->assertMissing('[data-testid="accent-ocean"]');
 });
+
+it('hides the build number until the display version is tapped several times', function () {
+    $hasBuildNumber = 'document.querySelector(\'[data-testid="app-version"]\').textContent.includes("(")';
+
+    $page = visit('/settings')
+        ->assertScript($hasBuildNumber, false);
+
+    foreach (range(1, 4) as $ignored) {
+        $page->click('[data-testid="app-version"]');
+    }
+
+    $page->assertScript($hasBuildNumber, false)
+        ->click('[data-testid="app-version"]')
+        ->assertScript($hasBuildNumber, true);
+});

@@ -10,7 +10,7 @@ import {
     CodeBracketIcon,
     TrashIcon,
 } from '@heroicons/vue/24/outline';
-import { ref, onMounted } from 'vue';
+import { ref, onBeforeUnmount, onMounted } from 'vue';
 import { Browser } from '#nativephp';
 import AndroidBottomControlBackground from '@/components/AndroidBottomControlBackground.vue';
 import AppLayout from '@/components/AppLayout.vue';
@@ -129,6 +129,41 @@ async function setCellularPlaybackWarningEnabled(enabled: boolean) {
     }
 }
 
+const BUILD_NUMBER_REVEAL_TAPS = 5;
+const BUILD_NUMBER_TAP_WINDOW_MS = 2000;
+const isBuildNumberRevealed = ref(false);
+let versionTapCount = 0;
+let versionTapTimer: ReturnType<typeof setTimeout> | null = null;
+
+function registerVersionTap() {
+    if (isBuildNumberRevealed.value) {
+        return;
+    }
+
+    versionTapCount += 1;
+
+    if (versionTapTimer) {
+        clearTimeout(versionTapTimer);
+    }
+
+    if (versionTapCount >= BUILD_NUMBER_REVEAL_TAPS) {
+        isBuildNumberRevealed.value = true;
+        versionTapCount = 0;
+
+        return;
+    }
+
+    versionTapTimer = setTimeout(() => {
+        versionTapCount = 0;
+    }, BUILD_NUMBER_TAP_WINDOW_MS);
+}
+
+onBeforeUnmount(() => {
+    if (versionTapTimer) {
+        clearTimeout(versionTapTimer);
+    }
+});
+
 async function openInApp(url: string) {
     try {
         const handled = await Browser.inApp(url);
@@ -201,11 +236,17 @@ async function clearAttachmentDownloads() {
                         >Alt UU</span
                     >
                 </div>
-                <span class="font-semibold text-theme-700">
-                    {{ configStore.appDisplayVersion }} ({{
-                        configStore.appVersionCode
-                    }})
-                </span>
+                <button
+                    type="button"
+                    class="font-semibold text-theme-700 select-none"
+                    data-testid="app-version"
+                    @click="registerVersionTap"
+                >
+                    {{ configStore.appDisplayVersion }}
+                    <template v-if="isBuildNumberRevealed">
+                        ({{ configStore.appVersionCode }})
+                    </template>
+                </button>
             </div>
 
             <ThemeSettings />
