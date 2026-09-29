@@ -28,6 +28,8 @@
     --hw-theme-800: oklch(0.45 0.1 35);
     --hw-theme-900: oklch(0.35 0.08 35);
     --hw-surface: #fff;
+    --hw-btn-bg: var(--hw-theme-800);
+    --hw-btn-fg: #fff;
     --hw-border: var(--hw-theme-200);
     --hw-radius: 0.9rem;
 }
@@ -44,6 +46,7 @@
         --hw-theme-800: oklch(0.9 0.03 35);
         --hw-theme-900: oklch(0.96 0.01 35);
         --hw-surface: oklch(0.24 0.015 40);
+        --hw-btn-bg: oklch(0.55 0.13 35);
         --hw-border: oklch(0.34 0.03 40);
     }
 }
@@ -362,8 +365,8 @@ input.cssBtn {
     font-size: 1rem !important;
     height: auto !important;
     font-weight: 600;
-    color: #fff !important;
-    background: var(--hw-theme-800) !important;
+    color: var(--hw-btn-fg) !important;
+    background: var(--hw-btn-bg) !important;
     border: none !important;
     border-radius: 0.6rem !important;
 }
@@ -373,7 +376,7 @@ input.cssBtn {
 input.cssBtn[value='放棄此檔'],
 input.cssBtn[value='下次再來'],
 input.cssBtn[value='取消'] {
-    background: white !important;
+    background: var(--hw-surface) !important;
     color: var(--hw-theme-800) !important;
     border: 1px solid var(--hw-border) !important;
 }
@@ -416,8 +419,8 @@ input.cssBtn[value='取消'] {
     flex: 1;
     padding: 0.65rem !important;
     border-radius: 0.6rem !important;
-    background: var(--hw-theme-800) !important;
-    color: #fff !important;
+    background: var(--hw-btn-bg) !important;
+    color: var(--hw-btn-fg) !important;
     border: none !important;
 }
 
