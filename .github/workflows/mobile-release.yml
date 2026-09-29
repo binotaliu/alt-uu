@@ -193,6 +193,22 @@ jobs:
       - name: Install NativePHP Android project
         run: rm -Rf nativephp/android && php artisan native:install --force android
 
+      # The bundle's identity ("<version>b<version_code>") is what devices compare
+      # to decide whether to re-extract the embedded Laravel app, so .env must
+      # carry a fresh NATIVEPHP_APP_VERSION_CODE. native:package only bumps it
+      # from the Play Store when GOOGLE_SERVICE_ACCOUNT_KEY is set in .env; pass
+      # the decoded key explicitly so this never silently depends on that.
+      - name: Sync build number with Play Store
+        run: |
+          set -euo pipefail
+          php artisan native:check-build-number android --update --google-service-key=credentials/android/google-service-account.json --no-interaction
+          code=$(grep -E '^NATIVEPHP_APP_VERSION_CODE=[0-9]+$' .env || true)
+          if [ -z "$code" ]; then
+            echo "::error::NATIVEPHP_APP_VERSION_CODE missing or non-numeric in .env after Play Store sync; devices would not re-extract the bundle."
+            exit 1
+          fi
+          echo "$code"
+
       - name: Package, sign and upload to Play Store internal testing
         # No --jump-by here: Play Store's build-number lookup already scans every
         # edit/track across the whole app (see PublishesToPlayStore::getLatestPlayStoreVersionCode),
@@ -246,6 +262,43 @@ jobs:
 
       - name: Install NativePHP iOS project
         run: rm -Rf nativephp/ios && php artisan native:install --force ios
+
+      # native:package only asks App Store Connect for the next build number
+      # *after* it has already zipped the Laravel app, so the bundle's identity
+      # ("<version>b<version_code>", which decides whether devices re-extract
+      # the embedded app) must be settled in .env beforehand.
+      #
+      # App Store Connect's lookup only covers builds of this exact version
+      # string, and native:check-build-number ignores --jump-by on iOS. So:
+      #   - clear the inherited code, then let the command write latest + 1
+      #     if the store knows this version;
+      #   - add jump_by on top in that case (same maths as native:package);
+      #   - if the store has never seen this version, nothing is written, so
+      #     fall back to jump_by + 1 instead of a stale/default code.
+      # (Android needs no such handling: Play Store's lookup spans all builds.)
+      - name: Sync build number with App Store Connect
+        run: |
+          set -euo pipefail
+          jump_by="${JUMP_BY:-0}"
+          grep -vE '^NATIVEPHP_APP_VERSION_CODE=' .env > .env.tmp || true
+          mv .env.tmp .env
+
+          php artisan native:check-build-number ios --update --no-interaction
+
+          store_code=$(sed -nE 's/^NATIVEPHP_APP_VERSION_CODE=([0-9]+)$/\1/p' .env | tail -n1)
+          if [ -n "$store_code" ]; then
+            code=$((store_code + jump_by))
+          else
+            echo "App Store Connect has no builds for this version; starting from jump_by + 1"
+            code=$((1 + jump_by))
+          fi
+
+          grep -vE '^NATIVEPHP_APP_VERSION_CODE=' .env > .env.tmp || true
+          mv .env.tmp .env
+          printf 'NATIVEPHP_APP_VERSION_CODE=%s\n' "$code" >> .env
+          echo "NATIVEPHP_APP_VERSION_CODE=$code"
+        env:
+          JUMP_BY: ${{ inputs.jump_by }}
 
       - name: Package, sign and upload to App Store Connect
         # macOS runners ship bash 3.2, where "${arr[@]}" on a *declared but
