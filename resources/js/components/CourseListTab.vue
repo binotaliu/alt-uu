@@ -123,13 +123,13 @@ function getCourseTasks(course: CourseItem): CourseTasksCount {
                     :to="`/courses/${course.courseId}`"
                     class="group flex flex-col gap-1 rounded-xl border border-theme-200 bg-white px-4 py-3 text-left transition hover:border-theme-500 hover:bg-theme-50 md:gap-2 md:px-8 md:py-6 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-zinc-500 dark:hover:bg-zinc-800"
                 >
-                    <div class="-ml-2 flex items-center justify-between gap-2">
+                    <div class="-ml-2 flex items-start justify-between gap-2">
                         <div
-                            class="flex min-w-0 items-center text-xs text-theme-700 md:text-sm"
+                            class="flex min-w-0 items-stretch text-xs text-theme-700 md:text-sm"
                         >
                             <span
                                 v-if="course.courseType"
-                                class="shrink-0 rounded-full bg-theme-100 px-2 py-0.5 font-medium text-theme-800 dark:bg-theme-900 dark:text-zinc-300"
+                                class="flex shrink-0 items-center rounded-full bg-theme-100 px-2 py-0.5 font-medium text-theme-800 dark:bg-theme-900 dark:text-zinc-300"
                                 :class="{
                                     'rounded-r-none pr-1': course.className,
                                 }"
@@ -138,12 +138,14 @@ function getCourseTasks(course: CourseItem): CourseTasksCount {
                             </span>
                             <span
                                 v-if="course.className"
-                                class="max-w-36 shrink-0 rounded-full bg-slate-100 px-2 py-0.5 font-medium text-slate-600 dark:bg-zinc-700 dark:text-zinc-300"
-                                :class="{
-                                    'rounded-l-none pl-1': course.courseType,
-                                }"
+                                class="min-w-0 rounded-full bg-slate-100 px-2 py-0.5 font-medium text-slate-600 dark:bg-zinc-700 dark:text-zinc-300"
+                                :class="
+                                    course.courseType
+                                        ? 'rounded-l-none rounded-r-xl pl-1'
+                                        : 'rounded-xl'
+                                "
                             >
-                                <span>{{ course.className }}</span>
+                                {{ course.className }}
                             </span>
                         </div>
 

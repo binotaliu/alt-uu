@@ -481,18 +481,18 @@ watch(
 
             <template #below>
                 <div
-                    class="flex flex-wrap items-center text-sm text-theme-700"
+                    class="flex items-center text-sm text-theme-700"
                     v-if="selectedCourse"
                 >
                     <span
                         v-if="selectedCourse.semester"
-                        class="mr-2 rounded-full py-0.5 pr-2 font-medium text-theme-700 dark:text-zinc-300"
+                        class="mr-2 shrink-0 rounded-full py-0.5 pr-2 font-medium text-theme-700 dark:text-zinc-300"
                     >
                         {{ selectedCourse.semester }}
                     </span>
                     <span
                         v-if="selectedCourse.courseType"
-                        class="rounded-full bg-theme-100 px-2 py-0.5 font-medium text-theme-800 dark:bg-theme-900 dark:text-zinc-300"
+                        class="shrink-0 rounded-full bg-theme-100 px-2 py-0.5 font-medium text-theme-800 dark:bg-theme-900 dark:text-zinc-300"
                         :class="{
                             'rounded-r-none pr-1': selectedCourse.className,
                         }"
@@ -501,7 +501,7 @@ watch(
                     </span>
                     <span
                         v-if="selectedCourse.className"
-                        class="rounded-full bg-slate-100 px-2 py-0.5 font-medium text-slate-600 dark:bg-zinc-700 dark:text-zinc-300"
+                        class="min-w-0 truncate rounded-full bg-slate-100 px-2 py-0.5 font-medium text-slate-600 dark:bg-zinc-700 dark:text-zinc-300"
                         :class="{
                             'rounded-l-none pl-1': selectedCourse.courseType,
                         }"
