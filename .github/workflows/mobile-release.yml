@@ -375,7 +375,7 @@ jobs:
       # the embedded app) must be settled in .env beforehand.
       #
       # App Store Connect's lookup only covers builds of this exact version
-      # string, and native:check-build-number ignores --jump-by on iOS. So:
+      # string, and the check command ignores --jump-by on iOS. So:
       #   - clear the inherited code, then let the command write latest + 1
       #     if the store knows this version;
       #   - add jump_by on top in that case (same maths as native:package);
@@ -389,7 +389,7 @@ jobs:
           grep -vE '^NATIVEPHP_APP_VERSION_CODE=' .env > .env.tmp || true
           mv .env.tmp .env
 
-          php artisan native:check-build-number ios --update --no-interaction
+          php artisan altuu:check-build-number ios --update --no-interaction
 
           store_code=$(sed -nE 's/^NATIVEPHP_APP_VERSION_CODE=([0-9]+)$/\1/p' .env | tail -n1)
           if [ -n "$store_code" ]; then
