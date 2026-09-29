@@ -69,9 +69,9 @@ it('shows the release notes once to an upgrading user after login', function () 
         ->assertSee('Alt UU 有新功能了')
         ->assertSee('v1.1.0')
         ->assertSee('支援多帳號登入')
-        ->assertSee('Alt UU+ 專屬功能')
-        ->assertSee('學習活動統計功能')
-        ->click('知道了')
+        ->assertSee('個人化主題色')
+        ->assertSee('Alt UU+')
+        ->click('好')
         ->assertDontSee('Alt UU 有新功能了')
         ->assertPathIs('/courses');
 
@@ -115,7 +115,7 @@ it('can be reopened from settings and dismissed', function () {
         ->assertDontSee('Alt UU 有新功能了')
         ->click('檢視新功能')
         ->assertSee('支援多帳號登入')
-        ->click('知道了')
+        ->click('好')
         ->assertDontSee('支援多帳號登入')
         ->assertPathIs('/settings');
 });

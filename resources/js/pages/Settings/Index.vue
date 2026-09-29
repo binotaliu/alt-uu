@@ -206,16 +206,6 @@ async function clearAttachmentDownloads() {
                         configStore.appVersionCode
                     }})
                 </span>
-                <button
-                    type="button"
-                    class="inline-flex items-center justify-center gap-2 rounded-lg border border-theme-300 bg-theme-50 px-3 py-2 text-sm font-medium text-theme-800 hover:border-theme-400 hover:bg-theme-100 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:border-zinc-500 dark:hover:bg-zinc-700"
-                    @click="openWhatsNew"
-                >
-                    <SparklesIcon
-                        class="size-4 text-theme-700 dark:text-zinc-200"
-                    />
-                    <span>檢視新功能</span>
-                </button>
             </div>
 
             <ThemeSettings />
@@ -665,16 +655,12 @@ async function clearAttachmentDownloads() {
                     <button
                         type="button"
                         class="inline-flex items-center justify-center gap-2 rounded-lg border border-theme-300 bg-theme-50 px-3 py-2 text-sm font-medium text-theme-800 hover:border-theme-400 hover:bg-theme-100 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:border-zinc-500 dark:hover:bg-zinc-700"
-                        @click="
-                            openInApp(
-                                'https://alt-uu-statics.wcsvdzeimhwq.workers.dev/changelog',
-                            )
-                        "
+                        @click="openWhatsNew"
                     >
                         <SparklesIcon
                             class="size-4 text-theme-700 dark:text-zinc-200"
                         />
-                        <span class="w-30 text-center"> 版本更新說明 </span>
+                        <span class="w-30 text-center"> 檢視新功能 </span>
                     </button>
                     <button
                         type="button"
