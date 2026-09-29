@@ -139,7 +139,7 @@ const examGroups = computed<ExamGroup[]>(() => {
                         class="rounded-xl border border-theme-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-900"
                     >
                         <p
-                            class="truncate font-medium text-theme-900 dark:text-zinc-100"
+                            class="text-base font-medium wrap-break-word text-theme-900 dark:text-zinc-100"
                         >
                             {{ item.courseName }}
                         </p>

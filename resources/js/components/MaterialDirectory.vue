@@ -478,14 +478,16 @@ function handleNodeClick(node: DirectoryDisplayNode): void {
                                     class="flex flex-col items-center justify-center gap-y-0.5"
                                 >
                                     <span
-                                        class="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px] tabular-nums"
+                                        class="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-xs tabular-nums"
                                         :class="
                                             node.duration
                                                 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300'
                                                 : 'bg-slate-100 text-slate-600 dark:bg-zinc-700 dark:text-zinc-300'
                                         "
                                     >
-                                        <ClockIcon class="h-3.5 w-3.5" />
+                                        <ClockIcon
+                                            class="size-[1.2em] shrink-0"
+                                        />
                                         {{ node.duration ?? '未觀看' }}
                                     </span>
                                 </div>

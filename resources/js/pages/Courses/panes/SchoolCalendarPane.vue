@@ -41,7 +41,7 @@ onActivated(() => {
 
 <template>
     <div
-        class="px-4 pt-3 pb-[calc(var(--inset-bottom,0px)+7rem)] md:px-6 md:pt-4 md:pb-6"
+        class="px-4 pt-3 pb-[calc(var(--bottom-nav-height,7rem)+1rem)] md:px-6 md:pt-4 md:pb-6"
     >
         <SchoolCalendarTab
             :school-calendar="schoolCalendar"

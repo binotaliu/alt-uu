@@ -207,7 +207,7 @@ onActivated(async () => {
 
         <div
             v-if="!subscriptionStore.active"
-            class="absolute inset-x-0 bottom-0 flex flex-col items-center gap-2 rounded-b-xl bg-gradient-to-t from-white via-white/95 to-transparent p-4 pt-10 text-center dark:from-zinc-900 dark:via-zinc-900/95"
+            class="relative -mx-4 -mt-24 -mb-4 flex flex-col items-center gap-2 rounded-b-xl bg-gradient-to-t from-white via-white/95 to-transparent p-4 pt-10 text-center dark:from-zinc-900 dark:via-zinc-900/95"
         >
             <SparklesIcon class="size-6 text-amber-600 dark:text-amber-400" />
             <p class="text-sm font-semibold text-theme-900 dark:text-zinc-100">

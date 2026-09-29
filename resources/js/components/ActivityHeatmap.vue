@@ -226,16 +226,16 @@ watch(
 <template>
     <div class="space-y-4">
         <div class="space-y-2">
-            <div class="flex space-x-2">
+            <div class="flex flex-wrap gap-2">
                 <div
-                    class="flex w-1/2 items-center justify-between gap-1 rounded-lg border border-theme-200 bg-theme-50 p-3 dark:border-zinc-700 dark:bg-zinc-800"
+                    class="flex min-w-[9rem] flex-1 flex-wrap items-center justify-between gap-x-2 gap-y-1 rounded-lg border border-theme-200 bg-theme-50 p-3 dark:border-zinc-700 dark:bg-zinc-800"
                 >
                     <p
                         class="shrink-0 text-xs leading-tight text-theme-700 dark:text-zinc-400"
                     >
                         目前<br />連續
                     </p>
-                    <div class="text-right">
+                    <div class="ml-auto text-right">
                         <p
                             class="text-xl font-semibold text-theme-900 dark:text-zinc-100"
                         >
@@ -246,7 +246,7 @@ watch(
                             >
                         </p>
                         <p
-                            class="h-8 text-xs text-theme-700 dark:text-zinc-400"
+                            class="min-h-[2lh] text-xs whitespace-nowrap text-theme-700 dark:text-zinc-400"
                         >
                             {{
                                 currentStreakStartDate
@@ -257,14 +257,14 @@ watch(
                     </div>
                 </div>
                 <div
-                    class="flex w-1/2 items-center justify-between gap-1 rounded-lg border border-theme-200 bg-theme-50 p-3 dark:border-zinc-700 dark:bg-zinc-800"
+                    class="flex min-w-[9rem] flex-1 flex-wrap items-center justify-between gap-x-2 gap-y-1 rounded-lg border border-theme-200 bg-theme-50 p-3 dark:border-zinc-700 dark:bg-zinc-800"
                 >
                     <p
                         class="shrink-0 text-xs leading-tight text-theme-700 dark:text-zinc-400"
                     >
                         最長<br />連續
                     </p>
-                    <div class="text-right">
+                    <div class="ml-auto text-right">
                         <p
                             class="text-xl font-semibold text-theme-900 dark:text-zinc-100"
                         >
@@ -275,7 +275,7 @@ watch(
                             >
                         </p>
                         <p
-                            class="h-8 text-xs text-theme-700 dark:text-zinc-400"
+                            class="min-h-[2lh] text-xs whitespace-nowrap text-theme-700 dark:text-zinc-400"
                         >
                             <template v-if="longestStreakRange">
                                 {{ formatDateSlash(longestStreakRange.start)
@@ -298,14 +298,14 @@ watch(
                 </div>
             </div>
             <div
-                class="flex items-center justify-between gap-3 rounded-lg border border-theme-200 bg-theme-50 p-3 dark:border-zinc-700 dark:bg-zinc-800"
+                class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 rounded-lg border border-theme-200 bg-theme-50 p-3 dark:border-zinc-700 dark:bg-zinc-800"
             >
                 <p
                     class="text-xs leading-tight text-theme-700 dark:text-zinc-400"
                 >
                     最長<br />單日學習時間
                 </p>
-                <div class="text-right">
+                <div class="ml-auto text-right">
                     <p
                         class="text-xl font-semibold text-theme-900 dark:text-zinc-100"
                     >

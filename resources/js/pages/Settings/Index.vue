@@ -620,9 +620,11 @@ async function clearAttachmentDownloads() {
                         href="mailto:alt-uu-contact@binota.org"
                     >
                         <EnvelopeIcon
-                            class="size-4 text-theme-700 dark:text-zinc-200"
+                            class="size-4 shrink-0 text-theme-700 dark:text-zinc-200"
                         />
-                        <span class="w-30 text-center"> 聯絡本 App 作者 </span>
+                        <span class="w-[8.6em] text-center">
+                            聯絡本 App 作者
+                        </span>
                     </a>
                     <button
                         type="button"
@@ -634,9 +636,9 @@ async function clearAttachmentDownloads() {
                         "
                     >
                         <DocumentTextIcon
-                            class="size-4 text-theme-700 dark:text-zinc-200"
+                            class="size-4 shrink-0 text-theme-700 dark:text-zinc-200"
                         />
-                        <span class="w-30 text-center"> 使用條款 </span>
+                        <span class="w-[8.6em] text-center"> 使用條款 </span>
                     </button>
                     <button
                         type="button"
@@ -648,9 +650,9 @@ async function clearAttachmentDownloads() {
                         "
                     >
                         <ShieldCheckIcon
-                            class="size-4 text-theme-700 dark:text-zinc-200"
+                            class="size-4 shrink-0 text-theme-700 dark:text-zinc-200"
                         />
-                        <span class="w-30 text-center"> 隱私權政策 </span>
+                        <span class="w-[8.6em] text-center"> 隱私權政策 </span>
                     </button>
                     <button
                         type="button"
@@ -658,9 +660,9 @@ async function clearAttachmentDownloads() {
                         @click="openWhatsNew"
                     >
                         <SparklesIcon
-                            class="size-4 text-theme-700 dark:text-zinc-200"
+                            class="size-4 shrink-0 text-theme-700 dark:text-zinc-200"
                         />
-                        <span class="w-30 text-center"> 檢視新功能 </span>
+                        <span class="w-[8.6em] text-center"> 檢視新功能 </span>
                     </button>
                     <button
                         type="button"
@@ -670,9 +672,9 @@ async function clearAttachmentDownloads() {
                         "
                     >
                         <CodeBracketIcon
-                            class="size-4 text-theme-700 dark:text-zinc-200"
+                            class="size-4 shrink-0 text-theme-700 dark:text-zinc-200"
                         />
-                        <span class="w-30 text-center"> App 原始碼 </span>
+                        <span class="w-[8.6em] text-center"> App 原始碼 </span>
                     </button>
                 </div>
                 <p

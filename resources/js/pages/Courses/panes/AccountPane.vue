@@ -46,11 +46,11 @@ function formatExpiry(value: string | null): string {
 
 <template>
     <div
-        class="mx-auto w-full max-w-2xl space-y-4 px-4 pt-3 pb-[calc(var(--inset-bottom,0px)+7rem)] md:px-6 md:pt-4 md:pb-6"
+        class="mx-auto w-full max-w-2xl space-y-4 px-4 pt-3 pb-[calc(var(--bottom-nav-height,7rem)+1rem)] md:px-6 md:pt-4 md:pb-6"
     >
         <!-- Profile widget -->
         <div
-            class="flex items-center gap-4 rounded-xl border border-theme-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-900"
+            class="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-theme-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-900"
         >
             <img
                 v-if="configStore.picture"
@@ -63,15 +63,15 @@ function formatExpiry(value: string | null): string {
                 v-else
                 class="size-14 text-theme-700 dark:text-zinc-500"
             />
-            <div class="min-w-0 flex-1">
+            <div class="min-w-[8rem] flex-1">
                 <p
-                    class="text-lg font-semibold text-theme-900 dark:text-zinc-100"
+                    class="text-lg font-semibold break-words text-theme-900 dark:text-zinc-100"
                 >
                     {{ configStore.displayName ?? '學生' }}
                 </p>
                 <p
                     v-if="configStore.username"
-                    class="text-sm text-theme-700 dark:text-zinc-400"
+                    class="text-sm break-words text-theme-700 dark:text-zinc-400"
                 >
                     {{ configStore.username }}
                 </p>

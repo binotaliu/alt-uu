@@ -87,7 +87,7 @@ function getCourseTasks(course: CourseItem): CourseTasksCount {
                         />
                     </div>
                     <div
-                        class="h-12 w-3/4 animate-pulse rounded bg-theme-200 md:h-14 dark:bg-zinc-700"
+                        class="h-[2lh] w-3/4 animate-pulse rounded bg-theme-200 text-base md:text-lg dark:bg-zinc-700"
                     />
                 </div>
             </div>
@@ -239,7 +239,7 @@ function getCourseTasks(course: CourseItem): CourseTasksCount {
                     </div>
 
                     <p
-                        class="line-clamp-2 block h-12 text-base font-semibold text-theme-900 md:h-14 md:text-lg dark:text-zinc-100"
+                        class="line-clamp-2 block min-h-[2lh] text-base font-semibold text-theme-900 md:text-lg dark:text-zinc-100"
                     >
                         {{ course.name || `課程 ${course.courseId}` }}
                     </p>

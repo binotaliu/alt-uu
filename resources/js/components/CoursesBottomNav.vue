@@ -5,7 +5,7 @@ import {
     CalendarDaysIcon,
     UserCircleIcon,
 } from '@heroicons/vue/24/outline';
-import { ref } from 'vue';
+import { onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAppConfigStore } from '@/stores/appConfig';
 
@@ -13,6 +13,32 @@ const props = defineProps<{
     activeTab: 'courses' | 'live-sessions' | 'school-calendar' | 'account';
     nouToolsEnabled?: boolean;
 }>();
+
+const navElement = ref<HTMLElement | null>(null);
+let navResizeObserver: ResizeObserver | null = null;
+
+// The nav grows with the user's text size, so panes reserve scroll space from
+// its measured height instead of a fixed rem value.
+const publishNavHeight = () => {
+    document.documentElement.style.setProperty(
+        '--bottom-nav-height',
+        `${navElement.value?.offsetHeight ?? 0}px`,
+    );
+};
+
+onMounted(() => {
+    publishNavHeight();
+    navResizeObserver = new ResizeObserver(publishNavHeight);
+
+    if (navElement.value) {
+        navResizeObserver.observe(navElement.value);
+    }
+});
+
+onBeforeUnmount(() => {
+    navResizeObserver?.disconnect();
+    document.documentElement.style.removeProperty('--bottom-nav-height');
+});
 
 const showNouToolsModal = ref(false);
 const appConfigStore = useAppConfigStore();
@@ -77,6 +103,7 @@ const closeModal = () => {
 
 <template>
     <nav
+        ref="navElement"
         class="fixed right-0 bottom-0 left-0 z-20 border-t border-theme-200 bg-white px-4 pt-2 pb-[max(var(--inset-bottom,0px),0.75rem)] md:hidden dark:border-zinc-700 dark:bg-zinc-900"
     >
         <div class="mx-auto grid max-w-xl grid-cols-4 gap-2">

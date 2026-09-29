@@ -132,7 +132,7 @@ function isScorePassing(score: string | null): boolean {
                             <dt class="sr-only">課程</dt>
                             <dd>
                                 <p
-                                    class="font-medium wrap-break-word text-theme-900 dark:text-zinc-100"
+                                    class="text-base font-medium wrap-break-word text-theme-900 dark:text-zinc-100"
                                 >
                                     {{ grade.courseName }}
                                 </p>
