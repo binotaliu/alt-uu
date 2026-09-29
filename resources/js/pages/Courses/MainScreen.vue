@@ -9,6 +9,7 @@ import {
 import { computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import AppLayout from '@/components/AppLayout.vue';
+import AppStatusBanners from '@/components/AppStatusBanners.vue';
 import CoursesBottomNav from '@/components/CoursesBottomNav.vue';
 import CoursesTopNav from '@/components/CoursesTopNav.vue';
 import TransparentPageHeader from '@/components/TransparentPageHeader.vue';
@@ -20,11 +21,13 @@ import CoursesPane from '@/pages/Courses/panes/CoursesPane.vue';
 import LiveSessionsPane from '@/pages/Courses/panes/LiveSessionsPane.vue';
 import SchoolCalendarPane from '@/pages/Courses/panes/SchoolCalendarPane.vue';
 import { useAppConfigStore } from '@/stores/appConfig';
+import { useAppStatusStore } from '@/stores/appStatus';
 
 type TabId = 'courses' | 'live-sessions' | 'school-calendar' | 'account';
 
 const route = useRoute();
 const configStore = useAppConfigStore();
+const appStatusStore = useAppStatusStore();
 const { open: openWhatsNew } = useWhatsNew();
 const nouToolsEnabled = computed(() =>
     Boolean(configStore.nouToolsIntegrationEnabled),
@@ -75,6 +78,9 @@ onMounted(async () => {
         return;
     }
 
+    // Not awaited: the banner is optional and must never delay the screen.
+    void appStatusStore.load();
+
     // Brand-new installs finish onboarding first, which records the current
     // version as seen, so only upgrading users land here.
     if (
@@ -114,6 +120,8 @@ onMounted(async () => {
                 </router-link>
             </template>
         </TransparentPageHeader>
+
+        <AppStatusBanners v-if="activeTab === 'courses'" />
 
         <KeepAlive>
             <component :is="activePaneComponent" />
