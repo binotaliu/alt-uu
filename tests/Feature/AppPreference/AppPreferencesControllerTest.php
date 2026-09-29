@@ -215,3 +215,11 @@ it('shows the configured display version verbatim', function () {
         ->assertJsonPath('appDisplayVersion', 'v1.1.0-RC1')
         ->assertJsonPath('appVersion', '1.1.0');
 });
+
+it('reports whether the material source viewer is enabled', function (bool $enabled) {
+    config()->set('app.material_source_viewer_enabled', $enabled);
+
+    getJson('/api/config')
+        ->assertOk()
+        ->assertJsonPath('materialSourceViewerEnabled', $enabled);
+})->with([true, false]);

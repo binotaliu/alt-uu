@@ -63,6 +63,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BootstrapSessionController;
 use App\Http\Controllers\StudyTimeController;
 use App\Http\Middleware\EnsureHunguSession;
+use App\Http\Middleware\EnsureMaterialSourceViewerEnabled;
 use App\Services\UUSessionStore;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Route;
@@ -163,8 +164,10 @@ Route::middleware([EnsureHunguSession::class])->group(function (): void {
         // Needs the live Hungu session, unlike the log: it fetches the school's
         // own pages to show what they actually contain.
         Route::get('/diagnostics/material/{cid}/directory', MaterialDirectoryInspectionController::class)
+            ->middleware(EnsureMaterialSourceViewerEnabled::class)
             ->name('api.diagnostics.material.directory');
         Route::get('/diagnostics/material/{cid}/nodes/{scoid}', MaterialSourceInspectionController::class)
+            ->middleware(EnsureMaterialSourceViewerEnabled::class)
             ->name('api.diagnostics.material.source');
 
         Route::get('/nou-tools/live-sessions', NouToolsLiveSessionsController::class)

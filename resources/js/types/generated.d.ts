@@ -53,6 +53,7 @@ declare namespace AltUU {
                     appVersionCode: string;
                     appDisplayVersion: string;
                     frameworkVersion: string;
+                    materialSourceViewerEnabled: boolean;
                 };
             }
         }

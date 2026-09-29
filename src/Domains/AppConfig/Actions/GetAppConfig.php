@@ -34,6 +34,7 @@ final readonly class GetAppConfig
             appVersionCode: (string) config('nativephp.version_code', 'unknown'),
             appDisplayVersion: $this->displayVersion(),
             frameworkVersion: app()->version(),
+            materialSourceViewerEnabled: (bool) config('app.material_source_viewer_enabled'),
         );
     }
 

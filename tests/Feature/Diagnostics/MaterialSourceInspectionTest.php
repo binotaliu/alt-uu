@@ -9,6 +9,10 @@ use Mockery as MockeryManager;
 
 use function Pest\Laravel\getJson;
 
+beforeEach(function () {
+    config()->set('app.material_source_viewer_enabled', true);
+});
+
 afterEach(function () {
     MockeryManager::close();
 });
@@ -214,4 +218,14 @@ it('refuses nodes that point off the school host, have no link, or do not exist'
     'external host' => ['A3', 403],
     'placeholder link' => ['A1', 422],
     'unknown node' => ['ZZ9', 404],
+]);
+
+it('hides the material source endpoints unless the viewer is enabled', function (string $route, array $parameters) {
+    config()->set('app.material_source_viewer_enabled', false);
+    fakeMaterialInspection();
+
+    getJson(route($route, $parameters))->assertNotFound();
+})->with([
+    'directory' => ['api.diagnostics.material.directory', ['cid' => '9001']],
+    'source' => ['api.diagnostics.material.source', ['cid' => '9001', 'scoid' => 'A2']],
 ]);

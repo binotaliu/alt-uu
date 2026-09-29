@@ -5,6 +5,7 @@ import {
     shouldAnimateNavigation,
     tabOrderDirection,
 } from '@/lib/viewTransitions';
+import { useAppConfigStore } from '@/stores/appConfig';
 
 function resolveInitialRoute(): string {
     const w = window as typeof window & {
@@ -147,6 +148,15 @@ const routes: RouteRecordRaw[] = [
         path: '/settings/diagnostics/material',
         name: 'settings.material-source',
         component: () => import('@/pages/Settings/MaterialSource.vue'),
+        beforeEnter: async () => {
+            const configStore = useAppConfigStore();
+
+            await configStore.loadConfig();
+
+            if (!configStore.materialSourceViewerEnabled) {
+                return { name: 'settings' };
+            }
+        },
     },
 ];
 

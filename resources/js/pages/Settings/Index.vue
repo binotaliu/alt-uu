@@ -553,6 +553,7 @@ async function clearAttachmentDownloads() {
                 </div>
 
                 <div
+                    v-if="configStore.materialSourceViewerEnabled"
                     class="mt-4 flex justify-between gap-2 border-t border-theme-200 pt-4 dark:border-zinc-700"
                 >
                     <div class="flex flex-col gap-1">

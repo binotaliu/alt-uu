@@ -17,6 +17,7 @@ interface AppConfig {
     appVersionCode: string;
     appDisplayVersion: string;
     frameworkVersion: string;
+    materialSourceViewerEnabled: boolean;
 }
 
 interface SessionProfile {
@@ -61,6 +62,7 @@ export const useAppConfigStore = defineStore('appConfig', () => {
     const appVersionCode = ref<string>('unknown');
     const appDisplayVersion = ref<string>('unknown');
     const frameworkVersion = ref<string>('unknown');
+    const materialSourceViewerEnabled = ref<boolean>(false);
     const isLoggedIn = ref<boolean>(false);
     const displayName = ref<string | null>(null);
     const nickname = ref<string | null>(null);
@@ -165,6 +167,8 @@ export const useAppConfigStore = defineStore('appConfig', () => {
                 appVersionCode.value = data.appVersionCode;
                 appDisplayVersion.value = data.appDisplayVersion;
                 frameworkVersion.value = data.frameworkVersion;
+                materialSourceViewerEnabled.value =
+                    data.materialSourceViewerEnabled;
                 isLoaded.value = true;
             } finally {
                 inflight = null;
@@ -287,6 +291,7 @@ export const useAppConfigStore = defineStore('appConfig', () => {
         appVersionCode,
         appDisplayVersion,
         frameworkVersion,
+        materialSourceViewerEnabled,
         isLoggedIn,
         displayName,
         nickname,

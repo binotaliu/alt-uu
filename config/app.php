@@ -30,6 +30,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Material Source Viewer
+    |--------------------------------------------------------------------------
+    |
+    | Master switch for the 教材來源檢視 tool in Settings. When off, the
+    | Settings entry is hidden, the page redirects away, and the diagnostics
+    | material endpoints respond with 404.
+    |
+    */
+
+    'material_source_viewer_enabled' => (bool) env('ALT_UU_MATERIAL_SOURCE_VIEWER_ENABLED', false),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Environment
     |--------------------------------------------------------------------------
     |

@@ -2,6 +2,10 @@
 
 use Illuminate\Support\Facades\Http;
 
+beforeEach(function () {
+    config()->set('app.material_source_viewer_enabled', true);
+});
+
 /**
  * @param  array<string, mixed>  $extraFakes
  */

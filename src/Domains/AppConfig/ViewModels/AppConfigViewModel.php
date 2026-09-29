@@ -21,5 +21,6 @@ final class AppConfigViewModel extends Resource
         public string $appVersionCode,
         public string $appDisplayVersion,
         public string $frameworkVersion,
+        public bool $materialSourceViewerEnabled,
     ) {}
 }
