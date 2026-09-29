@@ -40,11 +40,18 @@ const semesterGroups = computed<SemesterGroup[]>(() => {
     return groups;
 });
 
+function creditItems(
+    grade: SchoolPortalGrade,
+): { label: string; value: string }[] {
+    return [{ label: '學分數', value: grade.credits }].filter(
+        (item): item is { label: string; value: string } => item.value !== null,
+    );
+}
+
 function detailItems(
     grade: SchoolPortalGrade,
 ): { label: string; value: string }[] {
     return [
-        { label: '學分數', value: grade.credits },
         { label: '平時成績', value: grade.regularAverage },
         { label: '期中成績', value: grade.midtermScore },
         { label: '期末成績', value: grade.finalScore },
@@ -121,18 +128,35 @@ function isScorePassing(score: string | null): boolean {
                     class="rounded-xl border border-theme-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-900"
                 >
                     <div class="flex items-center justify-between gap-3">
-                        <div class="flex flex-col">
+                        <div class="flex min-w-0 flex-1 flex-col">
                             <dt class="sr-only">課程</dt>
                             <dd>
                                 <p
-                                    class="min-w-0 flex-1 truncate font-medium text-theme-900 dark:text-zinc-100"
+                                    class="font-medium wrap-break-word text-theme-900 dark:text-zinc-100"
                                 >
                                     {{ grade.courseName }}
                                 </p>
                             </dd>
                             <div
-                                v-if="detailItems(grade).length > 0"
+                                v-if="creditItems(grade).length > 0"
                                 class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-theme-700 dark:text-zinc-400"
+                            >
+                                <div
+                                    v-for="item in creditItems(grade)"
+                                    :key="item.label"
+                                    class="flex items-center gap-1"
+                                >
+                                    <dt>{{ item.label }}</dt>
+                                    <dd
+                                        class="font-medium text-theme-900 dark:text-zinc-200"
+                                    >
+                                        {{ item.value }}
+                                    </dd>
+                                </div>
+                            </div>
+                            <div
+                                v-if="detailItems(grade).length > 0"
+                                class="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-theme-700 dark:text-zinc-400"
                             >
                                 <div
                                     v-for="item in detailItems(grade)"
@@ -148,7 +172,7 @@ function isScorePassing(score: string | null): boolean {
                                 </div>
                             </div>
                         </div>
-                        <div>
+                        <div class="shrink-0">
                             <dt class="sr-only">學期成績</dt>
                             <dd>
                                 <span
