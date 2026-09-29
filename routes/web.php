@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AccountController;
 use App\Http\Controllers\Api\AllCourseGradesController;
 use App\Http\Controllers\Api\AppConfigController;
 use App\Http\Controllers\Api\AppPreferencesController;
+use App\Http\Controllers\Api\AppStatusController;
 use App\Http\Controllers\Api\AttachmentDownloadStatusController;
 use App\Http\Controllers\Api\BlockedUsersModerationController;
 use App\Http\Controllers\Api\BlockUserModerationController;
@@ -82,6 +83,13 @@ Route::post('/api/accounts/{account}/reauthenticate', ReauthenticateAccountContr
 Route::post('/api/accounts/{account}/switch', SwitchAccountController::class)->name('api.accounts.switch');
 
 Route::get('/api/config', AppConfigController::class)->name('api.config');
+
+// Update banner and known-issue announcements from the statics site. Needs no
+// Hungu session: the notice matters most when something is broken, which
+// includes login.
+Route::get('/api/app-status', [AppStatusController::class, 'show'])->name('api.app-status.show');
+Route::post('/api/app-status/dismissals', [AppStatusController::class, 'store'])
+    ->name('api.app-status.dismissals.store');
 
 // Reachable without a live Hungu session so the diagnostic tool can report on
 // Hungu-session-dependent failures too.

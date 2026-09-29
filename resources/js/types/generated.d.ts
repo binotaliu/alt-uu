@@ -136,6 +136,33 @@ declare namespace AltUU {
                 };
             }
         }
+        namespace AppStatus {
+            namespace DataTransferObjects {
+                export type DismissAppStatusItemInputData = {
+                    dismissKey: string;
+                };
+            }
+            namespace ViewModels {
+                export type AnnouncementViewModel = {
+                    dismissKey: string;
+                    severity: string;
+                    title: string;
+                    body: string;
+                    url: string | null;
+                    dismissible: boolean;
+                };
+                export type AppStatusViewModel = {
+                    update: AltUU.Domains.AppStatus.ViewModels.AppUpdateViewModel | null;
+                    announcements: AltUU.Domains.AppStatus.ViewModels.AnnouncementViewModel[];
+                };
+                export type AppUpdateViewModel = {
+                    dismissKey: string;
+                    latestVersion: string;
+                    storeUrl: string | null;
+                    required: boolean;
+                };
+            }
+        }
         namespace AttachmentDownload {
             namespace DataTransferObjects {
                 export type QueueAttachmentDownloadInputData = {
