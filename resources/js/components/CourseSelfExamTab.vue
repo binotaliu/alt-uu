@@ -63,11 +63,19 @@ async function openExam(index: number, url: string): Promise<void> {
             :key="`${item.type}-${item.title}-${index}`"
             class="rounded-2xl border border-theme-200 bg-white/90 p-4 shadow-sm backdrop-blur dark:border-zinc-700 dark:bg-zinc-900/90"
         >
-            <h3
-                class="text-base font-semibold text-theme-900 dark:text-zinc-100"
-            >
-                {{ item.title }}
-            </h3>
+            <div class="flex items-start justify-between gap-2">
+                <h3
+                    class="text-base font-semibold text-theme-900 dark:text-zinc-100"
+                >
+                    {{ item.title }}
+                </h3>
+                <span
+                    v-if="item.isSubmitted"
+                    class="shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300"
+                >
+                    繳交完成
+                </span>
+            </div>
 
             <div class="mt-3 flex flex-wrap gap-2">
                 <button
@@ -88,6 +96,13 @@ async function openExam(index: number, url: string): Promise<void> {
                     檢視結果
                 </button>
             </div>
+
+            <p
+                v-if="!item.resultUrl && item.resultUnavailableReason"
+                class="mt-2 text-xs text-theme-600 dark:text-zinc-400"
+            >
+                無法檢視結果：{{ item.resultUnavailableReason }}
+            </p>
         </article>
     </div>
 </template>

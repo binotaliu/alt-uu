@@ -220,6 +220,8 @@ declare namespace AltUU {
                     actionUrl: string | null;
                     resultUrl: string | null;
                     source: string;
+                    isSubmitted: boolean;
+                    resultUnavailableReason: string | null;
                 };
                 export type CourseHomeworkListViewModel = {
                     homeworkItems: AltUU.Domains.Course.ViewModels.CourseHomeworkItemViewModel[];

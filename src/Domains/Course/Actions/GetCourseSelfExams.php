@@ -65,6 +65,7 @@ final readonly class GetCourseSelfExams
             $window = null;
             $actionUrl = null;
             $resultUrl = null;
+            $resultUnavailableReason = null;
 
             if ($actionNode->count() > 0) {
                 $statusNode = $actionNode->filterXPath('.//div[contains(@class, "main-text")][1]')->first();
@@ -76,7 +77,15 @@ final readonly class GetCourseSelfExams
 
             if ($resultNode->count() > 0) {
                 $resultUrl = $this->extractResultUrl($resultNode, $baseUrl, $resultUrlSuffix);
+
+                if ($resultUrl === null) {
+                    $reasonNode = $resultNode->filterXPath('.//div[contains(@class, "sub-text")][1]')->first();
+                    $reason = $reasonNode->count() > 0 ? $this->normalizeText((string) $reasonNode->text()) : '';
+                    $resultUnavailableReason = $reason === '' ? null : $reason;
+                }
             }
+
+            $isSubmitted = $box->filterXPath('.//img[contains(@src, "answer_submit") or @title="繳交完成"]')->count() > 0;
 
             $items[] = new CourseHomeworkItemViewModel(
                 title: $title,
@@ -87,6 +96,8 @@ final readonly class GetCourseSelfExams
                 actionUrl: $actionUrl,
                 resultUrl: $resultUrl,
                 source: 'self-exam',
+                isSubmitted: $isSubmitted,
+                resultUnavailableReason: $resultUnavailableReason,
             );
         });
 

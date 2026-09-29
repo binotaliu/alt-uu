@@ -41,6 +41,11 @@ it('maps self exams with nested retake button and view result urls', function ()
                                         <div class="sub-text">繳交後公布</div>
                                     </div>
                                 </div>
+                                <div class="process-btn" style="min-width: 110px;">
+                                    <div class="level1">
+                                        <img src="/public/images/answer_submit.png" title="繳交完成"/>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -69,6 +74,32 @@ it('maps self exams with nested retake button and view result urls', function ()
                             </div>
                         </div>
                     </div>
+                    <div class="box2" data-type="self-exam">
+                        <div class="title" style="width: 70%;">
+                            <span style="width: 230px;" title="示範自我測驗 C">示範自我測驗 C</span>
+                        </div>
+                        <div class="content">
+                            <div class="data5 mooc-process">
+                                <div class="process-btn pay active" style="width: 50%;">
+                                    <div class="level1 active">
+                                        <div class="main-text">進行測驗</div>
+                                        <div class="sub-text">從 即日起 到 無限期</div>
+                                    </div>
+                                </div>
+                                <div class="process-btn score" style="width: 50%;">
+                                    <div class="level1">
+                                        <div class="main-text">查看結果</div>
+                                        <div class="sub-text">關閉後公布</div>
+                                    </div>
+                                </div>
+                                <div class="process-btn" style="min-width: 110px;">
+                                    <div class="level1">
+                                        <img src="/public/images/answer_submit.png" title="繳交完成"/>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </body>
             </html>
             HTML),
@@ -92,15 +123,24 @@ it('maps self exams with nested retake button and view result urls', function ()
     ]);
 
     $response->assertSuccessful();
-    $response->assertJsonCount(2);
+    $response->assertJsonCount(3);
 
     $response->assertJsonPath('0.title', '示範自我測驗 A');
     $response->assertJsonPath('0.actionUrl', 'https://uu.nou.edu.tw/learn/exam/exam_start.php?'.$firstExamId.'+0');
     $response->assertJsonPath('0.resultUrl', 'https://uu.nou.edu.tw/learn/exam/view_result.php?'.$firstExamId);
+    $response->assertJsonPath('0.isSubmitted', true);
+    $response->assertJsonPath('0.resultUnavailableReason', null);
 
     $response->assertJsonPath('1.title', '示範自我測驗 B');
     $response->assertJsonPath('1.actionUrl', 'https://uu.nou.edu.tw/learn/exam/exam_start.php?'.$secondExamId.'+0');
     $response->assertJsonPath('1.resultUrl', null);
+    $response->assertJsonPath('1.isSubmitted', false);
+    $response->assertJsonPath('1.resultUnavailableReason', '繳交後公布');
+
+    $response->assertJsonPath('2.title', '示範自我測驗 C');
+    $response->assertJsonPath('2.resultUrl', null);
+    $response->assertJsonPath('2.isSubmitted', true);
+    $response->assertJsonPath('2.resultUnavailableReason', '關閉後公布');
 
     Http::assertSent(fn ($request) => str_contains($request->url(), 'action=go-course') && str_contains($request->url(), 'cid=4242'));
     Http::assertSent(fn ($request) => $request->url() === 'https://uu.nou.edu.tw/learn/exam/co_self_exam_list.php');

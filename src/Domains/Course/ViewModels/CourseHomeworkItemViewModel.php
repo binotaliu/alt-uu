@@ -19,5 +19,7 @@ final class CourseHomeworkItemViewModel extends Resource
         public ?string $actionUrl,
         public ?string $resultUrl,
         public string $source = 'homework',
+        public bool $isSubmitted = false,
+        public ?string $resultUnavailableReason = null,
     ) {}
 }
