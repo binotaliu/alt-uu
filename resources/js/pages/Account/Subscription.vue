@@ -140,7 +140,7 @@ function formatExpiry(value: string | null): string {
                         {{
                             subscriptionStore.active
                                 ? '你已解鎖 Alt UU+ 的所有功能'
-                                : '解鎖多帳號切換等更多功能'
+                                : '解鎖更多專屬功能'
                         }}
                     </p>
                 </div>
