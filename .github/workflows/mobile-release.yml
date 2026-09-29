@@ -172,6 +172,8 @@ jobs:
     if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.publish == true)
     environment: release
     runs-on: macos-15
+    outputs:
+      version_code: ${{ steps.version_code.outputs.version_code }}
     steps:
       - uses: actions/checkout@v6
 
@@ -209,6 +211,14 @@ jobs:
           fi
           echo "$code"
 
+      # Exposed so the sideload APK job reuses the exact same version code.
+      - name: Export version code
+        id: version_code
+        run: |
+          set -euo pipefail
+          code=$(sed -nE 's/^NATIVEPHP_APP_VERSION_CODE=([0-9]+)$/\1/p' .env | tail -n1)
+          echo "version_code=${code}" >> "$GITHUB_OUTPUT"
+
       - name: Package, sign and upload to Play Store internal testing
         # No --jump-by here: Play Store's build-number lookup already scans every
         # edit/track across the whole app (see PublishesToPlayStore::getLatestPlayStoreVersionCode),
@@ -233,6 +243,102 @@ jobs:
         with:
           name: android-release-signed
           path: build-output/*.aab
+          retention-days: 90
+
+  # Signed with a dedicated sideload key (NOT the Play upload key), so it is a
+  # separate install channel from the Play Store build. Runs after the Play
+  # publish (and its approval) and reuses that build's version code.
+  build-android-sideload:
+    name: Build Android sideload APK
+    needs: [determine-version, publish-android]
+    runs-on: macos-15
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: ./.github/actions/setup-nativephp-build
+        with:
+          production-env: ${{ secrets.ALTUU_PRODUCTION_ENV }}
+          app-id: org.binota.alt_uu
+          app-version: ${{ needs.determine-version.outputs.version }}
+          display-version: ${{ needs.determine-version.outputs.display_version }}
+          ios-certificate-base64: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64 }}
+          ios-provisioning-profile-base64: ${{ secrets.IOS_DISTRIBUTION_PROVISIONING_PROFILE_BASE64 }}
+          app-store-api-key-base64: ${{ secrets.APP_STORE_API_KEY_P8_BASE64 }}
+          android-keystore-base64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          google-service-account-key-base64: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY_BASE64 }}
+
+      - name: Build frontend assets
+        run: npm run build -- --mode=android
+
+      - name: Install NativePHP Android project
+        run: rm -Rf nativephp/android && php artisan native:install --force android
+
+      - name: Pin version code to the Play build
+        run: |
+          set -euo pipefail
+          if ! [[ "$VERSION_CODE" =~ ^[0-9]+$ ]]; then
+            echo "::error::Missing version code from publish-android."
+            exit 1
+          fi
+          grep -vE '^NATIVEPHP_APP_VERSION_CODE=' .env > .env.tmp || true
+          mv .env.tmp .env
+          printf 'NATIVEPHP_APP_VERSION_CODE=%s\n' "$VERSION_CODE" >> .env
+        env:
+          VERSION_CODE: ${{ needs.publish-android.outputs.version_code }}
+
+      - name: Decode sideload keystore
+        run: |
+          set -euo pipefail
+          printf '%s' "$SIDELOAD_KEYSTORE" | base64 --decode > credentials/sideload.p12
+        env:
+          SIDELOAD_KEYSTORE: ${{ secrets.ANDROID_SIDELOAD_KEYSTORE_BASE64 }}
+
+      - name: Package sideload APK
+        run: |
+          php artisan native:package android --build-type=release \
+            --keystore=credentials/sideload.p12 \
+            --keystore-password="$SIDELOAD_PASSWORD" \
+            --key-password="$SIDELOAD_PASSWORD" \
+            --key-alias="$SIDELOAD_ALIAS" \
+            --output=build-output --rebuild --no-tty
+        env:
+          SIDELOAD_PASSWORD: ${{ secrets.ANDROID_SIDELOAD_KEYSTORE_PASSWORD }}
+          SIDELOAD_ALIAS: ${{ secrets.ANDROID_SIDELOAD_KEY_ALIAS }}
+
+      # native:package can swallow failures and still exit 0, and could fall
+      # back to the Play upload key from .env. Check the artifact exists and
+      # that it is signed with the sideload key, not the upload key.
+      - name: Verify APK and signing certificate
+        run: |
+          set -euo pipefail
+          if ! compgen -G "build-output/*.apk" > /dev/null; then
+            echo "::error::No .apk found in build-output/ - native:package likely failed silently."
+            exit 1
+          fi
+          apk=$(ls build-output/*.apk | head -n1)
+          mv "$apk" build-output/alt-uu-sideload.apk
+          apksigner=$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -n1)
+          "$apksigner" verify --print-certs build-output/alt-uu-sideload.apk | tee certs.txt
+          actual=$(sed -nE 's/.*certificate SHA-256 digest: ([0-9a-f]+).*/\1/p' certs.txt | head -n1 | tr -d ':' | tr 'a-f' 'A-F')
+          if [ "$actual" != "$EXPECTED_SHA256" ]; then
+            echo "::error::APK is not signed with the sideload key (got $actual)."
+            exit 1
+          fi
+        env:
+          EXPECTED_SHA256: E45CA611489F0DF8A957458206C015FF7B6131ACB7308F693D2B75BE3AA2DD9D
+
+      - uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: build-output/alt-uu-sideload.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-sideload-apk
+          path: build-output/alt-uu-sideload.apk
           retention-days: 90
 
   publish-ios:
@@ -339,11 +445,13 @@ jobs:
 
   github-release:
     name: Create GitHub release
-    needs: [determine-version, publish-android, publish-ios]
-    if: always() && needs.publish-android.result == 'success' && needs.publish-ios.result == 'success'
+    needs: [determine-version, publish-android, publish-ios, build-android-sideload]
+    if: always() && needs.publish-android.result == 'success' && needs.publish-ios.result == 'success' && needs.build-android-sideload.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      id-token: write
+      attestations: write
     steps:
       - uses: actions/checkout@v6
 
@@ -357,6 +465,20 @@ jobs:
           name: ios-release-signed
           path: release-assets
 
+      - uses: actions/download-artifact@v4
+        with:
+          name: android-sideload-apk
+          path: release-assets
+
+      # The AAB/IPA are re-signed by Google/Apple on their way to users, so
+      # these attest what CI produced, not what the stores serve. The APK is
+      # attested in its own job and is what users can verify end to end.
+      - uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: |
+            release-assets/*.aab
+            release-assets/*.ipa
+
       - name: Create release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -364,7 +486,7 @@ jobs:
           DISPLAY_VERSION: ${{ needs.determine-version.outputs.display_version }}
         run: |
           gh release create "mobile-v${VERSION}-${{ github.run_number }}" \
-            release-assets/*.aab release-assets/*.ipa \
+            release-assets/*.aab release-assets/*.ipa release-assets/*.apk \
             --title "Mobile release ${DISPLAY_VERSION} (build ${{ github.run_number }})" \
-            --notes "Automated mobile release from commit ${{ github.sha }}. Uploaded to Play Store internal testing and App Store Connect." \
+            --notes "Automated mobile release from commit ${{ github.sha }}. Uploaded to Play Store internal testing and App Store Connect. The APK is a separate sideload build; see the README for how to verify it." \
             --target "${{ github.sha }}"

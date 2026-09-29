@@ -41,6 +41,36 @@ feat(parser): support new exam schedule format
 是的，Alt UU 是開放原始碼軟體。這表示，任何人都可以通過自己修改原始碼來繞過付費保護，解鎖進階功能。  
 作者並不會對於這類行為設下任何防禦。如同前面提到的，推出訂閱功能是為了回收開發維護成本，而不是為了賺錢。
 
+## 驗證 Android 側載版本 / Verifying the Android sideload build
+
+每個版本的 [GitHub Release](../../releases) 都附有 `alt-uu-sideload.apk`，由 GitHub Actions 建置，並附有建置來源證明（build provenance attestation）。  
+此 APK 使用獨立的簽署金鑰，與 Google Play 版本**不能互相覆蓋更新**，請只選擇其中一種管道安裝。
+
+Every [GitHub Release](../../releases) includes `alt-uu-sideload.apk`, built by GitHub Actions with a build provenance attestation.
+It is signed with a dedicated key, so it **cannot update or be updated by** the Google Play build. Pick one channel per device.
+
+驗證建置來源 / Verify where it was built:
+
+```sh
+gh attestation verify alt-uu-sideload.apk --repo binotaliu/alt-uu
+```
+
+驗證簽署憑證 / Verify the signing certificate (`apksigner` is in Android SDK `build-tools`):
+
+```sh
+apksigner verify --print-certs alt-uu-sideload.apk
+```
+
+憑證 SHA-256 指紋應為 / The certificate SHA-256 fingerprint must be:
+
+```
+E4:5C:A6:11:48:9F:0D:F8:A9:57:45:82:06:C0:15:FF:7B:61:31:AC:B7:30:8F:69:3D:2B:75:BE:3A:A2:DD:9D
+```
+
+> [!NOTE]  
+> Google Play 與 App Store 會重新簽署應用程式，因此商店版本無法與 GitHub 上的檔案逐位元組比對。iOS 沒有對應的側載管道。  
+> The Play Store and App Store re-sign apps, so store builds can't be compared byte for byte with the files on GitHub. There is no iOS sideload channel.
+
 ## 授權 / License
 
 本專案採用 `AGPL-3.0-or-later` 開放原始碼授權，詳細內容請參閱 [LICENSE](LICENSE) 檔案。
