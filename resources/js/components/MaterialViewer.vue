@@ -110,7 +110,7 @@ const canCaptureFrame = computed(
 
 const isReloading = ref(false);
 const reloadError = ref<string | null>(null);
-const canReloadMedia = computed(
+const canReloadPlayer = computed(
     () => !!props.videoUrl && !isYoutubeEmbed.value,
 );
 
@@ -672,6 +672,10 @@ async function handleReload(): Promise<void> {
             return;
         }
 
+        if (!canReloadPlayer.value) {
+            return;
+        }
+
         if (usesNativeMediaPlayer.value) {
             await syncNativePlayer(true);
         } else {
@@ -904,16 +908,7 @@ defineExpose({ getCurrentTime, getDuration, seekTo, closePlayer });
             </p>
         </div>
 
-        <div
-            v-if="
-                props.inAppUrl ||
-                hasHtmlContent ||
-                hasDownloadableContent ||
-                canCaptureFrame ||
-                canReloadMedia
-            "
-            class="space-y-3"
-        >
+        <div class="space-y-3">
             <p v-if="captureError" class="px-1 text-xs text-red-600">
                 {{ captureError }}
             </p>
@@ -933,7 +928,6 @@ defineExpose({ getCurrentTime, getDuration, seekTo, closePlayer });
                 </button>
 
                 <button
-                    v-if="canReloadMedia"
                     type="button"
                     class="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-theme-200 bg-white text-theme-900 transition hover:border-theme-400 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-600 dark:bg-zinc-700 dark:text-zinc-100 dark:hover:border-zinc-400"
                     :disabled="isReloading"
