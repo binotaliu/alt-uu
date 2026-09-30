@@ -115,6 +115,17 @@ final class MediaPlayer
     }
 
     /**
+     * Sets the app-wide iOS window tint (caret, selection handles, alerts and
+     * other native controls) to one of the accent ids. iOS only: the mobile-ui
+     * theme push does not reach the window's `tintColor`. Android and off-device
+     * calls are no-ops.
+     */
+    public function setAccent(string $accent): ?object
+    {
+        return $this->call('AppAccent.SetColor', ['accent' => $accent]);
+    }
+
+    /**
      * @param  array<string, mixed>  $parameters
      */
     private function call(string $method, array $parameters = []): ?object

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Services\NativeAccent;
 use Native\Mobile\Edge\TailwindParser;
+use Native\Mobile\Testing\Native;
 use Native\Mobile\UI\Theme;
 
 beforeEach(function (): void {
@@ -45,6 +46,16 @@ it('applies an accent at runtime and falls back to warm', function (): void {
 
     expect($accent->apply('nope'))->toBe('warm');
     expect(Theme::get('light.primary'))->toBe($warm);
+});
+
+it('tints the iOS window with the accent through the media-player plugin', function (): void {
+    $bridge = Native::fakeBridge();
+
+    app(NativeAccent::class)->apply('ocean');
+    app(NativeAccent::class)->apply('nope');
+
+    $bridge->assertCalled('AppAccent.SetColor', fn (array $params): bool => $params['accent'] === 'ocean');
+    $bridge->assertCalled('AppAccent.SetColor', fn (array $params): bool => $params['accent'] === 'warm');
 });
 
 it('parses theme token classes', function (): void {

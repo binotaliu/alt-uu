@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Facade;
  * @method static object|null setPlaybackRate(float $rate)
  * @method static float getPlaybackRate()
  * @method static object|null getState()
+ * @method static object|null setAccent(string $accent)
  * @method static object|null captureFrame(?string $studentId = null, ?string $courseName = null, ?string $materialName = null)
  *
  * @see \AltUU\MediaPlayer\MediaPlayer

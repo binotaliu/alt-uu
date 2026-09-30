@@ -4,9 +4,9 @@ import UIKit
 
 // MARK: - Accent palette
 
-/// Mirrors the accent list in `resources/js/lib/accents.ts` and the `html[data-accent]` palettes in
-/// `resources/css/app.css`. Keep the three in sync. Light mode uses the accent's theme-600 shade and
-/// dark mode uses theme-400, converted from OKLCH to sRGB.
+/// Mirrors the accent ids of `config('native-ui.accents')` (`App\Services\NativeAccent`), which sets it
+/// through `AppAccent.SetColor`. Light mode uses the accent's theme-600 shade and dark mode uses
+/// theme-400, converted from OKLCH to sRGB.
 final class AccentPalette: ObservableObject {
     static let shared = AccentPalette()
 

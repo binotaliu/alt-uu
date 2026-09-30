@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use AltUU\MediaPlayer\Facades\MediaPlayer;
 use Native\Mobile\UI\Theme;
 
 /**
  * Applies one of the seven user-selectable accents (config `native-ui.accents`)
  * to the SuperNative theme at runtime by merging the accent's token overrides
- * on top of the default (warm) theme.
+ * on top of the default (warm) theme, and sets the iOS window tint through the
+ * media-player plugin's `AppAccent.SetColor` bridge function.
  */
 final class NativeAccent
 {
@@ -27,7 +29,8 @@ final class NativeAccent
     }
 
     /**
-     * Merge the accent's overrides into the theme and push it to the device.
+     * Merge the accent's overrides into the theme, push it to the device and
+     * tint the iOS window.
      * Unknown ids fall back to the default accent.
      */
     public function apply(string $accent): string
@@ -38,6 +41,10 @@ final class NativeAccent
         $tokens = config("native-ui.accents.{$id}");
 
         Theme::merge(['light' => $tokens['light'], 'dark' => $tokens['dark']]);
+
+        // The theme push does not reach the iOS window tint (caret, selection
+        // handles, alerts); the media-player plugin sets it from the accent id.
+        MediaPlayer::setAccent($id);
 
         return $id;
     }
