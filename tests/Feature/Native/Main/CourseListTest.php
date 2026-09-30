@@ -16,6 +16,7 @@ use Tests\Feature\Native\Fixtures\AccountSeeding;
 
 beforeEach(function (): void {
     Cache::flush();
+    app(UpdateAppPreferences::class)(UpdateAppPreferencesInputData::from(['onboardingCompleted' => true]));
     $account = AccountSeeding::seed('s1234567');
     AccountSeeding::activate($account);
 });
@@ -122,11 +123,13 @@ it('opens the What\'s New sheet for an upgrading user only', function (): void {
     expect($screen->get('whatsNewVisible'))->toBeFalse();
 });
 
-it('skips What\'s New before onboarding is done', function (): void {
+it('sends a first launch to onboarding instead of loading courses', function (): void {
     fakeCourseUpstream();
-    config(['nativephp.version' => ReleaseNotes::releases()[0]['version']]);
+    app(UpdateAppPreferences::class)(UpdateAppPreferencesInputData::from(['onboardingCompleted' => false]));
 
-    expect(Native::test(CourseList::class)->get('whatsNewVisible'))->toBeFalse();
+    Native::test(CourseList::class)->assertReplacedWith('/native/onboarding');
+
+    Http::assertNotSent(fn ($request): bool => str_contains($request->url(), 'my-course-list'));
 });
 
 it('restores the material screen of a still-playing native player instead of loading the list', function (): void {

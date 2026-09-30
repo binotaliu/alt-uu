@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\NativeComponents\Courses;
 
 use AltUU\Domains\AppPreference\Actions\GetAppPreferences;
+use AltUU\Domains\AppPreference\Actions\GetOnboardingCompleted;
 use AltUU\Domains\Course\Actions\GetCourseTasksCount;
 use AltUU\Domains\Course\Actions\ListCourses;
 use AltUU\Domains\Course\ViewModels\CourseItemViewModel;
@@ -25,6 +26,10 @@ use Throwable;
  * (MainScreen.vue): session check, preferences, What's New sheet, app status
  * banners. Courses are grouped by semester; the per-course counters load in a
  * second step so a slow or failing tasks page never hides the list.
+ *
+ * It is also the app's start screen (`nativephp.start_url`): a first launch
+ * is sent to onboarding, and the session guard sends a missing or dead
+ * account to login / reauth.
  *
  * `restoreActiveMediaRoute`: when PHP restarted under a still-running native
  * player, mount() pushes the material screen of that session instead of
@@ -67,6 +72,14 @@ final class CourseList extends NativeComponent
 
     public function mount(): void
     {
+        // This is the start screen: a first launch goes through onboarding
+        // (which continues to login or back here) before anything else.
+        if (! app(GetOnboardingCompleted::class)()) {
+            $this->replace($this->route('native.onboarding'));
+
+            return;
+        }
+
         // The equivalent of /api/bootstrap-session: once per app start.
         if (! $this->ensureHunguSession(validateRemotely: true)) {
             return;

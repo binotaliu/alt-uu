@@ -73,12 +73,13 @@ return [
     |--------------------------------------------------------------------------
     |
     | The initial URL/path to load when the app starts. This should be a
-    | path relative to the app root (e.g., "/dashboard", "/onboarding").
-    | If not set, the app will load the root path ("/").
+    | path relative to the app root. It points at the native courses screen,
+    | which routes a first launch to onboarding and a missing or expired
+    | account to login / reauth.
     |
     */
 
-    'start_url' => env('NATIVEPHP_START_URL', '/'),
+    'start_url' => env('NATIVEPHP_START_URL', '/native/courses'),
 
     /*
     |--------------------------------------------------------------------------
