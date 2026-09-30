@@ -248,9 +248,19 @@ final class SettingsIndex extends NativeComponent
         $this->whatsNewVisible = false;
     }
 
-    public function openInApp(string $url): void
+    public function openTerms(): void
     {
-        Browser::inApp($url);
+        Browser::inApp('https://alt-uu-statics.wcsvdzeimhwq.workers.dev/usage-policy');
+    }
+
+    public function openPrivacyPolicy(): void
+    {
+        Browser::inApp('https://alt-uu-statics.wcsvdzeimhwq.workers.dev/privacy-policy');
+    }
+
+    public function openSourceCode(): void
+    {
+        Browser::inApp('https://github.com/binotaliu/alt-uu');
     }
 
     public function contactAuthor(): void

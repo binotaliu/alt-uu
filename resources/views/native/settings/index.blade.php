@@ -269,11 +269,7 @@
                     label="使用條款"
                     :ios-icon="Ios::DocText"
                     :android-icon="Android::Description"
-                    @tap="
-                        openInApp(
-                            'https://alt-uu-statics.wcsvdzeimhwq.workers.dev/usage-policy',
-                        )
-                    "
+                    @tap="openTerms"
                 />
                 <native:button
                     ref="privacy"
@@ -281,11 +277,7 @@
                     label="隱私權政策"
                     :ios-icon="Ios::CheckmarkShield"
                     :android-icon="Android::Shield"
-                    @tap="
-                        openInApp(
-                            'https://alt-uu-statics.wcsvdzeimhwq.workers.dev/privacy-policy',
-                        )
-                    "
+                    @tap="openPrivacyPolicy"
                 />
                 <native:button
                     ref="whats-new"
@@ -301,7 +293,7 @@
                     label="App 原始碼"
                     :ios-icon="Ios::ChevronLeftForwardslashChevronRight"
                     :android-icon="Android::Code"
-                    @tap="openInApp('https://github.com/binotaliu/alt-uu')"
+                    @tap="openSourceCode"
                 />
                 <native:text class="text-theme-on-surface-variant pt-1 text-sm"
                     >本程式為 AGPL-3.0-or-later
