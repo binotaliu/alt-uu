@@ -6,7 +6,6 @@
     "packages": [
         "spatie/laravel-ray",
         "nativephp/mobile",
-        "nativephp/mobile-system",
         "nativephp/mobile-browser"
     ],
     "sail": false,
@@ -15,6 +14,8 @@
         "pest-testing",
         "tailwindcss-development",
         "nativephp-mobile",
+        "nativephp-v3-to-v4-upgrade",
+        "nativephp-webview-to-native",
         "debugging-output-and-previewing-html-using-ray"
     ]
 }

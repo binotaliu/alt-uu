@@ -445,7 +445,8 @@ jobs:
 
   github-release:
     name: Create GitHub release
-    needs: [determine-version, publish-android, publish-ios, build-android-sideload]
+    needs:
+      [determine-version, publish-android, publish-ios, build-android-sideload]
     if: always() && needs.publish-android.result == 'success' && needs.publish-ios.result == 'success' && needs.build-android-sideload.result == 'success'
     runs-on: ubuntu-latest
     permissions:
