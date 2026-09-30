@@ -34,6 +34,7 @@ Core (`nativephp/mobile`, always available):
 - Feedback: `badge` (`count`, `label`, `variant`), `progress-bar` (`value`, `indeterminate`), `activity-indicator`.
 - Overlays: `modal` (`visible`, `dismissible`, `@dismiss`), `bottom-sheet` (`visible`, `detents`, `@dismiss`), `sheet-pane`, `native-drawer`, `floating-overlay`, `background-layer`.
 - Web content: `native:webview` (NOT `web-view`; type `webview`, self-closing). Attrs: `src` (URL), `html` (inline HTML), `javascript`/`js` (default off), `dom-storage` (default off), `fullscreen`, `php` (embed the app's own Laravel webview; `src` is then an app route), `@navigated="method"` (fires per top-frame URL commit with the URL). Default posture is sandboxed: JS off, no DOM storage, no file access, no new windows. Enable only what a screen needs.
+- Foreign HTML: `native:html-view` (plugin `altuu/plugin-html-view`, type `html_view`, self-closing) instead of `native:webview`: auto height, link-tap interception, JS message bridge. Use it through the `html-content` component (11.5); attrs `html`, `src`, `auto-height`, `on-link-tap`, `on-height-change`, `on-message` (plain method-name attributes, not `@` directives).
 
 Common: every element accepts `class`, `a11y-label`, `a11y-hint`, `ref`, and `key`. Icon-only controls MUST carry `a11y-label`. Events: `@tap`/`@press`, `@longTap`, `@change`, `@submit`, `@dismiss`, `@refresh`, `@endReached`. Directives interpolate: `@tap="pick({{ $id }})"`.
 
@@ -244,7 +245,7 @@ expect($host->get('events'))->toBe([['toggled', true]]);             // ['event'
 $host->call('setState', 'visible', true);                            // change host state (props) mid-test
 ```
 
-The fixture view mounts the tag with `@event="record('event')"` bindings and reads `$state[...]`. Other fixtures: `DialogHost` (dialog + toast traits), `SessionExpiryHost` (session picker trait), `AccountSeeding::seed($username, withSession: true, nickname: null)` + `::activate($account)` (note: `seed()` of a new account can make it the active one, so `activate()` again afterwards). Webview wire props are asserted from `$host->tree()` (node `type === 'webview'`, `props.html`, `props.javascript`, `props.on_navigated`); the `@navigated` callback is fired with `->fireEvent('onNavigated', TestableComponent::EVENT_TEXT_CHANGE, ['text' => $url])`.
+The fixture view mounts the tag with `@event="record('event')"` bindings and reads `$state[...]`. Other fixtures: `DialogHost` (dialog + toast traits), `SessionExpiryHost` (session picker trait), `AccountSeeding::seed($username, withSession: true, nickname: null)` + `::activate($account)` (note: `seed()` of a new account can make it the active one, so `activate()` again afterwards). `html-content` wire props are asserted from `$host->tree()` (node `type === 'html_view'`, `props.html`, `props.auto_height`, `props.on_link_tap`); its callbacks are fired with `->fireEvent('onLinkTap', TestableComponent::EVENT_TEXT_CHANGE, ['text' => $json])` (see 11.5).
 
 ### 11.3 Components
 
@@ -277,38 +278,57 @@ Partials (`@include`, no slots possible, so data goes through the include array)
 - `ShowsSessionExpiredPicker`: public `$sessionPickerVisible` / `$sessionPickerFailedAccountId`; call `if ($this->handleSessionExpired()) { return; }` when an Action fails with an expired session (or in `onResume()`). It runs `NativeSessionGuard::check()`: still valid -> false; an account failed and other accounts exist -> opens the picker; otherwise `replace()`s to `native.reauth` / `native.login`. Render `<native:session-expired-picker :visible="$sessionPickerVisible" :failed-account-id="$sessionPickerFailedAccountId" return-to="..." @cancel="closeSessionPicker" @switched="onSessionPickerSwitched" />` and override `onAccountSwitched(int $accountId)` to reload. Caveat: the guard soft-deletes an account whose remembered login fails, so the failed account may already be gone from the list; the picker then names it via `failedAccountName` or 目前帳號, and the reauth screen must load the account `withTrashed()`.
 - `SwitchesAccounts` (used by the sheet and the picker, not by screens): toasts, re-primes the session profile, emits `switched`, or navigates to `native.reauth` with data `['returnTo' => $returnTo]` when the target session is dead ("已失效").
 
-### 11.5 `html-content` (the only web view)
+### 11.5 `html-content` and the `html-view` plugin element
+
+`html-content` renders through `<native:html-view>`, the element shipped by the in-repo plugin `packages/altuu/plugin-html-view` (type `html_view`, registered in `NativeServiceProvider::plugins()`). It replaces `native:webview` for school-authored HTML, which the stock webview could not intercept, size or talk to. `native:webview` is no longer used by the app.
 
 ```blade
 <native:html-content
-    key="material-html"
+    key="post-{{ $post->id }}"
     :html="$html"
     base-url="{{ $node->href }}"
     appearance="auto"
     :font-scale="$fontScale"
     :node-links="$materialNodes"
     active-node-url="{{ $node->href }}"
+    :auto-height="true"
     @node-link="openNode"
     @subpage-link="loadSubpage"
     @tronclass-link="openTronclass"
     @external-link="openExternal"
+    @mailto-link="openMailto"
+    @tel-link="openTel"
+    @height="onPostHeight"
 />
-<native:html-content key="video" embed-url="https://www.youtube.com/embed/ID" />
+<native:html-content
+    key="video"
+    embed-url="https://www.youtube.com/embed/ID"
+    @progress="onProgress"
+    @external-link="openExternal"
+/>
 ```
 
-- Props: `html`, `baseUrl` (relative `href`/`src` are made absolute), `appearance` (`auto` = `isDark()`, `light`, `dark`; dark remaps inline `color`/`background`/`border` colours, port of `lib/htmlColorScheme.ts` in `Support\HtmlColorScheme`), `fontScale` (0.7..1.6, scales the 16px base), `nodeLinks` (list of `['identifier','href']` or `CourseMaterialNodeViewModel`s), `activeNodeUrl`, `embedUrl` (only `https://www.youtube.com|www.youtube-nocookie.com/embed/...`, anything else renders nothing), `webviewClass` (default `w-full flex-1`), `autoRestore` (default true).
-- Document: `Support\HtmlContentDocument::build()` strips `<script>`, inline `on*` handlers, `target`, `<meta>/<link>/<base>`, adds a CSP meta, transparent background, theme text/link/border colours from `config('native-ui.theme.{light|dark}')`. Webview posture: JS off, no DOM storage (embed mode turns both on).
-- Events (argument order is fixed): `node-link` (`identifier`, `url`), `subpage-link` (`url`), `tronclass-link` (`url`), `external-link` (`url`). Classification order: node (same host+path+query as a node href), subpage (same host as `activeNodeUrl`), tronclass (`https://tronclass.nou.edu.tw/`, `https://nou.tronclass.com.tw/`), external. The host mirrors `Material.vue::handleContentLinkClick`: `node-link` for the active node reloads its content without resetting the timer, otherwise selects the node; `subpage-link` loads the parsed content for that URL and keeps the timer running; `tronclass-link` -> `AttachmentBridge::openTronclass($url)`; `external-link` -> `Browser::inApp($url)`.
-- Layout: the webview cannot size to its content. Give it a bounded parent (a `h-full` column, `flex-1`), never a `scroll-view`; the YouTube embed sits in a `native:stack aspect-video`.
+- Props: `html`, `baseUrl` (relative `href`/`src` are made absolute), `appearance` (`auto` = `isDark()`, `light`, `dark`; dark remaps inline `color`/`background`/`border` colours, port of `lib/htmlColorScheme.ts` in `Support\HtmlColorScheme`; `light`/`dark` also force the native colour scheme), `fontScale` (0.7..1.6, scales the 16px base in the document CSS; the element's native `font_scale` is deliberately not used, to avoid double scaling), `nodeLinks` (list of `['identifier','href']` or `CourseMaterialNodeViewModel`s), `activeNodeUrl`, `embedUrl` (only `https://www.youtube.com|www.youtube-nocookie.com/embed/...` or the statics `youtube-embed.html` wrapper from `services.statics.base_url`; anything else renders nothing), `autoHeight` (default false), `estimatedHeight` (height before the first measurement, default 80), `webviewClass` (default `w-full flex-1`, becomes `w-full` with `autoHeight`), `autoRestore` (accepted and ignored; nothing needs restoring any more).
+- Document: `Support\HtmlContentDocument::build()` strips `<script>`, inline `on*` handlers, `target`, `<meta>/<link>/<base>`, adds a CSP meta, transparent background, theme text/link/border colours from `config('native-ui.theme.{light|dark}')`. HTML mode runs no page JS; embed mode turns JS and DOM storage on.
+- Events (argument order is fixed): `node-link` (`identifier`, `url`), `subpage-link` (`url`), `tronclass-link` (`url`), `mailto-link` (`url`), `tel-link` (`url`), `external-link` (`url`), `height` (`float`, only when it changed by 2 or more; informational, the native side already resized), `message` (`array`, decoded page JSON, embed mode), `progress` (`?float $currentTime`, `?float $duration`, from `source: 'altuu-youtube-embed'` messages). Classification order: node (same host+path+query as a node href), subpage (same host as `activeNodeUrl`), tronclass (`https://tronclass.nou.edu.tw/`, `https://nou.tronclass.com.tw/`), external. Other schemes (`javascript:`, `intent:`) are dropped. Hosts: `node-link` for the active node reloads its content without resetting the timer, otherwise selects the node; `subpage-link` loads the parsed content for that URL and keeps the timer running; `tronclass-link` -> `AttachmentBridge::openTronclass($url)`; `external-link` -> `Browser::inApp($url)`; `mailto-link`/`tel-link` -> `Browser::open($url)`. In embed mode every top-level link tap is an `external-link`.
+- Link taps never navigate the view: the native side cancels the navigation before it starts (iOS `decidePolicyFor`, Android `shouldOverrideUrlLoading`/`onCreateWindow`) and reports it, so there is no flash, no request and no reload.
+- Layout: with `autoHeight` the view sizes itself to its content and can be stacked inside a `scroll-view` (forum posts, give each a stable `key`). Without it, give it a bounded parent (a `h-full` column, `flex-1`); the YouTube embed sits in a `native:stack aspect-video`.
+- Tests: wire props from `$host->tree()` (node `type === 'html_view'`); link taps, height and message are fired with `->fireEvent('onLinkTap' | 'onHeight' | 'onMessage', TestableComponent::EVENT_TEXT_CHANGE, ['text' => ...])` (see the helpers in `HtmlContentTest`).
 
-**Webview capability gaps (blockers for Material and DiscussThread, verified in `NativeUIWebviewRenderer.swift` and `WebviewRenderer.kt`):**
+**`<native:html-view>` wire contract** (plugin `altuu/plugin-html-view`; element `AltUU\HtmlView\Elements\HtmlView`). Props, only non-defaults are emitted: `src`, `html`, `base_url` (opaque origin when absent), `javascript` (false), `dom_storage` (false), `auto_height` (false), `estimated_height` (80), `color_scheme` (`light`|`dark`, default device), `font_scale` (0.5..3.0, default 1, native text zoom), `user_script` (page world, needs `javascript`), plus `on_link_tap`, `on_height_change`, `on_message` callback ids. All three events are TEXT_CHANGE (the only payload the wire carries): link tap = JSON `{"url","scheme","newWindow"}`, height = decimal string, message = the string the page passed to `window.AltUUBridge.postMessage(objectOrString)` (`AndroidBridge` on Android). They are bound with plain method attributes, `on-link-tap="method"`, `on-height-change="method"`, `on-message="method"` (an expression such as `record('x')` works too; the text is appended as the last argument), because unknown `@name=` directives are reserved for child components and are stripped from plain elements.
 
-1. **No link interception.** A tapped http(s) link navigates the webview itself; `@navigated` fires only AFTER the top-frame commit, so `*-link` events arrive after the web view has already left the content. `autoRestore` reloads the original HTML right after the event (via a comment nonce, because the renderer reloads only when `src + html` changes), but the user can see the flash and the request still goes out. `mailto:`, `tel:` and `target=_blank`/`window.open` are dropped silently with no event.
-2. **No JS message bridge** (no script message handler, no `evaluateJavaScript`), so the YouTube `postMessage` progress the Vue app uses for study time is impossible in sandboxed mode; Material cannot track YouTube playback position/duration, only wall-clock time on screen.
-3. **No content-height reporting**: many forum posts cannot be stacked in a scroll view with per-post webviews sized to content; DiscussThread needs another approach (one webview for the whole thread, or a native text fallback).
-4. **Opaque origin, no cookies** (`baseURL = nil`, non-persistent store): relative URLs must be pre-resolved (done) and cookie-protected school images/files will not load inside the HTML.
-5. `php` mode (the app's own Laravel webview) has the bridge and sends links to the system, but hosts an app route rather than sandboxed foreign HTML, which the approval did not cover; listed as an option only.
-6. Whether the WKWebView/Android WebView follows the app's forced appearance is unverified; `appearance="auto"` uses `isDark()`, so verify on device that text and remapped colours match the native surface.
+**Not verified (native code was written without a compiler or device; check on device before relying on it):**
+
+1. iOS: the height/font scripts run in `WKContentWorld.defaultClient` and are assumed to work while `allowsContentJavaScript` is false. If forum posts never resize, that is the first suspect (fallback: `scrollView.contentSize` KVO).
+2. iOS: `-webkit-text-size-adjust` percentages as the font scale; `.frame(height:)` after the first measurement (estimated height flashes).
+3. Android: with page JS off, `javaScriptEnabled` is switched on only for a one-shot `evaluateJavascript` measurement after `onPageFinished` (plus re-measures at 300 ms and 1.2 s). Late-loading images after 1.2 s are not caught. With JS on, an observer script reports through the `AltUUHeight` interface.
+4. Android: user script and bridge shim are injected on page commit/finish, not at document start (no androidx.webkit dependency), so very early page messages can be missed. `AndroidBridge` is exposed to every frame of the page (including the YouTube iframe); PHP validates the payload (`source`).
+5. Android: `setSupportMultipleWindows(true)` so `target=_blank` reaches `onCreateWindow`; the throwaway WebView used to capture the URL is destroyed right away. `HtmlContentDocument` strips `target`, so this path only matters for other users of the element.
+6. Android: the WebView inside a Compose scroll container with a content-sized height must not swallow vertical drags (nested scroll interop).
+7. Android: no per-view cookie jar (`CookieManager` is process-wide; `setAcceptCookie(false)` would break `AttachmentBridge.OpenURL` cookie injection). `base_url` with https makes requests to that host carry the process cookies. iOS uses a non-persistent store. Cookie-protected school images/files still do not load without `base_url`.
+8. Android: a forced `color_scheme` only takes effect through the document CSS (`color-scheme`); the platform's algorithmic darkening is switched off (API 33+). iOS also overrides the user interface style.
+9. YouTube progress relies on the statics `youtube-embed.html` wrapper posting `{source: 'altuu-youtube-embed', currentTime, duration}` to `window.parent`; loaded top-level `parent === window`, so the injected `message` listener sees it. The wrapper source is not in this repo; if it guards on `window.parent !== window`, no progress arrives. YouTube may also refuse a top-frame embed without a Referer (see 11.6).
+10. Android render-process death leaves the view blank until PHP re-renders it with different content.
 
 ### 11.6 Other gaps found
 

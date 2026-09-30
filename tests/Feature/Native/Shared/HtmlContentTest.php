@@ -15,7 +15,7 @@ function findWebview(TestableComponent $host): array
 {
     $found = null;
     $walk = function (array $node) use (&$walk, &$found): void {
-        if (($node['type'] ?? null) === 'webview') {
+        if (($node['type'] ?? null) === 'html_view') {
             $found = $node;
         }
 
@@ -31,9 +31,18 @@ function findWebview(TestableComponent $host): array
     return $found;
 }
 
-function navigateWebview(TestableComponent $host, string $url): TestableComponent
+function tapLink(TestableComponent $host, string $url, string $scheme = 'https', bool $newWindow = false): TestableComponent
 {
-    return $host->fireEvent('onNavigated', TestableComponent::EVENT_TEXT_CHANGE, ['text' => $url]);
+    return $host->fireEvent('onLinkTap', TestableComponent::EVENT_TEXT_CHANGE, [
+        'text' => json_encode(['url' => $url, 'scheme' => $scheme, 'newWindow' => $newWindow], JSON_THROW_ON_ERROR),
+    ]);
+}
+
+function postMessage(TestableComponent $host, array|string $payload): TestableComponent
+{
+    return $host->fireEvent('onMessage', TestableComponent::EVENT_TEXT_CHANGE, [
+        'text' => is_string($payload) ? $payload : json_encode($payload, JSON_THROW_ON_ERROR),
+    ]);
 }
 
 // ── Colour remap (port of htmlColorScheme.ts) ───────────────────────────────
@@ -137,44 +146,59 @@ it('classifies links as node, subpage, tronclass or external in that order', fun
 
 // ── Component ───────────────────────────────────────────────────────────────
 
-it('renders a sandboxed webview with inline html and a navigated callback', function (): void {
+it('renders a sandboxed html view with inline html and the link and height callbacks', function (): void {
     $host = RecordingHost::mountView('html-content', ['html' => '<p>第一章</p>']);
     $webview = findWebview($host);
 
     expect($webview['props']['html'])->toContain('<p>第一章</p>')
-        ->and($webview['props'])->not->toHaveKey('javascript')
-        ->and($webview['props'])->not->toHaveKey('dom_storage')
-        ->and($webview['props'])->not->toHaveKey('php')
-        ->and($webview['props'])->not->toHaveKey('src')
-        ->and($webview['props'])->toHaveKey('on_navigated');
+        ->and($webview['props'])->not->toHaveKeys(['javascript', 'dom_storage', 'src', 'auto_height', 'user_script', 'on_message'])
+        ->and($webview['props'])->toHaveKeys(['on_link_tap', 'on_height_change']);
+    $host->assertMissingElement('webview');
 });
 
-it('remaps colours only when the appearance is dark', function (): void {
+it('remaps colours only when the appearance is dark and forces the native scheme', function (): void {
     $html = '<p style="color:#000">x</p>';
+    $light = findWebview(RecordingHost::mountView('html-content', ['html' => $html, 'appearance' => 'light']));
+    $dark = findWebview(RecordingHost::mountView('html-content', ['html' => $html, 'appearance' => 'dark']));
 
-    expect(findWebview(RecordingHost::mountView('html-content', ['html' => $html, 'appearance' => 'light']))['props']['html'])
-        ->toContain('color:#000')
-        ->and(findWebview(RecordingHost::mountView('html-content', ['html' => $html, 'appearance' => 'dark']))['props']['html'])
-        ->toContain('color: #f2f2f2');
+    expect($light['props']['html'])->toContain('color:#000')
+        ->and($light['props']['color_scheme'])->toBe('light')
+        ->and($dark['props']['html'])->toContain('color: #f2f2f2')
+        ->and($dark['props']['color_scheme'])->toBe('dark');
 });
 
-it('emits node-link with the node identifier and reloads the original content', function (): void {
+it('follows the device appearance by default', function (): void {
+    $props = findWebview(RecordingHost::mountView('html-content', ['appearance' => 'auto']))['props'];
+
+    expect($props)->not->toHaveKey('color_scheme');
+});
+
+it('sizes to its content only on request', function (): void {
+    $fixed = findWebview(RecordingHost::mountView('html-content'));
+    $auto = findWebview(RecordingHost::mountView('html-content', ['autoHeight' => true, 'estimatedHeight' => 96]));
+
+    expect($fixed['props'])->not->toHaveKey('auto_height')
+        ->and($fixed['layout'] ?? [])->not->toBe($auto['layout'] ?? [])
+        ->and($auto['props']['auto_height'])->toBeTrue()
+        ->and($auto['props']['estimated_height'])->toBe(96.0);
+});
+
+it('emits node-link with the node identifier and never reloads the content', function (): void {
     $host = RecordingHost::mountView('html-content');
     $before = findWebview($host)['props']['html'];
 
-    navigateWebview($host, 'https://uu.nou.edu.tw/media/course/1/n2.html?x=1');
+    tapLink($host, 'https://uu.nou.edu.tw/media/course/1/n2.html?x=1');
 
     expect($host->get('events'))->toBe([['node-link', 'N2', 'https://uu.nou.edu.tw/media/course/1/n2.html?x=1']])
-        ->and(findWebview($host)['props']['html'])->not->toBe($before)
-        ->and(findWebview($host)['props']['html'])->toContain('<!-- reload 1 -->');
+        ->and(findWebview($host)['props']['html'])->toBe($before);
 });
 
 it('emits subpage, tronclass and external links', function (): void {
     $host = RecordingHost::mountView('html-content');
 
-    navigateWebview($host, 'https://uu.nou.edu.tw/media/course/1/page2.html');
-    navigateWebview($host, 'https://tronclass.nou.edu.tw/course/1');
-    navigateWebview($host, 'https://example.com/');
+    tapLink($host, 'https://uu.nou.edu.tw/media/course/1/page2.html');
+    tapLink($host, 'https://tronclass.nou.edu.tw/course/1');
+    tapLink($host, 'https://example.com/', newWindow: true);
 
     expect($host->get('events'))->toBe([
         ['subpage-link', 'https://uu.nou.edu.tw/media/course/1/page2.html'],
@@ -183,40 +207,105 @@ it('emits subpage, tronclass and external links', function (): void {
     ]);
 });
 
-it('ignores the initial load and data urls', function (): void {
+it('emits mailto and tel links and drops every other scheme', function (): void {
     $host = RecordingHost::mountView('html-content');
 
-    navigateWebview($host, 'about:blank');
-    navigateWebview($host, 'data:text/html,hi');
+    tapLink($host, 'mailto:teacher@example.com', 'mailto');
+    tapLink($host, 'tel:+886212345678', 'tel');
+    tapLink($host, 'javascript:alert(1)', 'javascript');
+    tapLink($host, 'intent://x#Intent;end', 'intent');
+
+    expect($host->get('events'))->toBe([
+        ['mailto-link', 'mailto:teacher@example.com'],
+        ['tel-link', 'tel:+886212345678'],
+    ]);
+});
+
+it('ignores internal urls and malformed payloads', function (): void {
+    $host = RecordingHost::mountView('html-content');
+
+    tapLink($host, 'about:blank', 'about');
+    tapLink($host, 'data:text/html,hi', 'data');
+    $host->fireEvent('onLinkTap', TestableComponent::EVENT_TEXT_CHANGE, ['text' => 'not json']);
+    $host->fireEvent('onLinkTap', TestableComponent::EVENT_TEXT_CHANGE, ['text' => '{"scheme":"https"}']);
 
     expect($host->get('events'))->toBe([]);
 });
 
-it('can leave the linked page in place when auto restore is off', function (): void {
-    $host = RecordingHost::mountView('html-content', ['autoRestore' => false]);
+it('forwards content height changes as floats', function (): void {
+    $host = RecordingHost::mountView('html-content', ['autoHeight' => true]);
 
-    navigateWebview($host, 'https://example.com/');
+    $host->fireEvent('onHeight', TestableComponent::EVENT_TEXT_CHANGE, ['text' => '312.5']);
+    $host->fireEvent('onHeight', TestableComponent::EVENT_TEXT_CHANGE, ['text' => 'garbage']);
 
-    expect(findWebview($host)['props']['html'])->not->toContain('<!-- reload');
+    expect($host->get('events'))->toBe([['height', 312.5]]);
 });
 
-it('embeds only YouTube with javascript on and a 16:9 stack', function (): void {
+it('still accepts the retired autoRestore prop without reloading anything', function (): void {
+    $host = RecordingHost::mountView('html-content', ['autoRestore' => false]);
+    $before = findWebview($host)['props']['html'];
+
+    tapLink($host, 'https://example.com/');
+
+    expect(findWebview($host)['props']['html'])->toBe($before);
+});
+
+it('embeds YouTube with javascript on, the progress forwarder and a 16:9 stack', function (): void {
     $host = RecordingHost::mountView('html-embed', ['url' => 'https://www.youtube.com/embed/abc123']);
     $webview = findWebview($host);
 
     expect($webview['props']['src'])->toBe('https://www.youtube.com/embed/abc123')
         ->and($webview['props']['javascript'])->toBeTrue()
         ->and($webview['props']['dom_storage'])->toBeTrue()
+        ->and($webview['props']['user_script'])->toContain('altuu-youtube-embed')->toContain('AltUUBridge.postMessage')
+        ->and($webview['props'])->toHaveKeys(['on_link_tap', 'on_message'])
         ->and($webview['props'])->not->toHaveKey('html');
 });
 
-it('refuses embed urls outside the YouTube allow-list', function (string $url): void {
+it('also embeds the statics youtube wrapper', function (): void {
+    config(['services.statics.base_url' => 'https://statics.example.workers.dev']);
+
+    $host = RecordingHost::mountView('html-embed', ['url' => 'https://statics.example.workers.dev/youtube-embed.html?v=dQw4w9WgXcQ']);
+
+    expect(findWebview($host)['props']['src'])->toBe('https://statics.example.workers.dev/youtube-embed.html?v=dQw4w9WgXcQ');
+});
+
+it('refuses embed urls outside the allow-list', function (string $url): void {
+    config(['services.statics.base_url' => 'https://statics.example.workers.dev']);
+
     $host = RecordingHost::mountView('html-embed', ['url' => $url]);
 
-    $host->assertMissingElement('webview');
+    $host->assertMissingElement('html_view');
 })->with([
     'other host' => 'https://evil.example/embed/abc',
     'plain http' => 'http://www.youtube.com/embed/abc',
     'not an embed path' => 'https://www.youtube.com/watch?v=abc',
     'lookalike host' => 'https://www.youtube.com.evil.example/embed/abc',
+    'statics host other page' => 'https://statics.example.workers.dev/other.html',
+    'statics lookalike' => 'https://statics.example.workers.dev.evil.example/youtube-embed.html',
 ]);
+
+it('emits the decoded message and the YouTube progress in embed mode', function (): void {
+    $host = RecordingHost::mountView('html-embed', ['url' => 'https://www.youtube.com/embed/abc123']);
+
+    postMessage($host, ['source' => 'altuu-youtube-embed', 'currentTime' => 12.5, 'duration' => 300]);
+    postMessage($host, ['source' => 'altuu-youtube-embed', 'currentTime' => 13, 'duration' => 0]);
+    postMessage($host, ['source' => 'other', 'currentTime' => 1]);
+    postMessage($host, 'not json');
+
+    expect($host->get('events'))->toBe([
+        ['message', ['source' => 'altuu-youtube-embed', 'currentTime' => 12.5, 'duration' => 300]],
+        ['progress', 12.5, 300.0],
+        ['message', ['source' => 'altuu-youtube-embed', 'currentTime' => 13, 'duration' => 0]],
+        ['progress', 13.0, null],
+        ['message', ['source' => 'other', 'currentTime' => 1]],
+    ]);
+});
+
+it('routes top-level link taps in embed mode to external-link', function (): void {
+    $host = RecordingHost::mountView('html-embed', ['url' => 'https://www.youtube.com/embed/abc123']);
+
+    tapLink($host, 'https://www.youtube.com/watch?v=abc123', newWindow: true);
+
+    expect($host->get('events'))->toBe([['external-link', 'https://www.youtube.com/watch?v=abc123']]);
+});
