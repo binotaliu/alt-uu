@@ -15,6 +15,7 @@ use Native\Mobile\Facades\System;
 use Native\Mobile\Providers\BrowserServiceProvider;
 use Native\Mobile\Providers\DeviceServiceProvider;
 use Native\Mobile\Providers\NetworkServiceProvider;
+use Native\Mobile\UI\NativeUIServiceProvider;
 
 final class NativeServiceProvider extends ServiceProvider
 {
@@ -60,6 +61,7 @@ final class NativeServiceProvider extends ServiceProvider
             DeviceServiceProvider::class,
             AltUUPlusServiceProvider::class,
             NetworkServiceProvider::class,
+            NativeUIServiceProvider::class,
         ];
     }
 }

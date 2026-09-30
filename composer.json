@@ -17,6 +17,7 @@
         "nativephp/mobile": "^4.5.2",
         "nativephp/mobile-browser": "^1.1.0",
         "nativephp/mobile-network": "^1.1.0",
+        "nativephp/mobile-ui": "^0.6.0",
         "spatie/laravel-data": "^4.21.0",
         "spatie/laravel-ray": "^1.43.7",
         "symfony/dom-crawler": "^8.1.1",
