@@ -7,6 +7,7 @@ namespace AltUU\Domains\Account\Actions;
 use AltUU\Domains\Account\Actions\Results\AccountSessionResult;
 use AltUU\Domains\Account\DataTransferObjects\AddAccountInputData;
 use AltUU\Domains\Account\Exceptions\AccountLimitExceededException;
+use AltUU\Domains\Auth\Support\LoginFailureMessage;
 use App\Services\AccountManager;
 
 final readonly class AddAccount
@@ -29,7 +30,7 @@ final readonly class AddAccount
         if (! $result['ok']) {
             return new AccountSessionResult(
                 ok: false,
-                message: $result['message'],
+                message: LoginFailureMessage::localize($result['message']),
                 raw: $result['raw'] ?? null,
             );
         }

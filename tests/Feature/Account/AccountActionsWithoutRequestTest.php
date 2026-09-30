@@ -78,7 +78,7 @@ it('returns a failed result without accounts when adding an account is rejected 
     $result = app(AddAccount::class)(new AddAccountInputData('s2222222', 'wrong'));
 
     expect($result->ok)->toBeFalse()
-        ->and($result->message)->toBe('Auth fail')
+        ->and($result->message)->toBe('登入失敗，請確認帳號密碼。')
         ->and($result->accounts)->toBe([])
         ->and($result->raw)->toBeArray();
 });

@@ -81,7 +81,7 @@ final class Reauthenticate extends NativeComponent
             $result = app(ReauthenticateAccount::class)($account, $input);
 
             if (! $result->ok) {
-                $this->error = $this->localizedFailure($result->message);
+                $this->error = $result->message !== '' ? $result->message : self::FALLBACK_ERROR;
 
                 return;
             }
@@ -106,23 +106,6 @@ final class Reauthenticate extends NativeComponent
     private function account(): ?Account
     {
         return Account::withTrashed()->find($this->accountId);
-    }
-
-    /**
-     * ReauthenticateAccount passes the upstream message through untranslated
-     * (Login maps it); apply the same mapping here.
-     */
-    private function localizedFailure(string $message): string
-    {
-        if (str_starts_with($message, 'Auth fail')) {
-            return '登入失敗，請確認帳號密碼。';
-        }
-
-        if (preg_match('/\p{Han}/u', $message) === 1) {
-            return $message;
-        }
-
-        return self::FALLBACK_ERROR;
     }
 
     private function sanitizeReturnTo(mixed $value): string

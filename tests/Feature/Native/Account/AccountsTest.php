@@ -117,7 +117,9 @@ it('shows the upstream message when the login is rejected', function (): void {
         ->input('add-password', 'wrong')
         ->tap('add-submit')
         ->assertSet('addFormVisible', true)
-        ->assertElement('text', fn (array $node): bool => ($node['ref'] ?? null) === 'add-error');
+        ->assertElement('text', fn (array $node): bool => ($node['ref'] ?? null) === 'add-error')
+        ->assertSee('登入失敗，請確認帳號密碼。')
+        ->assertDontSee('Auth fail');
 
     expect(Account::query()->where('username', 's4444444')->exists())->toBeFalse();
 });

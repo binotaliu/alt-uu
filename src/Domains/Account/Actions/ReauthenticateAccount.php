@@ -6,6 +6,7 @@ namespace AltUU\Domains\Account\Actions;
 
 use AltUU\Domains\Account\Actions\Results\AccountSessionResult;
 use AltUU\Domains\Account\DataTransferObjects\ReauthenticateAccountInputData;
+use AltUU\Domains\Auth\Support\LoginFailureMessage;
 use App\Models\Account;
 use App\Services\AccountManager;
 
@@ -23,7 +24,7 @@ final readonly class ReauthenticateAccount
         if (! $result['ok']) {
             return new AccountSessionResult(
                 ok: false,
-                message: $result['message'],
+                message: LoginFailureMessage::localize($result['message']),
                 raw: $result['raw'] ?? null,
             );
         }
