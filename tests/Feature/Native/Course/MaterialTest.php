@@ -539,6 +539,28 @@ it('warns when the study time cannot be saved even after a retry and still leave
     expect($state->calls)->toBe(2);
 });
 
+it('survives a fully offline save on back, checkpoint and unmount', function (): void {
+    [$fake, $state] = serverTimeFake(fails: true);
+    installMaterialUpstream([
+        'action=get-server-time' => $fake,
+        'action=my-profile' => new ConnectionException('offline'),
+    ]);
+
+    $screen = openMaterial('H1');
+
+    $this->travel(320)->seconds();
+    $screen->firePoll('tick')->assertSet('error', '')->assertSet('loading', false);
+    expect($state->calls)->toBe(1);
+
+    $this->travel(60)->seconds();
+    $bridge = Native::fakeBridge();
+    $screen->pressBack()->assertWentBack();
+    $bridge->assertCalled('Dialog.Toast', fn (array $params): bool => $params['message'] === '學習進度儲存失敗');
+
+    $screen->instance()->unmount();
+    expect(PlaybackProgress::query()->count())->toBe(0);
+});
+
 it('does not send the same span twice when the school refuses it', function (): void {
     installMaterialUpstream(['action=set-read-node-history' => Http::response(['code' => 500, 'message' => 'no', 'data' => []])]);
 
@@ -743,14 +765,23 @@ it('changes and persists the font scale within its limits', function (): void {
     $screen->tap('zoom-reset')->assertSee('100%');
 });
 
-it('reloads the content and remounts the player at the current position', function (): void {
+it('reloads the content and restarts a changed player source at the current position', function (): void {
     Native::fakeBridge()->respondTo('MediaPlayer.GetCurrentTime', ['status' => 'success', 'data' => ['time' => 75.0, 'duration' => 300.0]]);
 
-    $screen = openMaterial('V1')->tap('reload');
-    $player = materialNodes($screen, 'media_player')[0];
+    $screen = openMaterial('V1');
+    expect(materialNodes($screen, 'media_player')[0]['props']['src'])->toBe('https://cdn.example.com/v1/playlist.m3u8');
 
-    expect($player['props']['start'])->toBe(75.0);
-    $screen->assertSet('mediaNonce', 1)->assertSet('reloading', false);
+    installMaterialUpstream(['/media/v1.html' => Http::response(
+        '<html><body><video><source type="application/x-mpegurl" src="https://cdn.example.com/v1/fresh.m3u8"></video></body></html>',
+        200,
+        ['Content-Type' => 'text/html; charset=utf-8'],
+    )]);
+
+    $props = materialNodes($screen->tap('reload')->assertSet('reloading', false), 'media_player')[0]['props'];
+
+    expect($props['src'])->toBe('https://cdn.example.com/v1/fresh.m3u8')
+        ->and($props['start'])->toBe(75.0)
+        ->and($props['autoplay'])->toBeTrue();
 });
 
 it('reports a failed reload without losing the content', function (): void {
@@ -824,12 +855,37 @@ it('opens the session expired picker on resume without sending study time under 
     app(UUSessionStore::class)->forget($failing->id);
     CourseUpstreamFake::install(['action=login' => Http::response(['code' => 403, 'message' => 'Auth fail', 'data' => []])]);
 
-    $screen->call('onResume')->assertSet('sessionPickerVisible', true)->assertSet('timerClosed', true);
+    $screen->call('onResume')->assertSet('sessionPickerVisible', true)->assertSet('timerSuspended', true);
 
     $this->travel(60)->seconds();
     $screen->instance()->unmount();
 
     expect(studyTimeSent())->toBe(0);
+});
+
+it('continues the visit after the session is valid again and the screen is resumed', function (): void {
+    AccountSeeding::seed('s7654321');
+    $failing = Account::query()->where('username', 's1234567')->firstOrFail();
+    AccountSeeding::activate($failing);
+    $screen = openMaterial('V1');
+
+    $session = app(UUSessionStore::class)->get($failing->id);
+    app(UUSessionStore::class)->forget($failing->id);
+    CourseUpstreamFake::install(['action=login' => Http::response(['code' => 403, 'message' => 'Auth fail', 'data' => []])]);
+    $screen->call('onResume')->assertSet('timerSuspended', true);
+
+    $this->travel(30)->seconds();
+    installMaterialUpstream();
+    Account::withTrashed()->whereKey($failing->id)->restore();
+    app(UUSessionStore::class)->put($session, $failing->id);
+    AccountSeeding::activate($failing);
+
+    $screen->call('onResume')->assertSet('timerSuspended', false);
+
+    $this->travel(30)->seconds();
+    $screen->pressBack();
+
+    expect(studyTimeSent())->toBe(1)->and((int) AccountDailyActivity::query()->sum('total_seconds'))->toBe(60);
 });
 
 it('drops the running visit when the account is switched from the picker', function (): void {

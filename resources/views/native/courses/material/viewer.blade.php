@@ -13,7 +13,7 @@
 @elseif ($m->hasNativePlayer())
     @if ($mediaReady)
         <native:media-playback
-            key="media-{{ $activeNodeIdentifier }}-{{ $mediaNonce }}"
+            key="media-{{ $activeNodeIdentifier }}"
             src="{{ $content->videoUrl }}"
             kind="{{ $m->isAudioCourse() ? 'audio' : 'video' }}"
             title="{{ $m->activeNodeText() }}"

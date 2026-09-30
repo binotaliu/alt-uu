@@ -152,8 +152,6 @@ final class Material extends NativeComponent
 
     public bool $mediaAutoplay = false;
 
-    public int $mediaNonce = 0;
-
     public float $playbackRate = 1.0;
 
     public string $playerError = '';
@@ -192,6 +190,9 @@ final class Material extends NativeComponent
     public bool $nativeRestored = false;
 
     public bool $timerClosed = false;
+
+    /** The session died while this screen stayed open (session picker); nothing is sent until it is valid again. */
+    public bool $timerSuspended = false;
 
     private int $checkpointRetryAt = 0;
 
@@ -240,7 +241,11 @@ final class Material extends NativeComponent
 
     public function onResume(): void
     {
-        $this->sessionExpired();
+        if ($this->sessionExpired()) {
+            return;
+        }
+
+        $this->timerSuspended = false;
     }
 
     protected function onAccountSwitched(int $accountId): void
@@ -301,7 +306,7 @@ final class Material extends NativeComponent
     {
         $node = $this->activeNode();
 
-        if ($this->segmentStartedAt === null || $node === null || ($node->href ?? '') === '') {
+        if ($this->segmentStartedAt === null || $this->timerSuspended || $node === null || ($node->href ?? '') === '') {
             return true;
         }
 
@@ -369,7 +374,16 @@ final class Material extends NativeComponent
                     return false;
                 }
 
-                if (! $this->hunguSessionGuardResult(validateRemotely: true)->proceeds) {
+                try {
+                    $proceeds = $this->hunguSessionGuardResult(validateRemotely: true)->proceeds;
+                } catch (Throwable $validation) {
+                    // Offline: the re-validation fails the same way, so there is nothing to retry.
+                    report($validation);
+
+                    return false;
+                }
+
+                if (! $proceeds) {
                     $this->sessionLostWhileSaving = true;
 
                     return false;
@@ -382,7 +396,7 @@ final class Material extends NativeComponent
 
     private function saveCheckpointIfDue(): void
     {
-        if ($this->timerClosed || $this->segmentStartedAt === null || $this->saving) {
+        if ($this->timerClosed || $this->timerSuspended || $this->segmentStartedAt === null || $this->saving) {
             return;
         }
 
@@ -604,7 +618,6 @@ final class Material extends NativeComponent
         $this->mediaReady = false;
         $this->mediaStart = 0.0;
         $this->mediaAutoplay = false;
-        $this->mediaNonce = 0;
         $this->playerError = '';
         $this->resumePrompt = null;
         $this->cellularPromptVisible = false;
@@ -858,7 +871,7 @@ final class Material extends NativeComponent
 
         $this->segmentStartedAt = null;
         $this->displayStartedAt = null;
-        $this->timerClosed = $this->sessionPickerVisible;
+        $this->timerClosed = false;
         $this->saving = false;
         $this->activeNodeIdentifier = $target;
         $this->restoredStartedAt = null;
@@ -924,7 +937,12 @@ final class Material extends NativeComponent
      */
     public function onBackPressed(): void
     {
-        $this->closeTimer();
+        try {
+            $this->closeTimer();
+        } catch (Throwable $exception) {
+            report($exception);
+        }
+
         $this->back();
     }
 
@@ -935,9 +953,13 @@ final class Material extends NativeComponent
      */
     public function unmount(): void
     {
-        $this->closeTimer();
-
-        parent::unmount();
+        try {
+            $this->closeTimer();
+        } catch (Throwable $exception) {
+            report($exception);
+        } finally {
+            parent::unmount();
+        }
     }
 
     // ---- links from the article -----------------------------------------
@@ -1072,10 +1094,10 @@ final class Material extends NativeComponent
             $this->reloadError = $this->sessionExpired() ? '' : '重新載入失敗，請稍後再試。';
         }
 
-        if ($this->hasNativePlayer() && $this->mediaReady) {
-            $this->mediaStart = $position > 0 ? $position : $this->mediaStart;
-            $this->mediaAutoplay = $position > 0;
-            $this->mediaNonce++;
+        if ($this->hasNativePlayer() && $this->mediaReady && $position > 0) {
+            // The player reloads when the refreshed URL differs (`start` is applied to the new source).
+            $this->mediaStart = $position;
+            $this->mediaAutoplay = true;
         }
 
         $this->reloading = false;
@@ -1298,7 +1320,7 @@ final class Material extends NativeComponent
             return false;
         }
 
-        $this->timerClosed = true;
+        $this->timerSuspended = true;
 
         return true;
     }
