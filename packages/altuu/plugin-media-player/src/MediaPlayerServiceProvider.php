@@ -17,6 +17,8 @@ final class MediaPlayerServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        // Bridge-only plugin; NativePHP shell patching is handled by altuu/plugin-nativephp-patch.
+        // The `media_player` element is registered by the core NativeServiceProvider from
+        // the manifest (`components`). The legacy WebView overlay host is mounted by
+        // altuu/plugin-nativephp-patch.
     }
 }

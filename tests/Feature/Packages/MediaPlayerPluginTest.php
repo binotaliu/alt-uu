@@ -1,5 +1,6 @@
 <?php
 
+use AltUU\MediaPlayer\MediaPlayer;
 use Illuminate\Support\Facades\File;
 
 it('media player nativephp manifest includes background_modes and info_plist for ios pip', function () {
@@ -139,10 +140,46 @@ it('android SetPlayer accepts a force flag that skips the same-source shortcut a
         ->toContain('val resumePositionMs');
 });
 
-it('media player php and js bridges forward the force flag', function () {
-    $php = File::get(base_path('packages/altuu/plugin-media-player/src/MediaPlayer.php'));
+it('media player js bridge still forwards the force flag for the legacy webview shell', function () {
     $js = File::get(base_path('packages/altuu/plugin-media-player/resources/js/mediaPlayer.js'));
 
-    expect($php)->toContain("\$payload['force'] = true;");
     expect($js)->toContain('force = false')->toContain('...(force ? { force: true } : {})');
+});
+
+it('media player php facade no longer exposes the frame based overlay and controls the element player', function () {
+    $methods = get_class_methods(MediaPlayer::class);
+
+    expect($methods)
+        ->not->toContain('setPlayer')
+        ->toContain('play', 'pause', 'stop', 'seek', 'getCurrentTime', 'getDuration', 'setPlaybackRate', 'getPlaybackRate', 'getState', 'captureFrame');
+});
+
+it('media player php facade is inert without a native runtime', function () {
+    $player = new MediaPlayer;
+
+    expect($player->stop('https://a/b.mp4'))->toBeNull()
+        ->and($player->stop())->toBeNull()
+        ->and($player->getCurrentTime())->toBe(0.0)
+        ->and($player->getDuration())->toBe(0.0)
+        ->and($player->getPlaybackRate())->toBe(1.0)
+        ->and($player->getState())->toBeNull()
+        ->and($player->captureFrame('A1'))->toBeNull();
+});
+
+it('media player manifest registers the media_player element with both renderers', function () {
+    $manifest = json_decode(File::get(base_path('packages/altuu/plugin-media-player/nativephp.json')), true);
+
+    $component = collect($manifest['components'])->firstWhere('type', 'media_player');
+
+    expect($component)->not->toBeNull()
+        ->and($component['element'])->toBe(AltUU\MediaPlayer\Elements\MediaPlayer::class)
+        ->and($component['blade'])->toBe(AltUU\MediaPlayer\Components\MediaPlayer::class)
+        ->and($component['ios_renderer'])->toBe('AltUUMediaPlayerRenderer')
+        ->and($component['android_renderer'])->toBe('com.altuu.plugins.media_player.MediaPlayerRenderer');
+
+    $ios = File::get(base_path('packages/altuu/plugin-media-player/resources/ios/Sources/AltUUMediaPlayerRenderer.swift'));
+    $android = File::get(base_path('packages/altuu/plugin-media-player/resources/android/src/MediaPlayerRenderer.kt'));
+
+    expect($ios)->toContain('struct AltUUMediaPlayerRenderer: View');
+    expect($android)->toContain('object MediaPlayerRenderer')->toContain('fun Render(node: NativeUINode, modifier: Modifier)');
 });

@@ -7,11 +7,16 @@ namespace AltUU\MediaPlayer\Facades;
 use Illuminate\Support\Facades\Facade;
 
 /**
- * @method static object|null setPlayer(string $url, string $type, array $frame)
  * @method static object|null play()
  * @method static object|null pause()
- * @method static object|null stop()
+ * @method static object|null stop(?string $expectedUrl = null)
  * @method static object|null seek(float $seconds)
+ * @method static float getCurrentTime()
+ * @method static float getDuration()
+ * @method static object|null setPlaybackRate(float $rate)
+ * @method static float getPlaybackRate()
+ * @method static object|null getState()
+ * @method static object|null captureFrame(?string $studentId = null, ?string $courseName = null, ?string $materialName = null)
  *
  * @see \AltUU\MediaPlayer\MediaPlayer
  */

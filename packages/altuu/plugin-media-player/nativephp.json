@@ -1,7 +1,7 @@
 {
     "name": "altuu/plugin-media-player",
     "version": "1.0.0",
-    "description": "NativePHP EDGE Component for native media player (audio/video) with bridge control for Material Viewer",
+    "description": "EDGE element <native:media-player> (audio/video) plus bridge control; the frame-based SetPlayer overlay remains only for the legacy WebView shell",
     "namespace": "MediaPlayer",
     "category": "media",
     "license": "MIT",
@@ -9,12 +9,22 @@
         "name": "Binota Liu"
     },
     "platforms": ["ios", "android"],
+    "components": [
+        {
+            "type": "media_player",
+            "element": "AltUU\\MediaPlayer\\Elements\\MediaPlayer",
+            "blade": "AltUU\\MediaPlayer\\Components\\MediaPlayer",
+            "android_renderer": "com.altuu.plugins.media_player.MediaPlayerRenderer",
+            "ios_renderer": "AltUUMediaPlayerRenderer",
+            "self_closing": true
+        }
+    ],
     "bridge_functions": [
         {
             "name": "MediaPlayer.SetPlayer",
             "ios": "MediaPlayerFunctions.SetPlayer",
             "android": "com.altuu.plugins.media_player.MediaPlayerFunctions.SetPlayer",
-            "description": "Set media player URL and display frame in Material Viewer"
+            "description": "LEGACY (WebView shell only): show the player as a WebView-relative overlay. Native screens use <native:media-player>"
         },
         {
             "name": "MediaPlayer.Play",
@@ -68,12 +78,12 @@
             "name": "MediaPlayer.CaptureFrame",
             "ios": "MediaPlayerFunctions.CaptureFrame",
             "android": "com.altuu.plugins.media_player.MediaPlayerFunctions.CaptureFrame",
-            "description": "Capture the current video frame with a student ID watermark and footer, then present the share sheet"
+            "description": "Capture the current video frame with a watermark (studentId param, else the element's watermark prop) and footer, then present the share sheet"
         },
         {
             "name": "AppAccent.SetColor",
             "ios": "AppAccentFunctions.SetColor",
-            "description": "Set the app-wide iOS tint color and native media player accent (iOS only)"
+            "description": "Set the app-wide iOS window tint and the legacy overlay accent (iOS only). The <native:media-player> element themes itself from the mobile-ui theme instead"
         }
     ],
     "ios": {
