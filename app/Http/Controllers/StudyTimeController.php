@@ -12,7 +12,7 @@ final class StudyTimeController
 {
     public function store(Request $request, RecordStudyTime $record): StudyTimeResultViewModel
     {
-        $result = $record($request);
+        $result = $record($request->input());
 
         return $result->viewModel;
     }

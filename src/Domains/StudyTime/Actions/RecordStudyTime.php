@@ -10,7 +10,6 @@ use AltUU\Domains\StudyTime\ViewModels\StudyTimeResultViewModel;
 use App\Models\AccountDailyActivity;
 use App\Models\PlaybackProgress;
 use App\Services\UUStudyTimeClient;
-use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Validator;
@@ -19,9 +18,15 @@ final readonly class RecordStudyTime
 {
     public function __construct(private UUStudyTimeClient $studyTimeClient) {}
 
-    public function __invoke(Request $request): RecordStudyTimeResult
+    /**
+     * Accepts camelCase or snake_case keys (`activityId`/`activity_id`, `startedAt`/`started_at`,
+     * `positionSeconds`/`position_seconds`, `mediaDurationSeconds`/`media_duration_seconds`).
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    public function __invoke(array $payload): RecordStudyTimeResult
     {
-        $input = Validator::make($this->normalizeInput($request), [
+        $input = Validator::make($this->normalizeInput($payload), [
             'cid' => ['required', 'string', 'max:64'],
             'activityId' => ['required', 'string', 'max:191'],
             'url' => ['required', 'url', 'max:2000'],
@@ -115,16 +120,20 @@ final readonly class RecordStudyTime
         $activity->increment('total_seconds', $seconds);
     }
 
-    private function normalizeInput(Request $request): array
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private function normalizeInput(array $payload): array
     {
         return [
-            'cid' => $request->input('cid'),
-            'activityId' => $request->input('activityId', $request->input('activity_id')),
-            'url' => $request->input('url'),
-            'seconds' => $request->input('seconds'),
-            'startedAt' => $request->input('startedAt', $request->input('started_at')),
-            'positionSeconds' => $request->input('positionSeconds', $request->input('position_seconds')),
-            'mediaDurationSeconds' => $request->input('mediaDurationSeconds', $request->input('media_duration_seconds')),
+            'cid' => Arr::get($payload, 'cid'),
+            'activityId' => Arr::get($payload, 'activityId', Arr::get($payload, 'activity_id')),
+            'url' => Arr::get($payload, 'url'),
+            'seconds' => Arr::get($payload, 'seconds'),
+            'startedAt' => Arr::get($payload, 'startedAt', Arr::get($payload, 'started_at')),
+            'positionSeconds' => Arr::get($payload, 'positionSeconds', Arr::get($payload, 'position_seconds')),
+            'mediaDurationSeconds' => Arr::get($payload, 'mediaDurationSeconds', Arr::get($payload, 'media_duration_seconds')),
         ];
     }
 }
