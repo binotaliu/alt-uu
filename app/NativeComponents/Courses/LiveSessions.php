@@ -9,11 +9,11 @@ use AltUU\Domains\AppPreference\Actions\GetAppPreferences;
 use AltUU\Domains\AppPreference\Actions\UpdateAppPreferences;
 use AltUU\Domains\AppPreference\DataTransferObjects\UpdateAppPreferencesInputData;
 use AltUU\Domains\Auth\Actions\GetSessionProfile;
+use AltUU\Domains\NouTools\Actions\ListLiveSessions;
 use App\NativeComponents\Concerns\GuardsHunguSession;
 use App\NativeComponents\Concerns\ShowsSessionExpiredPicker;
 use App\NativeComponents\Concerns\ShowsToasts;
 use App\NativeComponents\Courses\Support\LiveSessionPresenter;
-use App\NativeComponents\Courses\Support\LiveSessionsLoader;
 use App\NativeComponents\Courses\Support\LoadFailure;
 use App\NativeComponents\Courses\Support\NouToolsGate;
 use Illuminate\View\View;
@@ -272,7 +272,7 @@ final class LiveSessions extends NativeComponent
         $this->errorDetail = [];
 
         try {
-            $this->items = LiveSessionsLoader::load($this->showAllAccounts);
+            $this->items = app(ListLiveSessions::class)($this->showAllAccounts);
         } catch (Throwable $exception) {
             $this->items = [];
 
