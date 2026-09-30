@@ -16,6 +16,7 @@ use Native\Mobile\Providers\BrowserServiceProvider;
 use Native\Mobile\Providers\DeviceServiceProvider;
 use Native\Mobile\Providers\NetworkServiceProvider;
 use Native\Mobile\UI\NativeUIServiceProvider;
+use Native\Mobile\UI\Theme;
 
 final class NativeServiceProvider extends ServiceProvider
 {
@@ -39,7 +40,9 @@ final class NativeServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // The first theme push at NativeUIServiceProvider boot can no-op
+        // before the bridge is ready, which leaves fonts on the system face.
+        $this->app->booted(static fn () => Theme::pushToNative());
     }
 
     /**

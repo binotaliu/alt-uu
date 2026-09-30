@@ -8,8 +8,6 @@
  *
  * For dynamic per-tenant theming, use Native\Mobile\UI\Theme::merge([...])
  * from a service provider. Runtime merges deep-merge on top of these values.
- *
- * Decision log: /docs/NATIVE-UI-REWRITE-PLAN.md (D — theme layer)
  */
 
 return [
@@ -47,93 +45,98 @@ return [
 
     'theme' => [
 
+        /*
+         * Traced from resources/css/app.css and the Vue markup: light page =
+         * theme-100, cards = white, primary fill = theme-800, headings =
+         * theme-900, links/muted = theme-700, borders = theme-300/200; dark
+         * page = zinc-950, cards = zinc-900, raised = zinc-800, borders =
+         * zinc-600/700, text = zinc-100/400, accent text = theme-400. Values
+         * below are the default WARM accent (theme-N = oklch scale of the
+         * accent, converted to sRGB hex); see the `accents` block below for
+         * the other six.
+         */
         'light' => [
-            // Primary brand color — used for filled buttons, active states, key accents.
-            'primary' => '#0F766E',
+            'primary' => '#833E2D',
             'on-primary' => '#FFFFFF',
+            'primary-container' => '#FFEEE8',
+            'on-primary-container' => '#5D291C',
 
-            // Secondary / muted action color.
-            'secondary' => '#475569',
+            'secondary' => '#A64831',
             'on-secondary' => '#FFFFFF',
 
-            // Surface = cards, sheets, dialogs. Background = page root.
-            'surface' => '#FFFFFF',
-            'on-surface' => '#0F172A',
-            'background' => '#F8FAFC',
-            'on-background' => '#0F172A',
-
-            // Surface variant = filled text fields, muted tonal surfaces.
-            // on-surface-variant = muted label/hint text on those surfaces.
-            'surface-variant' => '#F1F5F9',
-            'on-surface-variant' => '#475569',
-
-            // Text-field container, for the OUTLINED variant. Both are unset
-            // on purpose, and unset means "transparent box, Material 3
-            // defaults inside" — the outlined field then reads as whatever is
-            // behind it, which is correct on a plain page and invisible on a
-            // colored one. Declare the pair to give the field a body of its
-            // own:
-            //
-            //   'input-fill' => '#FFFFFF',
-            //   'on-input'   => '#0F172A',
-            //
-            // `on-input` recolors everything drawn INSIDE the box — typed
-            // text, placeholder, icons, prefix/suffix — so declare it
-            // alongside any fill dark enough to swallow the default grays.
-            // The label and supporting text sit outside the box and keep
-            // taking their color from the surface behind it.
-
-            // Outline = neutral borders (text fields, dividers, cards).
-            // outline-variant = softer edges: hairline dividers, card seams.
-            'outline' => '#CBD5E1',
-            'outline-variant' => '#E2E8F0',
-
-            // Destructive actions — maps to `variant="destructive"` on components.
-            'destructive' => '#B91C1C',
-            'on-destructive' => '#FFFFFF',
-
-            // Success / "safe to proceed" — confirmations, verified badges.
-            'success' => '#15803D',
-            'on-success' => '#FFFFFF',
-
-            // Tertiary accent — for highlights, badges, emphasis not covered by primary.
-            'accent' => '#C2410C',
+            // Accent-coloured text, links and active icons (theme-700).
+            'accent' => '#A64831',
             'on-accent' => '#FFFFFF',
+
+            'surface' => '#FFFFFF',
+            'on-surface' => '#5D291C',
+            'background' => '#FFEEE8',
+            'on-background' => '#5D291C',
+
+            'surface-variant' => '#FFF6F3',
+            'on-surface-variant' => '#A64831',
+
+            'outline' => '#FFC9B5',
+            'outline-variant' => '#FFE0D4',
+
+            'destructive' => 'red-600',
+            'on-destructive' => '#FFFFFF',
+            'destructive-container' => 'red-100',
+            'on-destructive-container' => 'red-900',
+
+            'success' => 'emerald-700',
+            'on-success' => '#FFFFFF',
+            'success-container' => 'emerald-100',
+            'on-success-container' => 'emerald-800',
+
+            'warning' => 'amber-700',
+            'on-warning' => '#FFFFFF',
+            'warning-container' => 'amber-50',
+            'on-warning-container' => 'amber-800',
         ],
 
         'dark' => [
-            // Leave empty or partial to auto-derive from `light` (luminance inversion).
-            // Specify any token here to override the derived value.
-            'primary' => '#14B8A6',
+            'primary' => '#833E2D',
             'on-primary' => '#FFFFFF',
+            'primary-container' => '#5D291C',
+            'on-primary-container' => '#FFEEE8',
 
-            'secondary' => '#94A3B8',
-            'on-secondary' => '#0F172A',
+            'secondary' => 'zinc-400',
+            'on-secondary' => 'zinc-950',
 
-            'surface' => '#1E293B',
-            'on-surface' => '#F8FAFC',
-            'background' => '#0F172A',
-            'on-background' => '#F8FAFC',
+            'accent' => '#FFA282',
+            'on-accent' => 'zinc-950',
 
-            'surface-variant' => '#334155',
-            'on-surface-variant' => '#94A3B8',
+            'surface' => 'zinc-900',
+            'on-surface' => 'zinc-100',
+            'background' => 'zinc-950',
+            'on-background' => 'zinc-100',
 
-            'outline' => '#475569',
-            'outline-variant' => '#334155',
+            'surface-variant' => 'zinc-800',
+            'on-surface-variant' => 'zinc-400',
 
-            'destructive' => '#F87171',
-            'on-destructive' => '#0F172A',
+            'outline' => 'zinc-600',
+            'outline-variant' => 'zinc-700',
 
-            'success' => '#4ADE80',
-            'on-success' => '#052E16',
+            'destructive' => 'red-400',
+            'on-destructive' => 'zinc-950',
+            'destructive-container' => 'red-900',
+            'on-destructive-container' => 'red-100',
 
-            'accent' => '#FDBA74',
-            'on-accent' => '#0F172A',
+            'success' => 'emerald-300',
+            'on-success' => 'emerald-950',
+            'success-container' => 'emerald-900',
+            'on-success-container' => 'emerald-200',
+
+            'warning' => 'amber-400',
+            'on-warning' => 'amber-950',
+            'warning-container' => 'amber-900',
+            'on-warning-container' => 'amber-200',
         ],
 
-        // Corner radii (points / dp).
-        'radius-sm' => 4,
-        'radius-md' => 8,
+        // Corner radii (points / dp). Cards and buttons use rounded-xl (12).
+        'radius-sm' => 8,
+        'radius-md' => 12,
         'radius-lg' => 16,
         'radius-full' => 9999,
 
@@ -150,24 +153,185 @@ return [
     | Fonts
     |---------------------------------------------------------------------------
     |
-    | Semantic names for bundled fonts (resources/fonts/ file tokens, minus
-    | the extension). Use an alias anywhere a font token works — the `font`
-    | attribute (`font="accent"`), chrome ->font() builders, or the layout
-    | $font property. The `default` alias is the app-wide default font:
-    | 'System' resolves to the platform face (San Francisco on iOS, Roboto
-    | on Android); set a bundled token to apply it everywhere. Download one
-    | with `php artisan native:font Inter --default`. Per-element `font`
-    | attributes and font-serif / font-mono classes still win over the default.
-    |
-    |   'fonts' => [
-    |       'default' => 'Inter-Regular',
-    |       'accent'  => 'DynaPuff-Regular',
-    |   ],
+    | The Vue app uses `font-sans: system-ui` and bundles no custom font, so
+    | the app-wide default stays the platform face (San Francisco / Roboto,
+    | which also covers Traditional Chinese via the system CJK fallback).
+    | Register semantic aliases here only if a bundled font is ever added.
     |
     */
 
     'fonts' => [
         'default' => 'System',
+    ],
+
+    /*
+    |---------------------------------------------------------------------------
+    | Accents
+    |---------------------------------------------------------------------------
+    |
+    | The seven user-selectable accents (html[data-accent] in the Vue app; id
+    | `warm` is the default and equals the `theme` block above). Only the roles
+    | that follow the accent are listed. Apply at runtime with
+    | App\Services\NativeAccent::apply($id), which Theme::merge()s the override.
+    | Generated from the oklch scales in resources/css/app.css.
+    |
+    */
+
+    'accents' => [
+        'warm' => [
+            'label' => '暖橘',
+            'light' => [
+                'primary' => '#833E2D',
+                'primary-container' => '#FFEEE8',
+                'on-primary-container' => '#5D291C',
+                'accent' => '#A64831',
+                'background' => '#FFEEE8',
+                'surface-variant' => '#FFF6F3',
+                'on-surface' => '#5D291C',
+                'on-surface-variant' => '#A64831',
+                'secondary' => '#A64831',
+                'outline' => '#FFC9B5',
+                'outline-variant' => '#FFE0D4',
+            ],
+            'dark' => [
+                'primary' => '#833E2D',
+                'primary-container' => '#5D291C',
+                'on-primary-container' => '#FFEEE8',
+                'accent' => '#FFA282',
+            ],
+        ],
+        'ocean' => [
+            'label' => '海藍',
+            'light' => [
+                'primary' => '#005D84',
+                'primary-container' => '#E5F5FD',
+                'on-primary-container' => '#00405E',
+                'accent' => '#0072A8',
+                'background' => '#E5F5FD',
+                'surface-variant' => '#F2FAFE',
+                'on-surface' => '#00405E',
+                'on-surface-variant' => '#0072A8',
+                'secondary' => '#0072A8',
+                'outline' => '#A8E1FD',
+                'outline-variant' => '#CEEEFE',
+            ],
+            'dark' => [
+                'primary' => '#005D84',
+                'primary-container' => '#00405E',
+                'on-primary-container' => '#E5F5FD',
+                'accent' => '#60CCFC',
+            ],
+        ],
+        'forest' => [
+            'label' => '森綠',
+            'light' => [
+                'primary' => '#2C6330',
+                'primary-container' => '#E9F6EB',
+                'on-primary-container' => '#1B451E',
+                'accent' => '#2E7C35',
+                'background' => '#E9F6EB',
+                'surface-variant' => '#F4FAF5',
+                'on-surface' => '#1B451E',
+                'on-surface-variant' => '#2E7C35',
+                'secondary' => '#2E7C35',
+                'outline' => '#B7E5BF',
+                'outline-variant' => '#D6F0DA',
+            ],
+            'dark' => [
+                'primary' => '#2C6330',
+                'primary-container' => '#1B451E',
+                'on-primary-container' => '#E9F6EB',
+                'accent' => '#83D494',
+            ],
+        ],
+        'purple' => [
+            'label' => '皇紫',
+            'light' => [
+                'primary' => '#5A4886',
+                'primary-container' => '#F4EFFE',
+                'on-primary-container' => '#3E315F',
+                'accent' => '#6F57AB',
+                'background' => '#F4EFFE',
+                'surface-variant' => '#F9F7FE',
+                'on-surface' => '#3E315F',
+                'on-surface-variant' => '#6F57AB',
+                'secondary' => '#6F57AB',
+                'outline' => '#DECEFF',
+                'outline-variant' => '#ECE2FF',
+            ],
+            'dark' => [
+                'primary' => '#5A4886',
+                'primary-container' => '#3E315F',
+                'on-primary-container' => '#F4EFFE',
+                'accent' => '#CAACFF',
+            ],
+        ],
+        'pink' => [
+            'label' => '粉紅',
+            'light' => [
+                'primary' => '#873061',
+                'primary-container' => '#FDEDF3',
+                'on-primary-container' => '#5E2043',
+                'accent' => '#AB3378',
+                'background' => '#FDEDF3',
+                'surface-variant' => '#FEF6F9',
+                'on-surface' => '#5E2043',
+                'on-surface-variant' => '#AB3378',
+                'secondary' => '#AB3378',
+                'outline' => '#FFC2DD',
+                'outline-variant' => '#FEDEEB',
+            ],
+            'dark' => [
+                'primary' => '#873061',
+                'primary-container' => '#5E2043',
+                'on-primary-container' => '#FDEDF3',
+                'accent' => '#FF8FCA',
+            ],
+        ],
+        'red' => [
+            'label' => '緋紅',
+            'light' => [
+                'primary' => '#8C3436',
+                'primary-container' => '#FFEDEB',
+                'on-primary-container' => '#612324',
+                'accent' => '#AF3C40',
+                'background' => '#FFEDEB',
+                'surface-variant' => '#FFF6F5',
+                'on-surface' => '#612324',
+                'on-surface-variant' => '#AF3C40',
+                'secondary' => '#AF3C40',
+                'outline' => '#FFC4BD',
+                'outline-variant' => '#FFDEDB',
+            ],
+            'dark' => [
+                'primary' => '#8C3436',
+                'primary-container' => '#612324',
+                'on-primary-container' => '#FFEDEB',
+                'accent' => '#FF9891',
+            ],
+        ],
+        'grey' => [
+            'label' => '銀灰',
+            'light' => [
+                'primary' => '#51565B',
+                'primary-container' => '#F0F2F4',
+                'on-primary-container' => '#373B3F',
+                'accent' => '#636A70',
+                'background' => '#F0F2F4',
+                'surface-variant' => '#F7F8FA',
+                'on-surface' => '#373B3F',
+                'on-surface-variant' => '#636A70',
+                'secondary' => '#636A70',
+                'outline' => '#D4D8DD',
+                'outline-variant' => '#E5E8EB',
+            ],
+            'dark' => [
+                'primary' => '#51565B',
+                'primary-container' => '#373B3F',
+                'on-primary-container' => '#F0F2F4',
+                'accent' => '#B8BEC5',
+            ],
+        ],
     ],
 
 ];
