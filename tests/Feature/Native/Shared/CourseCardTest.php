@@ -67,3 +67,22 @@ it('renders the empty state and skeleton partials', function (): void {
 it('renders an empty node when no course is bound yet', function (): void {
     Native::test(CourseCard::class)->assertDontSee('無待辦');
 });
+
+it('reaches the renderer with the max_lines prop', function (): void {
+    $host = RecordingHost::mountView('course-card');
+
+    $maxLines = [];
+    $walk = function (array $node) use (&$walk, &$maxLines): void {
+        if (($node['type'] ?? null) === 'text' && isset($node['props']['max_lines'])) {
+            $maxLines[] = $node['props']['max_lines'];
+        }
+
+        foreach ($node['children'] ?? [] as $child) {
+            $walk($child);
+        }
+    };
+
+    $walk($host->tree());
+
+    expect($maxLines)->toContain(2);
+});
