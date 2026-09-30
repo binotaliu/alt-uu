@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use AltUU\Domains\Course\ViewModels\CourseItemViewModel;
 use AltUU\Domains\Course\ViewModels\CourseTasksCountViewModel;
+use App\NativeComponents\Shared\CourseCard;
 use App\NativeComponents\Shared\EmptyState;
 use App\NativeComponents\Support\CourseListing;
 use Native\Mobile\Testing\Native;
@@ -61,4 +62,8 @@ it('renders the empty state and skeleton partials', function (): void {
     Native::test(EmptyState::class)
         ->set('message', '您的帳號目前未有課程')
         ->assertSee('您的帳號目前未有課程');
+});
+
+it('renders an empty node when no course is bound yet', function (): void {
+    Native::test(CourseCard::class)->assertDontSee('無待辦');
 });

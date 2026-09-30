@@ -45,4 +45,6 @@
             @endif
         </native:row>
     </native:pressable>
+@else
+    <native:column />
 @endif

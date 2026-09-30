@@ -97,4 +97,6 @@
             >
         </native:column>
     </native:pressable>
+@else
+    <native:column />
 @endif
