@@ -133,7 +133,7 @@ it('sends a device with no usable session to login', function (): void {
     app(UUSessionStore::class)->forget($this->account->id);
     app(AccountCredentialsStore::class)->forget($this->account->id);
 
-    Native::test(ExamInfo::class)->assertReplacedWith('/native/login');
+    Native::test(ExamInfo::class)->assertReplacedWith('/login');
 });
 
 it('orders unknown exam kinds after the midterm and final', function (): void {

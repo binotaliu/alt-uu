@@ -15,7 +15,7 @@ use Throwable;
  * Avatar + name pill that opens the account pane on tap and the quick
  * switcher on long press (AccountSwitcherButton.vue).
  *
- * Tag: `<native:account-switcher-button key="account-switcher-button" return-to="/native/courses" @switched="reloadAfterSwitch" />`
+ * Tag: `<native:account-switcher-button key="account-switcher-button" return-to="/courses" @switched="reloadAfterSwitch" />`
  * Props: `returnTo` (passed on to the switcher, see AccountSwitcherSheet).
  * Events: `switched` (new account id) re-emitted from the embedded
  * AccountSwitcherSheet, after this button has refreshed its own profile.

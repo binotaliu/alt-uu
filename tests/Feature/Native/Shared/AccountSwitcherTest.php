@@ -53,7 +53,7 @@ it('sends a stale target account to the reauth screen', function (): void {
     $host = RecordingHost::mountView('account-switcher-sheet', ['visible' => true])
         ->tap('account-'.$stale->id);
 
-    $host->assertNavigatedTo('/native/reauth/'.$stale->id);
+    $host->assertNavigatedTo('/reauth/'.$stale->id);
     expect($host->get('events'))->toBe([]);
 });
 
@@ -61,7 +61,7 @@ it('opens the manage screen and closes the sheet', function (): void {
     $host = RecordingHost::mountView('account-switcher-sheet', ['visible' => true])->tap('manage');
 
     expect($host->get('events'))->toBe([['cancel']]);
-    $host->assertNavigatedTo('/native/courses/account');
+    $host->assertNavigatedTo('/courses/account');
 });
 
 it('shows the picker without the failed account and offers re-login', function (): void {
@@ -73,7 +73,7 @@ it('shows the picker without the failed account and offers re-login', function (
         ->tap('reauth');
 
     expect($host->get('events'))->toBe([['cancel']]);
-    $host->assertNavigatedTo('/native/reauth/'.$this->first->id);
+    $host->assertNavigatedTo('/reauth/'.$this->first->id);
 });
 
 it('switches away from the expired account through the picker', function (): void {
@@ -99,7 +99,7 @@ it('shows the current profile on the switcher button and opens the menu on long 
 it('opens the account pane on tap', function (): void {
     RecordingHost::mountView('account-switcher-button')
         ->tap('open-account')
-        ->assertNavigatedTo('/native/courses/account');
+        ->assertNavigatedTo('/courses/account');
 });
 
 it('does not open the menu with a single account', function (): void {
@@ -144,5 +144,5 @@ it('replaces the screen with reauth when no other account can take over', functi
 
     Native::test(SessionExpiryHost::class)
         ->tap('expire')
-        ->assertReplacedWith('/native/reauth/'.$this->first->id);
+        ->assertReplacedWith('/reauth/'.$this->first->id);
 });

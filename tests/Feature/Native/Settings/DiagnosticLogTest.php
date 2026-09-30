@@ -8,7 +8,7 @@ use App\NativeComponents\Settings\DiagnosticLog;
 use Native\Mobile\Testing\Native;
 
 it('shows the empty state and recording prompt without events', function (): void {
-    Native::visit('/native/settings/diagnostics/log')
+    Native::visit('/settings/diagnostics/log')
         ->assertScreen(DiagnosticLog::class)
         ->assertNavTitle('診斷記錄')
         ->assertSee('診斷記錄未開啟')

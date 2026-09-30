@@ -7,18 +7,9 @@ use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
-use function Pest\Laravel\get;
 use function Pest\Laravel\post;
 use function Pest\Laravel\postJson;
-use function Pest\Laravel\withCookie;
 use function Pest\Laravel\withSession;
-
-it('shows login page', function () {
-    $response = get('/login');
-
-    $response->assertSuccessful();
-    $response->assertViewIs('app');
-});
 
 it('returns error json on invalid login', function () {
     Http::fake([
@@ -180,29 +171,6 @@ it('uses session ticket when fetching profile after login', function () {
         return str_contains($request->url(), 'ticket=ticket-from-session-data')
             && ! str_contains($request->url(), 'ticket=idx-should-not-be-used');
     });
-});
-
-it('exposes onboarding-completed and has-accounts state to the SPA shell', function () {
-    $response = get('/courses');
-
-    $response->assertSuccessful();
-    $response->assertViewIs('app');
-    $response->assertViewHas('showOnboarding', true);
-    $response->assertViewHas('hasAccounts', false);
-
-    app(AccountCredentialsStore::class)->put('s1234567', 'test-password');
-
-    KeyValueStore::query()->updateOrCreate(
-        ['key' => 'preference:onboarding-completed'],
-        ['value' => json_encode(['completed' => true], JSON_THROW_ON_ERROR)],
-    );
-
-    $response = get('/onboarding');
-
-    $response->assertSuccessful();
-    $response->assertViewIs('app');
-    $response->assertViewHas('showOnboarding', false);
-    $response->assertViewHas('hasAccounts', true);
 });
 
 it('validates existing session in bootstrap api and queues app boot cookie', function () {
@@ -408,49 +376,6 @@ it('returns unauthorized when bootstrap api validation and remembered login both
     expect(app(UUSessionStore::class)->get())->toBeNull();
     expect(app(AccountCredentialsStore::class)->has())->toBeFalse();
 });
-
-it('can re-login from remembered credentials when session record is missing', function () {
-    app(AccountCredentialsStore::class)->put('s1234567', 'remembered-secret');
-
-    Http::fake([
-        'https://uu.nou.edu.tw/' => Http::response('<html/>', 200, [
-            'Set-Cookie' => 'PHPSESSID=home; path=/',
-        ]),
-        'https://uu.nou.edu.tw/learn/index.php' => Http::response('<html/>', 200, [
-            'Set-Cookie' => 'WMSESSID=learn; path=/',
-        ]),
-        'https://uu.nou.edu.tw/xmlapi/index.php?action=login*' => Http::response([
-            'code' => 0,
-            'message' => 'success',
-            'data' => [
-                'session_data' => ['ticket' => 'ticket-from-remembered'],
-                'idx_data' => ['session_idx' => 'idx-from-remembered'],
-                'login_data' => ['realname' => '記住我使用者'],
-                'cookie_data' => ['WM' => 'cookie-from-payload'],
-            ],
-        ]),
-        'https://uu.nou.edu.tw/xmlapi/index.php?action=my-profile*' => Http::response([
-            'code' => 0,
-            'message' => 'success',
-            'data' => [
-                'username' => 's1234567',
-                'realname' => '記住我使用者',
-                'picture' => '',
-            ],
-        ]),
-        'https://uu.nou.edu.tw/xmlapi/index.php?action=my-course-list*' => Http::response([
-            'code' => 0,
-            'message' => 'success',
-            'data' => ['list' => []],
-        ]),
-    ]);
-
-    $response = withCookie(config('hungu.app_boot_cookie_name'), '1')->get('/courses');
-
-    $response->assertSuccessful();
-    $response->assertViewIs('app');
-    $response->assertSessionHas('hungu.profile.username', 's1234567');
-})->skip('Disabled.');
 
 it('clears cached course list and remembered credentials on logout', function () {
     app(AccountCredentialsStore::class)->put('s1234567', 'remembered-secret');

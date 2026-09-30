@@ -76,7 +76,7 @@ it('completes onboarding and continues to login when no account exists', functio
     Native::test(Onboarding::class)
         ->set('currentSlide', 2)
         ->tap('continue')
-        ->assertReplacedWith('/native/login');
+        ->assertReplacedWith('/login');
 
     $preferences = app(GetAppPreferences::class)();
 
@@ -90,7 +90,7 @@ it('completes onboarding and continues to the courses when an account exists', f
     Native::test(Onboarding::class)
         ->set('currentSlide', 2)
         ->tap('continue')
-        ->assertReplacedWith('/native/courses');
+        ->assertReplacedWith('/courses');
 });
 
 it('stays put and shows an error when saving fails', function (): void {

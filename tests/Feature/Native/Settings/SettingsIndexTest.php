@@ -22,7 +22,7 @@ function activateSubscription(): void
 it('renders without a session and shows stored preferences', function (): void {
     app(AppPreferenceStore::class)->setNouToolsIntegrationEnabled(true);
 
-    Native::visit('/native/settings')
+    Native::visit('/settings')
         ->assertScreen(SettingsIndex::class)
         ->assertSee('外觀')
         ->assertSee('開啟 NOU 小幫手整合')
@@ -42,7 +42,7 @@ it('hides the material source link unless the dev flag is on', function (): void
     Native::test(SettingsIndex::class)
         ->assertSee('教材來源檢視')
         ->tap('open-material-source')
-        ->assertNavigatedTo('/native/settings/diagnostics/material');
+        ->assertNavigatedTo('/settings/diagnostics/material');
 });
 
 it('saves a toggle through the preference action', function (): void {
@@ -118,7 +118,7 @@ it('sends an unsubscribed user to the subscription screen', function (): void {
     Native::test(SettingsIndex::class)
         ->assertSet('hasAccounts', true)
         ->tap('accent-ocean')
-        ->assertNavigatedTo('/native/courses/account/subscription')
+        ->assertNavigatedTo('/courses/account/subscription')
         ->assertSet('accentColor', 'warm');
 
     expect(app(GetAppPreferences::class)()->accentColor)->toBe('warm');
@@ -147,7 +147,7 @@ it('redirects to the subscription screen when the backend answers 402', function
     app()->bind(UpdateAppPreferences::class, fn () => throw new PremiumRequiredException);
 
     $test->tap('accent-red')
-        ->assertNavigatedTo('/native/courses/account/subscription')
+        ->assertNavigatedTo('/courses/account/subscription')
         ->assertSet('accentColor', 'warm')
         ->assertSet('subscriptionActive', false);
 });
@@ -208,11 +208,11 @@ it('starts and stops the diagnostic recording window', function (): void {
 it('links to the diagnostics screens', function (): void {
     Native::test(SettingsIndex::class)
         ->tap('open-diagnostics')
-        ->assertNavigatedTo('/native/settings/diagnostics');
+        ->assertNavigatedTo('/settings/diagnostics');
 
     Native::test(SettingsIndex::class)
         ->tap('open-diagnostic-log')
-        ->assertNavigatedTo('/native/settings/diagnostics/log');
+        ->assertNavigatedTo('/settings/diagnostics/log');
 });
 
 it('opens What is new through the shared sheet', function (): void {

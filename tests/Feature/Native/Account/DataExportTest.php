@@ -112,7 +112,7 @@ it('asks non-subscribers to upgrade instead of opening the import sheet', functi
         ->assertSet('importSheetVisible', false)
         ->assertSee('資料匯入為 Alt UU+ 專屬功能')
         ->tap('confirm')
-        ->assertNavigatedTo('/native/courses/account/subscription');
+        ->assertNavigatedTo('/courses/account/subscription');
 });
 
 it('dismisses the upgrade sheet with 關閉', function (): void {
@@ -126,7 +126,7 @@ it('dismisses the upgrade sheet with 關閉', function (): void {
 it('opens the subscription screen from the upsell card', function (): void {
     Native::test(DataExport::class)
         ->tap('subscribe')
-        ->assertNavigatedTo('/native/courses/account/subscription');
+        ->assertNavigatedTo('/courses/account/subscription');
 });
 
 it('imports pasted export data and summarises the result', function (): void {

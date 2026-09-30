@@ -1,5 +1,5 @@
 <native:account-switcher-button
     key="button"
-    return-to="/native/courses"
+    return-to="/courses"
     @switched="record('switched')"
 />

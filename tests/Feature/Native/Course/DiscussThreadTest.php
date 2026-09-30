@@ -444,7 +444,7 @@ it('replaces the screen with the login screen when there is no account', functio
     app(AccountActiveProfile::class)->clear();
     Account::query()->delete();
 
-    Native::test(DiscussThread::class, params: ['cid' => '1001', 'boardCid' => '1001', 'bid' => 'B-1', 'nid' => 'N-1'])->assertReplacedWith('/native/login');
+    Native::test(DiscussThread::class, params: ['cid' => '1001', 'boardCid' => '1001', 'bid' => 'B-1', 'nid' => 'N-1'])->assertReplacedWith('/login');
 });
 
 it('replaces the screen with the reauth screen when the session and remembered login are dead', function (): void {
@@ -452,7 +452,7 @@ it('replaces the screen with the reauth screen when the session and remembered l
     app(UUSessionStore::class)->forget($account->id);
     CourseUpstreamFake::install(['action=login' => Http::response(['code' => 403, 'message' => 'Auth fail', 'data' => []])]);
 
-    openThread()->assertReplacedWith("/native/reauth/{$account->id}");
+    openThread()->assertReplacedWith("/reauth/{$account->id}");
 });
 
 it('opens the session expired picker when the session dies mid-use and another account exists', function (): void {
@@ -468,7 +468,7 @@ it('opens the session expired picker when the session dies mid-use and another a
 });
 
 it('resolves through its route', function (): void {
-    Native::visit('/native/courses/1001/discuss/1001/B-1/N-1')->assertScreen(DiscussThread::class)->assertSee('第一則貼文');
+    Native::visit('/courses/1001/discuss/1001/B-1/N-1')->assertScreen(DiscussThread::class)->assertSee('第一則貼文');
 });
 
 // ── helpers ────────────────────────────────────────────────────────────────

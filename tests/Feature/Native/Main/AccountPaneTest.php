@@ -53,12 +53,12 @@ it('renders the profile, links and the upsell with sample data for free users', 
 it('navigates to the linked screens', function (string $ref, string $uri): void {
     Native::test(AccountPane::class)->tap($ref)->assertNavigatedTo($uri);
 })->with([
-    ['switch-account', '/native/courses/account/accounts'],
-    ['grades', '/native/courses/account/grades'],
-    ['exam-info', '/native/courses/account/exam-info'],
-    ['subscription', '/native/courses/account/subscription'],
-    ['upgrade', '/native/courses/account/subscription'],
-    ['data-export', '/native/courses/account/data-export'],
+    ['switch-account', '/courses/account/accounts'],
+    ['grades', '/courses/account/grades'],
+    ['exam-info', '/courses/account/exam-info'],
+    ['subscription', '/courses/account/subscription'],
+    ['upgrade', '/courses/account/subscription'],
+    ['data-export', '/courses/account/data-export'],
 ]);
 
 it('shows the subscriber view with the renewal date and real activity', function (): void {
@@ -111,16 +111,16 @@ it('sends an unauthenticated user to login', function (): void {
     Account::query()->delete();
     app(AccountActiveProfile::class)->clear();
 
-    Native::test(AccountPane::class)->assertReplacedWith('/native/login');
+    Native::test(AccountPane::class)->assertReplacedWith('/login');
 });
 
 it('mounts inside the main tabs layout with a settings action', function (): void {
-    Native::visit('/native/courses/account')
+    Native::visit('/courses/account')
         ->assertScreen(AccountPane::class)
         ->assertHasTabBar()
         ->assertTabActive('我的帳號');
 });
 
 it('opens settings from the top bar', function (): void {
-    Native::test(AccountPane::class)->call('openSettings')->assertNavigatedTo('/native/settings');
+    Native::test(AccountPane::class)->call('openSettings')->assertNavigatedTo('/settings');
 });

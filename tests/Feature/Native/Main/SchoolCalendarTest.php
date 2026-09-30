@@ -118,7 +118,7 @@ it('sends an unauthenticated user to login', function (): void {
     Account::query()->delete();
     app(AccountActiveProfile::class)->clear();
 
-    Native::test(SchoolCalendar::class)->assertReplacedWith('/native/login');
+    Native::test(SchoolCalendar::class)->assertReplacedWith('/login');
 });
 
 it('falls back to the first ongoing countdown and handles malformed dates', function (): void {

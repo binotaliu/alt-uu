@@ -2,7 +2,7 @@
     key="expired"
     :visible="$state['visible'] ?? false"
     :failed-account-id="$state['failed'] ?? null"
-    return-to="/native/courses"
+    return-to="/courses"
     @cancel="record('cancel')"
     @switched="record('switched')"
 />

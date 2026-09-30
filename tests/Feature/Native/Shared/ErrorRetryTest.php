@@ -46,7 +46,7 @@ it('reveals structured details on demand', function (): void {
         ->assertSee('502')
         ->assertSee('隱藏詳細資料')
         ->tap('open-log')
-        ->assertNavigatedTo('/native/settings/diagnostics/log');
+        ->assertNavigatedTo('/settings/diagnostics/log');
 });
 
 it('hides the detail toggle when there is no detail', function (): void {
@@ -77,7 +77,7 @@ it('opens the diagnostics from the prompt and stays quiet afterwards', function 
     $screen->tap('retry')->tap('retry')->tap('retry')
         ->tap('connectivity-confirm')
         ->assertSet('connectivityPromptVisible', false)
-        ->assertNavigatedTo('/native/settings/diagnostics');
+        ->assertNavigatedTo('/settings/diagnostics');
 
     $quiet = Native::test(ErrorRetry::class)->set('message', '失敗');
     $quiet->tap('retry')->tap('retry')->tap('retry')->assertSet('connectivityPromptVisible', false);

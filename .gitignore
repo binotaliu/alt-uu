@@ -1,16 +1,11 @@
 /.phpunit.cache
-/bootstrap/ssr
 /node_modules
-/public/build
 /public/ios-hot
 /public/hot
 /public/storage
 /tests/Browser/Screenshots
 /storage/*.key
 /storage/pail
-/resources/js/actions
-/resources/js/routes
-/resources/js/wayfinder
 /vendor
 .DS_Store
 .env

@@ -85,9 +85,6 @@ jobs:
           android-keystore-base64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           google-service-account-key-base64: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY_BASE64 }}
 
-      - name: Build frontend assets
-        run: npm run build -- --mode=android
-
       - name: Install NativePHP Android project
         run: rm -Rf nativephp/android && php artisan native:install --force android
 
@@ -139,9 +136,6 @@ jobs:
           android-keystore-base64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           google-service-account-key-base64: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY_BASE64 }}
 
-      - name: Build frontend assets
-        run: npm run build -- --mode=ios
-
       - name: Install NativePHP iOS project
         run: rm -Rf nativephp/ios && php artisan native:install --force ios
 
@@ -188,9 +182,6 @@ jobs:
           app-store-api-key-base64: ${{ secrets.APP_STORE_API_KEY_P8_BASE64 }}
           android-keystore-base64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           google-service-account-key-base64: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY_BASE64 }}
-
-      - name: Build frontend assets
-        run: npm run build -- --mode=android
 
       - name: Install NativePHP Android project
         run: rm -Rf nativephp/android && php artisan native:install --force android
@@ -270,9 +261,6 @@ jobs:
           app-store-api-key-base64: ${{ secrets.APP_STORE_API_KEY_P8_BASE64 }}
           android-keystore-base64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           google-service-account-key-base64: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY_BASE64 }}
-
-      - name: Build frontend assets
-        run: npm run build -- --mode=android
 
       - name: Install NativePHP Android project
         run: rm -Rf nativephp/android && php artisan native:install --force android
@@ -362,9 +350,6 @@ jobs:
           app-store-api-key-base64: ${{ secrets.APP_STORE_API_KEY_P8_BASE64 }}
           android-keystore-base64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           google-service-account-key-base64: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY_BASE64 }}
-
-      - name: Build frontend assets
-        run: npm run build -- --mode=ios
 
       - name: Install NativePHP iOS project
         run: rm -Rf nativephp/ios && php artisan native:install --force ios

@@ -33,16 +33,15 @@ use Illuminate\Support\Facades\Route;
 | Native (SuperNative) routes
 |--------------------------------------------------------------------------
 |
-| Mirrors resources/js/router.ts one to one. Until the cutover every route is
-| mounted under a temporary `/native` URI prefix with `native.` route names,
-| because this file loads after web.php and would otherwise replace the SPA's
-| `/login`, `/{any}` and same-named routes. At cutover, delete the prefix and
-| name-prefix wrapper below (see docs/native-migration/conventions.md).
+| The app's only screens. Route names carry the `native.` prefix (build
+| navigation targets with route('native.x', $params, absolute: false)); URIs
+| are plain (`/courses`, `/login`). The start screen is `nativephp.start_url`
+| (`/courses`).
 |
 | Static segments are registered before {param} siblings.
 */
 
-Route::prefix('native')->name('native.')->group(function (): void {
+Route::name('native.')->group(function (): void {
     Route::nativeGroup(GuestLayout::class, function (): void {
         Route::native('/login', Login::class)->name('login');
         Route::native('/onboarding', Onboarding::class)->name('onboarding');

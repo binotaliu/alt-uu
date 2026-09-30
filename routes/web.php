@@ -252,7 +252,3 @@ Route::middleware([EnsureHunguSession::class])->group(function (): void {
         })->name('api.hungu-cookies');
     });
 });
-
-// SPA catch-all: serve the app shell for all frontend routes (excluding /api paths)
-Route::get('/login', static fn () => view('app'))->name('login');
-Route::get('/{any}', static fn () => view('app'))->where('any', '^(?!api(/|$)).*')->name('spa');

@@ -14,7 +14,7 @@ use Native\Mobile\Edge\NativeComponent;
  * "登入已失效" sheet offering another account or a fresh login for the dead
  * one (SessionExpiredPicker.vue).
  *
- * Tag: `<native:session-expired-picker key="session-expired" :visible="$sessionPickerVisible" :failed-account-id="$sessionPickerFailedAccountId" failed-account-name="小明" return-to="/native/courses" @cancel="closeSessionPicker" @switched="onSessionAccountSwitched" />`
+ * Tag: `<native:session-expired-picker key="session-expired" :visible="$sessionPickerVisible" :failed-account-id="$sessionPickerFailedAccountId" failed-account-name="小明" return-to="/courses" @cancel="closeSessionPicker" @switched="onSessionAccountSwitched" />`
  * Hosts using the `ShowsSessionExpiredPicker` trait get the props and the two
  * handler methods for free.
  *

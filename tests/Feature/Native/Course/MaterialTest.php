@@ -144,7 +144,7 @@ it('renders a video node with the native player, the header and prev/next button
         ->and($player[0]['props']['watermark'])->toBe('s1234567')
         ->and($player[0]['props'])->not->toHaveKey('start')
         ->and(json_decode($player[0]['props']['session_context'], true))->toMatchArray([
-            'routePath' => '/native/courses/1001/V1',
+            'routePath' => '/courses/1001/V1',
             'cid' => '1001',
             'activityId' => 'V1',
             'href' => 'https://uu.nou.edu.tw/media/v1.html',
@@ -631,7 +631,7 @@ it('restores the running media session: keeps its start time and skips the promp
     Native::fakeBridge()->respondTo('MediaPlayer.GetState', ['status' => 'success', 'data' => [
         'isActive' => true, 'currentTime' => 900, 'type' => 'video', 'url' => 'https://cdn.example.com/v1/playlist.m3u8',
         'sessionContext' => [
-            'routePath' => '/native/courses/1001/V1', 'cid' => '1001', 'activityId' => 'V1',
+            'routePath' => '/courses/1001/V1', 'cid' => '1001', 'activityId' => 'V1',
             'href' => 'https://uu.nou.edu.tw/media/v1.html', 'startedAt' => $startedAt,
         ],
     ]]);
@@ -645,7 +645,7 @@ it('restores the running media session: keeps its start time and skips the promp
 it('ignores a running session that belongs to another node', function (): void {
     Native::fakeBridge()->respondTo('MediaPlayer.GetState', ['status' => 'success', 'data' => [
         'isActive' => true,
-        'sessionContext' => ['routePath' => '/native/courses/1001/H1', 'cid' => '1001', 'activityId' => 'H1', 'href' => 'x', 'startedAt' => now()->subHour()->toIso8601String()],
+        'sessionContext' => ['routePath' => '/courses/1001/H1', 'cid' => '1001', 'activityId' => 'H1', 'href' => 'x', 'startedAt' => now()->subHour()->toIso8601String()],
     ]]);
 
     openMaterial('V1')->assertSee('00:00');
@@ -655,11 +655,11 @@ it('finds the active session for other screens', function (): void {
     expect(ActiveMediaSession::find())->toBeNull();
 
     Native::fakeBridge()->respondTo('MediaPlayer.GetState', ['status' => 'success', 'data' => ['isActive' => true, 'sessionContext' => [
-        'routePath' => '/native/courses/1001/V1', 'cid' => '1001', 'activityId' => 'V1', 'startedAt' => '2026-03-01T10:00:00+08:00',
+        'routePath' => '/courses/1001/V1', 'cid' => '1001', 'activityId' => 'V1', 'startedAt' => '2026-03-01T10:00:00+08:00',
     ]]]);
 
     expect(ActiveMediaSession::find())->toBe([
-        'cid' => '1001', 'activityId' => 'V1', 'routePath' => '/native/courses/1001/V1', 'startedAt' => '2026-03-01T10:00:00+08:00',
+        'cid' => '1001', 'activityId' => 'V1', 'routePath' => '/courses/1001/V1', 'startedAt' => '2026-03-01T10:00:00+08:00',
     ]);
 
     Native::fakeBridge()->respondTo('MediaPlayer.GetState', ['status' => 'success', 'data' => ['isActive' => false]]);
@@ -842,7 +842,7 @@ it('replaces the screen with the reauth screen when the session and remembered l
     app(UUSessionStore::class)->forget($account->id);
     CourseUpstreamFake::install(['action=login' => Http::response(['code' => 403, 'message' => 'Auth fail', 'data' => []])]);
 
-    openMaterial('V1')->assertReplacedWith("/native/reauth/{$account->id}");
+    openMaterial('V1')->assertReplacedWith("/reauth/{$account->id}");
     expect(studyTimeSent())->toBe(0);
 });
 
@@ -892,14 +892,14 @@ it('drops the running visit when the account is switched from the picker', funct
     $screen = openMaterial('V1');
     $this->travel(60)->seconds();
 
-    $screen->call('onSessionPickerSwitched', 999)->assertReplacedWith('/native/courses');
+    $screen->call('onSessionPickerSwitched', 999)->assertReplacedWith('/courses');
     $screen->instance()->unmount();
 
     expect(studyTimeSent())->toBe(0);
 });
 
 it('resolves through its route', function (): void {
-    Native::visit('/native/courses/1001/V1')->assertScreen(Material::class)->assertSee('影片一');
+    Native::visit('/courses/1001/V1')->assertScreen(Material::class)->assertSee('影片一');
 });
 
 it('formats file names, durations and clocks', function (): void {

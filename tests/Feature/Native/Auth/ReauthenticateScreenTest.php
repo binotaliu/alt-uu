@@ -59,7 +59,7 @@ it('re-logs in and returns to the courses tab by default', function (): void {
     reauthScreen($account->id)
         ->input('password', 'secret')
         ->tap('submit')
-        ->assertReplacedWith('/native/courses')
+        ->assertReplacedWith('/courses')
         ->assertSet('error', '');
 
     expect(app(AccountActiveProfile::class)->get())->toBe($account->id);
@@ -69,10 +69,10 @@ it('returns to the screen the user came from', function (): void {
     $account = AccountSeeding::seed('s1234567', withSession: false);
     fakeReauthUpstream(0);
 
-    reauthScreen($account->id, ['returnTo' => '/native/courses/42'])
+    reauthScreen($account->id, ['returnTo' => '/courses/42'])
         ->input('password', 'secret')
         ->tap('submit')
-        ->assertReplacedWith('/native/courses/42');
+        ->assertReplacedWith('/courses/42');
 });
 
 it('ignores a returnTo that is not an app path', function (): void {
@@ -82,7 +82,7 @@ it('ignores a returnTo that is not an app path', function (): void {
     reauthScreen($account->id, ['returnTo' => 'https://evil.example/x'])
         ->input('password', 'secret')
         ->tap('submit')
-        ->assertReplacedWith('/native/courses');
+        ->assertReplacedWith('/courses');
 });
 
 it('reauthenticates an account the session guard already soft-deleted', function (): void {
@@ -94,7 +94,7 @@ it('reauthenticates an account the session guard already soft-deleted', function
         ->assertSee('s1234567')
         ->input('password', 'secret')
         ->tap('submit')
-        ->assertReplacedWith('/native/courses');
+        ->assertReplacedWith('/courses');
 });
 
 it('shows the failure message for a wrong password and stays put', function (): void {
@@ -134,5 +134,5 @@ it('shows a generic error when the platform is unreachable', function (): void {
 });
 
 it('goes to login when the account no longer exists', function (): void {
-    reauthScreen(9999)->assertReplacedWith('/native/login');
+    reauthScreen(9999)->assertReplacedWith('/login');
 });

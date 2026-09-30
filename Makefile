@@ -49,14 +49,12 @@ prepare:
 run-i:
 	@if [ -z "$(UUID)" ]; then echo "UUID is required. use make run UUID=<uuid>"; exit 1; fi
 	@$(CONCURRENTLY) "$(MAKE) ensure-composer-dev-deps && $(MAKE) ensure-nativephp" "$(MAKE) ensure-node-modules" --names "php,node" --prefix-colors "green,blue"
-	@$(NPM) run build -- --mode=ios
 	$(ARTISAN) native:run i $(UUID)
 	@$(CONCURRENTLY) "$(MAKE) ensure-node-modules" "$(MAKE) ensure-composer-dev-deps" --names "npm,composer" --prefix-colors "blue,green"
 
 watch-i:
 	@if [ -z "$(UUID)" ]; then echo "UUID is required. use make watch UUID=<uuid>"; exit 1; fi
 	@$(CONCURRENTLY) "$(MAKE) ensure-composer-dev-deps && $(MAKE) ensure-nativephp" "$(MAKE) ensure-node-modules" --names "php,node" --prefix-colors "green,blue"
-	$(NPM) install && $(NPM) run build -- --mode=ios
 	$(ARTISAN) native:run i $(UUID) --watch
 
 release-i: export DEVELOPER_DIR := $(STABLE_DEVELOPER_DIR)
@@ -64,28 +62,26 @@ release-i:
 	$(MAKE) ensure-composer-dev-deps
 	$(MAKE) reset-nativephp
 	$(MAKE) ensure-node-modules
-	$(CONCURRENTLY) "$(NPM) run build -- --mode=ios && rm -Rf node_modules" "$(COMPOSER) install --no-dev" --names "npm,composer" --prefix-colors "blue,green"
+	$(COMPOSER) install --no-dev
 	$(ARTISAN) native:package ios --upload-to-app-store --rebuild
 	$(CONCURRENTLY) "$(NPM) install" "$(COMPOSER) install" --names "npm,composer" --prefix-colors "blue,green"
 
 run-a:
 	$(MAKE) ensure-composer-dev-deps && $(MAKE) ensure-nativephp
 	$(MAKE) ensure-node-modules
-	$(NPM) run build -- --mode=android && rm -Rf node_modules
 	$(ARTISAN) native:run android $(UUID)
 	$(MAKE) ensure-node-modules && $(MAKE) ensure-composer-dev-deps
 
 watch-a:
 	$(MAKE) ensure-composer-dev-deps && $(MAKE) ensure-nativephp
 	$(MAKE) ensure-node-modules
-	$(NPM) run build -- --mode=android
 	$(ARTISAN) native:run android $(UUID) --watch
 
 release-a:
 	$(MAKE) ensure-composer-dev-deps
 	$(MAKE) reset-nativephp
 	$(MAKE) ensure-node-modules
-	$(CONCURRENTLY) "$(NPM) run build -- --mode=android && rm -Rf node_modules" "$(COMPOSER) install --no-dev" --names "npm,composer" --prefix-colors "blue,green"
+	$(COMPOSER) install --no-dev
 	$(ARTISAN) native:package android --build-type=bundle --upload-to-play-store --rebuild
 	$(CONCURRENTLY) "$(NPM) install" "$(COMPOSER) install" --names "npm,composer" --prefix-colors "blue,green"
 

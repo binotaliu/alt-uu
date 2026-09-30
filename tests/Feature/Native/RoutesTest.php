@@ -11,17 +11,17 @@ use Illuminate\Support\Facades\Route;
 use Native\Mobile\Edge\NativeComponent;
 use Native\Mobile\Edge\NativeRouter;
 
-it('mounts every native route under the temporary /native prefix', function (): void {
+it('mounts every native route at a plain URI', function (): void {
     $patterns = array_keys(NativeRouter::registeredRoutes());
 
     expect($patterns)->toHaveCount(20);
 
     foreach ($patterns as $pattern) {
-        expect($pattern)->toStartWith('/native/');
+        expect($pattern)->not->toStartWith('/native');
     }
 });
 
-it('mirrors every Vue route name under the native. prefix', function (): void {
+it('names every screen with the native. prefix', function (): void {
     $vueNames = [
         'login', 'onboarding', 'reauth', 'courses.index', 'courses.live-sessions',
         'courses.school-calendar', 'courses.account', 'courses.account.accounts',
@@ -37,21 +37,24 @@ it('mirrors every Vue route name under the native. prefix', function (): void {
     }
 });
 
-it('leaves the SPA routes untouched', function (): void {
-    expect(Route::getRoutes()->getByName('login')->uri())->toBe('login')
-        ->and(Route::getRoutes()->getByName('spa')->uri())->toBe('{any}');
+it('has no SPA shell or catch-all left', function (): void {
+    expect(Route::has('spa'))->toBeFalse()
+        ->and(Route::has('login'))->toBeFalse()
+        ->and(view()->exists('app'))->toBeFalse();
+});
 
-    $this->get('/courses')->assertOk();
+it('serves the start url from a native route', function (): void {
+    expect(NativeRouter::isNativeRoute(config('nativephp.start_url')))->toBeTrue();
 });
 
 it('registers layouts per route group', function (): void {
     $layouts = collect(NativeRouter::registeredRoutes())->map(fn (array $entry): ?string => $entry['layout'] ?? null);
 
-    expect($layouts['/native/login'])->toBe(GuestLayout::class)
-        ->and($layouts['/native/courses'])->toBe(MainTabsLayout::class)
-        ->and($layouts['/native/courses/account'])->toBe(MainTabsLayout::class)
-        ->and($layouts['/native/courses/account/accounts'])->toBe(FormStackLayout::class)
-        ->and($layouts['/native/courses/{cid}'])->toBe(StackLayout::class);
+    expect($layouts['/login'])->toBe(GuestLayout::class)
+        ->and($layouts['/courses'])->toBe(MainTabsLayout::class)
+        ->and($layouts['/courses/account'])->toBe(MainTabsLayout::class)
+        ->and($layouts['/courses/account/accounts'])->toBe(FormStackLayout::class)
+        ->and($layouts['/courses/{cid}'])->toBe(StackLayout::class);
 });
 
 it('resolves static segments before {param} siblings', function (): void {
@@ -61,10 +64,10 @@ it('resolves static segments before {param} siblings', function (): void {
         ->sortBy(fn (string $pattern): int => str_contains($pattern, '{') ? 1 : 0)
         ->first();
 
-    expect($stubbed('/native/courses/account/accounts'))->toBe('/native/courses/account/accounts')
-        ->and($stubbed('/native/courses/live-sessions'))->toBe('/native/courses/live-sessions');
+    expect($stubbed('/courses/account/accounts'))->toBe('/courses/account/accounts')
+        ->and($stubbed('/courses/live-sessions'))->toBe('/courses/live-sessions');
 
-    $resolved = NativeRouter::resolve('/native/login');
+    $resolved = NativeRouter::resolve('/login');
     expect($resolved['class'])->toBe(Login::class);
 });
 

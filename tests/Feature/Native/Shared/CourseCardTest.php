@@ -36,7 +36,7 @@ it('emits selected and navigates to the course on tap', function (): void {
     $host = RecordingHost::mountView('course-card')->tap('course-42');
 
     expect($host->get('events'))->toBe([['selected', '42']]);
-    $host->assertNavigatedTo('/native/courses/42');
+    $host->assertNavigatedTo('/courses/42');
 });
 
 it('groups courses by semester and merges common course counters', function (): void {

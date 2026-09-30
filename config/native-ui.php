@@ -46,7 +46,7 @@ return [
     'theme' => [
 
         /*
-         * Traced from resources/css/app.css and the Vue markup: light page =
+         * Traced from the former Vue app (resources/css/app.css, removed at cutover): light page =
          * theme-100, cards = white, primary fill = theme-800, headings =
          * theme-900, links/muted = theme-700, borders = theme-300/200; dark
          * page = zinc-950, cards = zinc-900, raised = zinc-800, borders =
@@ -173,7 +173,7 @@ return [
     | `warm` is the default and equals the `theme` block above). Only the roles
     | that follow the accent are listed. Apply at runtime with
     | App\Services\NativeAccent::apply($id), which Theme::merge()s the override.
-    | Generated from the oklch scales in resources/css/app.css.
+    | Generated from the oklch scales of the former Vue app (resources/css/app.css, removed at cutover).
     |
     */
 

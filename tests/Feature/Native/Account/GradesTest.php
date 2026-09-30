@@ -153,7 +153,7 @@ it('sends a device with no usable session to login', function (): void {
     app(UUSessionStore::class)->forget($this->account->id);
     app(AccountCredentialsStore::class)->forget($this->account->id);
 
-    Native::test(Grades::class)->assertReplacedWith('/native/login');
+    Native::test(Grades::class)->assertReplacedWith('/login');
 });
 
 it('sends an expired account without alternatives to reauth', function (): void {
@@ -162,5 +162,5 @@ it('sends an expired account without alternatives to reauth', function (): void 
         'https://uu.nou.edu.tw/xmlapi/index.php?action=login*' => Http::response(['code' => 403, 'message' => 'Auth fail', 'data' => []]),
     ]);
 
-    Native::test(Grades::class)->assertReplacedWith('/native/reauth/'.$this->account->id);
+    Native::test(Grades::class)->assertReplacedWith('/reauth/'.$this->account->id);
 });

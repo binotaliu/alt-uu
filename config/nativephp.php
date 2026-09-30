@@ -79,7 +79,7 @@ return [
     |
     */
 
-    'start_url' => env('NATIVEPHP_START_URL', '/native/courses'),
+    'start_url' => env('NATIVEPHP_START_URL', '/courses'),
 
     /*
     |--------------------------------------------------------------------------
@@ -143,8 +143,6 @@ return [
         'packages/*/*/resources/android',
         'packages/*/*/resources/ios',
         'packages/*/*/tests',
-        'resources/css',
-        'resources/js',
         'hungu-analysis',
         'tests',
         'statics',
@@ -163,14 +161,11 @@ return [
         '.prettierrc',
         'boost.json',
         'commitlint.config.cjs',
-        'components.json',
         'native',
         'Makefile',
         'package-lock.json',
         'package.json',
         'pint.json',
-        'tsconfig.json',
-        'vite.config.ts',
     ],
 
     /*

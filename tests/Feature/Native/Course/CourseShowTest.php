@@ -85,13 +85,13 @@ it('lists boards of the course and its shared course and opens a board', functio
         ->assertSee('新文章')
         ->assertSee('主題數：3');
 
-    $screen->tap('board-1001-B-1')->assertNavigatedTo('/native/courses/1001/discuss/1001/B-1');
+    $screen->tap('board-1001-B-1')->assertNavigatedTo('/courses/1001/discuss/1001/B-1');
 });
 
 it('opens a shared course board with the shared course id', function (): void {
     showCourse('discuss')
         ->tap('board-9000-B-2')
-        ->assertNavigatedTo('/native/courses/1001/discuss/9000/B-2');
+        ->assertNavigatedTo('/courses/1001/discuss/9000/B-2');
 });
 
 it('switches tabs and loads homework on demand', function (): void {
@@ -286,7 +286,7 @@ it('replaces the screen with the login screen when there is no account', functio
     app(AccountActiveProfile::class)->clear();
     Account::query()->delete();
 
-    Native::test(CourseShow::class, params: ['cid' => '1001'])->assertReplacedWith('/native/login');
+    Native::test(CourseShow::class, params: ['cid' => '1001'])->assertReplacedWith('/login');
 });
 
 it('replaces the screen with the reauth screen when the session and remembered login are dead', function (): void {
@@ -294,7 +294,7 @@ it('replaces the screen with the reauth screen when the session and remembered l
     app(UUSessionStore::class)->forget($account->id);
     CourseUpstreamFake::install(['action=login' => Http::response(['code' => 403, 'message' => 'Auth fail', 'data' => []])]);
 
-    Native::test(CourseShow::class, params: ['cid' => '1001'])->assertReplacedWith("/native/reauth/{$account->id}");
+    Native::test(CourseShow::class, params: ['cid' => '1001'])->assertReplacedWith("/reauth/{$account->id}");
 });
 
 it('opens the session expired picker on resume when the session died and another account exists', function (): void {

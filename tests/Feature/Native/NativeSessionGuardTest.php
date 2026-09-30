@@ -180,7 +180,7 @@ it('lets a guarded native screen mount when signed in', function () {
 it('replaces a guarded native screen with the login screen when signed out', function () {
     Native::test(GuardedTestScreen::class)
         ->assertSet('proceeded', false)
-        ->assertReplacedWith('/native/login');
+        ->assertReplacedWith('/login');
 });
 
 it('replaces a guarded native screen with the reauth screen when the account session died', function () {
@@ -188,5 +188,5 @@ it('replaces a guarded native screen with the reauth screen when the account ses
     fakeNativeGuardUpstream(loginCode: 403);
 
     Native::test(GuardedTestScreen::class)
-        ->assertReplacedWith("/native/reauth/{$account->id}");
+        ->assertReplacedWith("/reauth/{$account->id}");
 });

@@ -62,7 +62,7 @@ it('switches to another account and goes to the course list', function (): void 
     $screen = Native::test(Accounts::class)
         ->tap('account-'.$this->second->id)
         ->tap('switch-'.$this->second->id)
-        ->assertNavigatedTo('/native/courses');
+        ->assertNavigatedTo('/courses');
 
     expect(app(AccountActiveProfile::class)->get())->toBe($this->second->id);
     $screen->assertNativeCalled('Dialog.Toast', fn (array $params): bool => $params['message'] === '已切換帳號');
@@ -78,7 +78,7 @@ it('sends a stale target account to reauth instead of switching', function (): v
     Native::test(Accounts::class)
         ->tap('account-'.$stale->id)
         ->tap('switch-'.$stale->id)
-        ->assertNavigatedTo('/native/reauth/'.$stale->id);
+        ->assertNavigatedTo('/reauth/'.$stale->id);
 
 });
 
@@ -239,7 +239,7 @@ it('lands on login when the next account has a dead session and is dropped', fun
     Native::test(Accounts::class)
         ->call('askRemove', $this->first->id)
         ->tap('remove-confirm')
-        ->assertReplacedWith('/native/login');
+        ->assertReplacedWith('/login');
 });
 
 it('goes to the login screen after removing the last account', function (): void {
@@ -248,7 +248,7 @@ it('goes to the login screen after removing the last account', function (): void
     Native::test(Accounts::class)
         ->call('askRemove', $this->first->id)
         ->tap('remove-confirm')
-        ->assertReplacedWith('/native/login');
+        ->assertReplacedWith('/login');
 
     expect(Account::query()->count())->toBe(0);
 });
@@ -265,5 +265,5 @@ it('toasts when the account to remove is already gone', function (): void {
 it('works with no valid session and sends an empty device to login', function (): void {
     Account::query()->delete();
 
-    Native::test(Accounts::class)->assertReplacedWith('/native/login');
+    Native::test(Accounts::class)->assertReplacedWith('/login');
 });

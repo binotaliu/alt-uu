@@ -56,7 +56,7 @@ it('lists courses grouped by semester with task counters', function (): void {
 it('mounts inside the main tabs layout', function (): void {
     fakeCourseUpstream();
 
-    Native::visit('/native/courses')
+    Native::visit('/courses')
         ->assertScreen(CourseList::class)
         ->assertNavTitle('我的課程')
         ->assertHasTabBar()
@@ -68,7 +68,7 @@ it('opens a course on tap', function (): void {
 
     Native::test(CourseList::class)
         ->tap('course-1001')
-        ->assertNavigatedTo('/native/courses/1001');
+        ->assertNavigatedTo('/courses/1001');
 });
 
 it('shows the empty state for an account without courses', function (): void {
@@ -106,7 +106,7 @@ it('redirects to the login screen when there is no account', function (): void {
     app(AccountActiveProfile::class)->clear();
     Account::query()->delete();
 
-    Native::test(CourseList::class)->assertReplacedWith('/native/login');
+    Native::test(CourseList::class)->assertReplacedWith('/login');
 });
 
 it('opens the What\'s New sheet for an upgrading user only', function (): void {
@@ -127,7 +127,7 @@ it('sends a first launch to onboarding instead of loading courses', function ():
     fakeCourseUpstream();
     app(UpdateAppPreferences::class)(UpdateAppPreferencesInputData::from(['onboardingCompleted' => false]));
 
-    Native::test(CourseList::class)->assertReplacedWith('/native/onboarding');
+    Native::test(CourseList::class)->assertReplacedWith('/onboarding');
 
     Http::assertNotSent(fn ($request): bool => str_contains($request->url(), 'my-course-list'));
 });
@@ -135,11 +135,11 @@ it('sends a first launch to onboarding instead of loading courses', function ():
 it('restores the material screen of a still-playing native player instead of loading the list', function (): void {
     fakeCourseUpstream();
     Native::fakeBridge()->respondTo('MediaPlayer.GetState', ['status' => 'success', 'data' => ['isActive' => true, 'sessionContext' => [
-        'routePath' => '/native/courses/1001/V1', 'cid' => '1001', 'activityId' => 'V1', 'startedAt' => now()->toIso8601String(),
+        'routePath' => '/courses/1001/V1', 'cid' => '1001', 'activityId' => 'V1', 'startedAt' => now()->toIso8601String(),
     ]]]);
 
     Native::test(CourseList::class)
-        ->assertNavigatedTo('/native/courses/1001/V1')
+        ->assertNavigatedTo('/courses/1001/V1')
         ->assertSet('courses', []);
 
     Http::assertNotSent(fn ($request): bool => str_contains($request->url(), 'my-course-list'));

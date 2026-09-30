@@ -37,7 +37,7 @@ it('lists the posts with unread markers, poster, replies and likes', function ()
 });
 
 it('opens the thread of a post', function (): void {
-    openBoard()->tap('node-N-2')->assertNavigatedTo('/native/courses/1001/discuss/1001/B-1/N-2');
+    openBoard()->tap('node-N-2')->assertNavigatedTo('/courses/1001/discuss/1001/B-1/N-2');
 });
 
 it('offers a compose action only on boards that allow posting', function (): void {
@@ -142,7 +142,7 @@ it('replaces the screen with the login screen when signed out', function (): voi
     app(AccountActiveProfile::class)->clear();
     Account::query()->delete();
 
-    openBoard()->assertReplacedWith('/native/login');
+    openBoard()->assertReplacedWith('/login');
 });
 
 it('has a node view model default that stays unblocked', function (): void {

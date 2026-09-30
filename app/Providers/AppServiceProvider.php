@@ -4,10 +4,6 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
-use AltUU\Domains\Account\Actions\HasAnyAccounts;
-use AltUU\Domains\AppPreference\Actions\GetAccentColor;
-use AltUU\Domains\AppPreference\Actions\GetAppearance;
-use AltUU\Domains\AppPreference\Actions\GetOnboardingCompleted;
 use App\Http\Middleware\EnsureHunguSession;
 use App\Services\Diagnostics\DiagnosticRecorder;
 use App\Services\Diagnostics\DiagnosticRedactor;
@@ -60,13 +56,6 @@ final class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
-
-        view()->composer('app', function ($view): void {
-            $view->with('appearance', app(GetAppearance::class)());
-            $view->with('accentColor', app(GetAccentColor::class)());
-            $view->with('showOnboarding', ! app(GetOnboardingCompleted::class)());
-            $view->with('hasAccounts', app(HasAnyAccounts::class)());
-        });
 
         $this->app->resolving(UUProxyClient::class, function (UUProxyClient $proxyClient, $app): void {
             $proxyClient->setReauthenticationHandler(function () use ($app): bool {

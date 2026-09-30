@@ -90,7 +90,7 @@ it('shows the last seen label unless the node is active', function (): void {
 it('navigates to the material screen in link mode', function (): void {
     $host = RecordingHost::mountView('material-directory', ['mode' => 'link'])->tap('node-A1');
 
-    $host->assertNavigatedTo('/native/courses/C1/A1');
+    $host->assertNavigatedTo('/courses/C1/A1');
     expect($host->get('events'))->toBe([]);
 });
 

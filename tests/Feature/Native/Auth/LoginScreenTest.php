@@ -49,7 +49,7 @@ it('renders the form with a revealable secure password field and no web view', f
 it('sends first-time users to onboarding', function (): void {
     app(UpdateAppPreferences::class)(UpdateAppPreferencesInputData::from(['onboardingCompleted' => false]));
 
-    Native::test(Login::class)->assertReplacedWith('/native/onboarding');
+    Native::test(Login::class)->assertReplacedWith('/onboarding');
 });
 
 it('logs in and replaces the screen with the courses tab', function (): void {
@@ -59,7 +59,7 @@ it('logs in and replaces the screen with the courses tab', function (): void {
         ->input('username', 's1234567')
         ->input('password', 'secret')
         ->tap('submit')
-        ->assertReplacedWith('/native/courses')
+        ->assertReplacedWith('/courses')
         ->assertSet('error', '')
         ->assertSet('password', '');
 
@@ -141,5 +141,5 @@ it('opens the policies in the in-app browser', function (): void {
 it('links to settings', function (): void {
     Native::test(Login::class)
         ->tap('settings')
-        ->assertNavigatedTo('/native/settings');
+        ->assertNavigatedTo('/settings');
 });

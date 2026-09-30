@@ -225,7 +225,7 @@ it('sends an unauthenticated user to login', function (): void {
     Account::query()->delete();
     app(AccountActiveProfile::class)->clear();
 
-    Native::test(LiveSessions::class)->assertReplacedWith('/native/login');
+    Native::test(LiveSessions::class)->assertReplacedWith('/login');
 });
 
 it('opens the session picker instead of an error when the session dies mid-use', function (): void {

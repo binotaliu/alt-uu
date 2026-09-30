@@ -13,7 +13,7 @@ use Native\Mobile\Edge\NativeComponent;
 /**
  * Quick account switcher sheet (the menu of AccountSwitcherButton.vue).
  *
- * Tag: `<native:account-switcher-sheet key="account-switcher" :visible="$switcherOpen" return-to="/native/courses" @cancel="closeSwitcher" @switched="onAccountSwitched" />`
+ * Tag: `<native:account-switcher-sheet key="account-switcher" :visible="$switcherOpen" return-to="/courses" @cancel="closeSwitcher" @switched="onAccountSwitched" />`
  *
  * Props: `visible`, `returnTo` (URI handed to native.reauth when the picked
  * account's session is dead).
