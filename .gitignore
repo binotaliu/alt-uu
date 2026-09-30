@@ -3,7 +3,6 @@
 /public/ios-hot
 /public/hot
 /public/storage
-/tests/Browser/Screenshots
 /storage/*.key
 /storage/pail
 /vendor

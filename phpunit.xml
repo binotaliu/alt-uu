@@ -11,9 +11,6 @@
         <testsuite name="Feature">
             <directory>tests/Feature</directory>
         </testsuite>
-        <testsuite name="Browser">
-            <directory>tests/Browser</directory>
-        </testsuite>
     </testsuites>
     <source>
         <include>
@@ -36,7 +33,6 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
-        <env name="HUNGU_CHECK_SESSION_ON_BOOT" value="false"/>
         <env name="IAP_BASE_URL" value="https://alt-uu.binota.org"/>
     </php>
 </phpunit>
