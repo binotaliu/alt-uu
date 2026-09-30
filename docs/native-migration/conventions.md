@@ -151,3 +151,68 @@ Layout nav bars read `$screen->navTitle()`; a screen normally overrides with an 
 **Cutover (Step 8).** Delete the `Route::prefix('native')->name('native.')->group(...)` wrapper (keep the inner `nativeGroup` blocks), delete `routes/web.php`'s SPA catch-all, `login` GET and the SPA `resources/js`, then either rename `native.*` route names via find/replace to the plain names (`route('native.` becomes `route('`) or keep the `native.` prefix (preferred: zero edits; only the URI prefix must go, which requires the `Route::name('native.')` wrapper to stay as `Route::name('native.')->group(...)` without `prefix`). Update `NATIVEPHP_START_URL` and `RoutesTest` (`/native/` assertions) at the same time.
 
 **Test paths.** `tests/Feature/Native/**` is inside the `Feature` suite, so `pest()->in('Feature')` (RefreshDatabase + TestCase) already applies; no Pest config change needed. Existing: `ThemeTest`, `LayoutsTest`, `RoutesTest`, `LoginTest`.
+
+## 10. Backend contract for native components (Step 3)
+
+Every Action below can be called from a `NativeComponent` in-process: no `Request`, no HTTP hop. The `/api/*` routes keep working; controllers are now thin wrappers around the same Actions. Resolve Actions with `app(X::class)` or constructor/`mount()` injection. Public API of an Action is only `__invoke`.
+
+**How "current user" is resolved without a Request.** Account = `AccountActiveProfile` (KeyValueStore pointer), session = `UUSessionStore` (account row), base URL = the active session's `base_url` (via `UUCourseClient::currentBaseUrl()`). Per-user caches are keyed on the Laravel session value `hungu.profile.username`; `NativeSessionGuard::check()` primes it. Actions that keep small caches or the current course id in the session (`GetNodeResources`, `SyncCurrentCourse`) inject `Illuminate\Contracts\Session\Session` (the same `session.store` singleton the HTTP middleware uses).
+
+### Session guard
+
+```php
+use App\NativeComponents\Concerns\GuardsHunguSession;
+
+final class CourseList extends NativeComponent
+{
+    use GuardsHunguSession;
+
+    public function mount(): void
+    {
+        if (! $this->ensureHunguSession()) {
+            return; // already replaced by native.login / native.reauth
+        }
+        // safe to call the Actions below
+    }
+}
+```
+
+- `ensureHunguSession(bool $validateRemotely = false): bool`; `hunguSessionGuardResult()` returns the raw `App\Services\NativeSessionGuardResult` (`proceeds`, `session`, `redirectRoute`, `redirectParameters`, `failedAccountId`) when a screen wants to render its own state instead of redirecting.
+- `App\Services\NativeSessionGuard::check(bool $validateRemotely = false)`: loads the active account's session, falls back to `attemptRememberedLogin()` (which soft-deletes the account on failure, as the SPA flow does), primes `hungu.profile`, and returns proceed or a redirect: `native.reauth` with `['accountId' => id]` when an active account existed but its session and remembered login both failed, `native.login` when there is no active account. Use `validateRemotely: true` once at app start (equivalent of `/api/bootstrap-session`: asks upstream `my-profile`, then re-logs in on failure); the per-screen check never touches the network when the stored session exists.
+- Shared with the HTTP `EnsureHunguSession` middleware through `App\Services\HunguSessionResolver` (`resolve()`, `primeProfile()`).
+- Call it in `mount()` and again in `onResume()` for long-lived screens. Also handle a mid-screen 401 from an Action (session expiry) by calling `ensureHunguSession()` again.
+
+### Actions (all in `AltUU\Domains\...\Actions`)
+
+| Action                                                                                    | Signature                                                                                                                                                    | Returns                                                                                                         |
+| ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
+| `Auth\Login`                                                                              | `(LoginInputData $input)`                                                                                                                                    | `Results\LoginResult {ok, message, ?raw}`; message already mapped to the Chinese text                           |
+| `Auth\Logout`                                                                             | `()`                                                                                                                                                         | `void` (wipes credentials, session, DB cache, diagnostic log; invalidates the Laravel session if started)       |
+| `Auth\GetSessionProfile`                                                                  | `()`                                                                                                                                                         | `SessionProfileViewModel` (falls back to the active account's stored profile when the Laravel session has none) |
+| `Account\AddAccount`                                                                      | `(AddAccountInputData $input)`                                                                                                                               | `Results\AccountSessionResult {ok, message, accounts, ?raw}`; throws `AccountLimitExceededException` at 5       |
+| `Account\ReauthenticateAccount`                                                           | `(Account $account, ReauthenticateAccountInputData $input)`                                                                                                  | `AccountSessionResult`                                                                                          |
+| `Account\SwitchAccount`                                                                   | `(Account $account)`                                                                                                                                         | `AccountSessionResult` (`ok=false` + Chinese message when the session is stale; `accounts` always listed)       |
+| `Account\RemoveAccount`                                                                   | `(Account $account)`                                                                                                                                         | `array<AccountViewModel>`                                                                                       |
+| `Course\ListCourses`                                                                      | `(?int $accountId = null)`                                                                                                                                   | `DataCollection<CourseItemViewModel>`                                                                           |
+| `Course\GetCoursePathInfo`                                                                | `(string $cid)`                                                                                                                                              | `array{pathInfo, materialNodes}`                                                                                |
+| `Course\GetCourseLearningTimeItems`                                                       | `(string $cid)`                                                                                                                                              | `DataCollection`                                                                                                |
+| `Course\GetNodeResources`                                                                 | `(string $cid, string $scoid)`                                                                                                                               | `DataCollection` (cached in the Laravel session)                                                                |
+| `Course\GetCourseHomeworks` / `GetCourseSelfExams`                                        | `()`                                                                                                                                                         | `DataCollection` (call `SyncCurrentCourse($cid, force: true)` first)                                            |
+| `Course\SyncCurrentCourse`                                                                | `(string $cid, bool $force = false)`                                                                                                                         | `void`                                                                                                          |
+| `AttachmentDownload\QueueAttachmentDownload`                                              | `(QueueAttachmentDownloadInputData $input, CleanupAttachmentDownloads $cleanup)`                                                                             | `AttachmentDownloadTaskViewModel`                                                                               |
+| `SchoolPortal\GetAllCourseGrades` / `GetExamAgenda`                                       | `()`                                                                                                                                                         | `array<ViewModel>`                                                                                              |
+| `SchoolPortal\GetCourseSemesterGrade` / `GetCourseExamInfo` / `GetCourseClassSessionInfo` | `(CourseItemViewModel $course)`                                                                                                                              | nullable ViewModel                                                                                              |
+| `SchoolPortal\GetSchoolPortalHomeworkNotices`                                             | `(CourseItemViewModel $course)`                                                                                                                              | `DataCollection`                                                                                                |
+| `StudyTime\RecordStudyTime`                                                               | `(array $payload)` keys `cid`, `activityId`, `url`, optional `seconds`, `startedAt`, `positionSeconds`, `mediaDurationSeconds` (snake_case aliases accepted) | `Results\RecordStudyTimeResult` (`->viewModel`); throws `ValidationException`                                   |
+| `StudyTime\GetPlaybackProgress`                                                           | `(string $cid, string $activityId, ?int $accountId = null)`                                                                                                  | `?PlaybackProgressViewModel`                                                                                    |
+| `StudyTime\GetLastSeenMaterial`                                                           | `(string $cid, ?int $accountId = null)`                                                                                                                      | `LastSeenMaterialViewModel` (all fields null when nothing played)                                               |
+
+Unchanged Actions that never needed a Request (`ListAccounts`, `RenameAccount`, preferences, subscription, discuss, moderation, diagnostics, data portability, `GetActivityHeatmap`, ...) are callable as before. `ExportAccountData`/`ImportAccountData` and the material Actions were not audited for file/stream handling beyond having no Request dependency.
+
+### Known gaps
+
+- Controllers still using the `Request::hunguSession()` macro (not Actions, so untouched, and only relevant until the SPA is deleted): `CourseNodeContentController`, `ParsedMaterialContentController`, `MaterialContentProxyController`, `MaterialSourceInspectionController`. Their logic lives inline in the controllers; `FetchMaterialContent` / `ParseMaterialContent` Actions already exist for the native Material screen.
+- The Laravel session is app-wide but is only persisted when a request goes through `StartSession`. On device the values the Actions keep in it (`hungu.profile`, node-resource cache, current course id) may be in-memory only and reset when the PHP process restarts; that only costs a refetch, and `NativeSessionGuard` re-primes the profile on every check. Verify on device.
+- `AccountSessionResult`/`LoginResult`/`RecordStudyTimeResult` are plain readonly result classes under `Actions\Results` (existing convention), not `Resource`s, so no TypeScript types are generated for them. The new `PlaybackProgressViewModel` and `LastSeenMaterialViewModel` carry `#[TypeScript]`; `resources/js` types were not regenerated (out of scope for this step).
+- The SPA's `boot_validation_required` cookie flow has no native equivalent; use `check(validateRemotely: true)` at start-up instead.
+- No `NativeSessionGuard` hook in `NativeLayout`s or routes yet; each screen calls the trait. A layout-level or route-level guard is a possible follow-up if repeating it becomes noisy.
