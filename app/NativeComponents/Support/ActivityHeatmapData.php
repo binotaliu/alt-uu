@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\NativeComponents\Support;
 
 use AltUU\Domains\Activity\ViewModels\ActivityDayViewModel;
-use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\Date;
 
 /**
  * Pure calculations behind ActivityHeatmap.vue: week grid, intensity levels,
@@ -58,7 +58,7 @@ final class ActivityHeatmapData
             return [];
         }
 
-        $cells = array_fill(0, CarbonImmutable::parse($days[0]['date'])->dayOfWeek, null);
+        $cells = array_fill(0, Date::parse($days[0]['date'])->dayOfWeek, null);
         array_push($cells, ...$days);
 
         while (count($cells) % 7 !== 0) {
@@ -96,9 +96,9 @@ final class ActivityHeatmapData
             return '';
         }
 
-        $month = CarbonImmutable::parse($first['date'])->month;
+        $month = Date::parse($first['date'])->month;
         $previous = $index > 0 ? self::firstCell($weeks[$index - 1]) : null;
-        $previousMonth = $previous !== null ? CarbonImmutable::parse($previous['date'])->month : null;
+        $previousMonth = $previous !== null ? Date::parse($previous['date'])->month : null;
 
         return $month !== $previousMonth ? $month.'月' : '';
     }
@@ -117,14 +117,14 @@ final class ActivityHeatmapData
 
     public static function formatDate(string $date): string
     {
-        $parsed = CarbonImmutable::parse($date);
+        $parsed = Date::parse($date);
 
         return "{$parsed->year}年{$parsed->month}月{$parsed->day}日";
     }
 
     public static function formatDateSlash(string $date): string
     {
-        $parsed = CarbonImmutable::parse($date);
+        $parsed = Date::parse($date);
 
         return "{$parsed->year}/{$parsed->month}/{$parsed->day}";
     }
