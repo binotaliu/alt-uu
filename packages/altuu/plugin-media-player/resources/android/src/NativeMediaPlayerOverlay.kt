@@ -85,8 +85,8 @@ private val PlaybackRateOptions = listOf(0.75f, 1.0f, 1.25f, 1.5f, 2.0f)
 /**
  * Colours of one player. The element (`useNativeTheme`) reads the mobile-ui theme tokens
  * pushed by `NativeAccent::apply` (`accent` / `on-accent` / `surface`), so an accent
- * change re-themes it without a bridge call. The legacy WebView overlay keeps its fixed
- * warm palette (the WebView shell has no theme push).
+ * change re-themes it without a bridge call. Without `useNativeTheme` the fixed warm
+ * palette applies.
  */
 private data class PlayerColors(
     val theme: Color,

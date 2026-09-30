@@ -1,7 +1,7 @@
 {
     "name": "altuu/plugin-media-player",
     "version": "1.0.0",
-    "description": "EDGE element <native:media-player> (audio/video) plus bridge control; the frame-based SetPlayer overlay remains only for the legacy WebView shell",
+    "description": "EDGE element <native:media-player> (audio/video) plus bridge control",
     "namespace": "MediaPlayer",
     "category": "media",
     "license": "MIT",
@@ -20,12 +20,6 @@
         }
     ],
     "bridge_functions": [
-        {
-            "name": "MediaPlayer.SetPlayer",
-            "ios": "MediaPlayerFunctions.SetPlayer",
-            "android": "com.altuu.plugins.media_player.MediaPlayerFunctions.SetPlayer",
-            "description": "LEGACY (WebView shell only): show the player as a WebView-relative overlay. Native screens use <native:media-player>"
-        },
         {
             "name": "MediaPlayer.Play",
             "ios": "MediaPlayerFunctions.Play",
@@ -83,7 +77,7 @@
         {
             "name": "AppAccent.SetColor",
             "ios": "AppAccentFunctions.SetColor",
-            "description": "Set the app-wide iOS window tint and the legacy overlay accent (iOS only). The <native:media-player> element themes itself from the mobile-ui theme instead"
+            "description": "Set the app-wide iOS window tint (iOS only). The <native:media-player> element themes itself from the mobile-ui theme instead"
         }
     ],
     "ios": {

@@ -4,10 +4,9 @@ import AVKit
 
 /// SwiftUI view that displays a native media player (audio or video).
 ///
-/// Two callers: the legacy WebView overlay host (`MediaPlayerOverlayHost`, plays on
-/// appear, accent from `AccentPalette`) and the `<native:media-player>` element
-/// (`AltUUMediaPlayerRenderer`: the element decides when to play, colours come
-/// from the mobile-ui theme and the appearance override is scoped to this view).
+/// Used by the `<native:media-player>` element (`AltUUMediaPlayerRenderer`): the element
+/// decides when to play, colours come from the mobile-ui theme (`AccentPalette` only
+/// backs the non-native-theme fallback) and the appearance override is scoped to this view.
 struct NativeMediaPlayerView: View {
     let url: String
     let type: String
@@ -42,11 +41,6 @@ struct NativeMediaPlayerView: View {
         self.subtitleURL = subtitleURL
         self.playsOnAppear = playsOnAppear
         self.usesNativeTheme = usesNativeTheme
-    }
-
-    /// Legacy overlay entry point.
-    init(data: MediaPlayerData) {
-        self.init(url: data.url, type: data.type, materialName: data.materialName, courseName: data.courseName, appearance: data.appearance)
     }
 
     private var isAudio: Bool {

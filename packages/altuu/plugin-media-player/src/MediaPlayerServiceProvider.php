@@ -18,7 +18,6 @@ final class MediaPlayerServiceProvider extends ServiceProvider
     public function boot(): void
     {
         // The `media_player` element is registered by the core NativeServiceProvider from
-        // the manifest (`components`). The legacy WebView overlay host is mounted by
-        // altuu/plugin-nativephp-patch.
+        // the manifest (`components`).
     }
 }

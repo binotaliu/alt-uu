@@ -2,16 +2,6 @@ import Foundation
 
 // MARK: - Media Player Data Models
 
-struct MediaPlayerData: Codable {
-    let url: String
-    let type: String // "audio" or "video"
-    let frame: MediaPlayerFrame
-    let courseName: String?
-    let materialName: String?
-    let appearance: String?
-    let sessionContext: MediaPlayerSessionContext?
-}
-
 struct MediaPlayerSessionContext: Codable {
     let routePath: String?
     let cid: String?

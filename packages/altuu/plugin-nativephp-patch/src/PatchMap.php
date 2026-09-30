@@ -14,22 +14,10 @@ final class PatchMap
     public static function all(): array
     {
         return [
-            'ios' => [
-                [
-                    'target' => 'NativePHP/ContentView.swift',
-                    'upstream' => self::VENDOR_PATH.'/resources/xcode/NativePHP/ContentView.swift',
-                    'upstream_hash' => '68742370d4321b085c457ab908dff17d22100f0004482443c1d976c224dad240',
-                    'patched' => 'packages/altuu/plugin-nativephp-patch/resources/patches/ios/NativePHP/ContentView.swift',
-                    'patched_hash' => '55012cffc5189471baacaa3644152b4503d4e6bc8f3f5744446a6a8235eb663d',
-                ],
-                [
-                    'target' => 'NativePHP/PHPSchemeHandler.swift',
-                    'upstream' => self::VENDOR_PATH.'/resources/xcode/NativePHP/PHPSchemeHandler.swift',
-                    'upstream_hash' => '739c25032ac2ac1eba1609fd9a0138d96968dfa178e28edb9494804908c03060',
-                    'patched' => 'packages/altuu/plugin-nativephp-patch/resources/patches/ios/NativePHP/PHPSchemeHandler.swift',
-                    'patched_hash' => 'fc176faad38e4222254565e46b2d1c2612c9b7f543bae232ce852717de25c431',
-                ],
-            ],
+            // No iOS file replacements: the shell's WebView (ContentView, PHPSchemeHandler) is unused now that
+            // every screen is native. The zh-Hant-TW Info.plist keys live in nativephp.json and the
+            // single-window pbxproj enforcement in ApplyNativeShellPatchCommand.
+            'ios' => [],
             'android' => [
                 [
                     'target' => 'app/src/main/AndroidManifest.xml',
@@ -38,21 +26,6 @@ final class PatchMap
                     'upstream_hash' => '*',
                     'patched' => 'packages/altuu/plugin-nativephp-patch/resources/patches/android/app/src/main/AndroidManifest.xml',
                     'patched_hash' => '145af1ea7886faef37062ee9e326483a8f54632432e1943ea6d6da670ac4cc8a',
-                ],
-                [
-                    'target' => 'app/src/main/java/com/nativephp/mobile/ui/MainActivity.kt',
-                    'upstream' => self::VENDOR_PATH.'/resources/androidstudio/app/src/main/java/com/nativephp/mobile/ui/MainActivity.kt',
-                    // 這裡的也是被修改 (REPLACE_STATUS_BAR_STYLE)
-                    'upstream_hash' => '*',
-                    'patched' => 'packages/altuu/plugin-nativephp-patch/resources/patches/android/app/src/main/java/com/nativephp/mobile/ui/MainActivity.kt',
-                    'patched_hash' => '23416429be3764e344b1d6d1f3b3d1c0c1d1115dbeb5fc3a8e609bf39b835c21',
-                ],
-                [
-                    'target' => 'app/src/main/java/com/nativephp/mobile/network/PHPWebViewClient.kt',
-                    'upstream' => self::VENDOR_PATH.'/resources/androidstudio/app/src/main/java/com/nativephp/mobile/network/PHPWebViewClient.kt',
-                    'upstream_hash' => 'ccb315865cbc9606a7d6f514f44f62f1f606362eb0532bbf5da8d48df0d6a23c',
-                    'patched' => 'packages/altuu/plugin-nativephp-patch/resources/patches/android/app/src/main/java/com/nativephp/mobile/network/PHPWebViewClient.kt',
-                    'patched_hash' => 'c6812e362e132d6934f010b1743718b657ee25a24679d28f5b412c4ddb119316',
                 ],
                 [
                     // Fixes a production SIGSEGV inside ts_resource_ex (Play Console:

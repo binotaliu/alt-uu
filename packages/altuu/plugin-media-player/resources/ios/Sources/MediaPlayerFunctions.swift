@@ -21,55 +21,6 @@ enum MediaPlayerFunctions {
         )
     }
 
-    /// LEGACY: WebView-relative overlay path. Native screens use `<native:media-player>`
-    /// (see AltUUMediaPlayerRenderer), which never publishes overlay state.
-    class SetPlayer: BridgeFunction {
-        func execute(parameters: [String: Any]) throws -> [String: Any] {
-            guard let url = parameters["url"] as? String else {
-                throw NSError(domain: "MediaPlayer", code: 422, userInfo: [NSLocalizedDescriptionKey: "Missing url parameter"])
-            }
-
-            guard let type = parameters["type"] as? String else {
-                throw NSError(domain: "MediaPlayer", code: 422, userInfo: [NSLocalizedDescriptionKey: "Missing type parameter"])
-            }
-
-            guard let frameDict = parameters["frame"] as? [String: Any] else {
-                throw NSError(domain: "MediaPlayer", code: 422, userInfo: [NSLocalizedDescriptionKey: "Missing frame parameter"])
-            }
-
-            let frame = MediaPlayerFrame(
-                x: (frameDict["x"] as? NSNumber)?.doubleValue ?? 0,
-                y: (frameDict["y"] as? NSNumber)?.doubleValue ?? 0,
-                width: (frameDict["width"] as? NSNumber)?.doubleValue ?? 320,
-                height: (frameDict["height"] as? NSNumber)?.doubleValue ?? 200
-            )
-
-            let courseName = parameters["courseName"] as? String
-            let materialName = parameters["materialName"] as? String
-            let appearance = parameters["appearance"] as? String
-            let sessionContext = MediaPlayerFunctions.parseSessionContext(from: parameters)
-            let force = (parameters["force"] as? Bool) ?? false
-
-            // Publish the state the overlay host renders
-            DispatchQueue.main.async {
-                MediaPlayerState.shared.updateMediaPlayer(url: url, type: type, frame: frame, courseName: courseName, materialName: materialName, appearance: appearance, sessionContext: sessionContext)
-                MediaPlayerManager.shared.setPlayer(url: url, type: type, frame: frame, courseName: courseName, materialName: materialName, appearance: appearance, sessionContext: sessionContext, force: force)
-            }
-
-            return BridgeResponse.success(data: [
-                "status": "player_set",
-                "url": url,
-                "type": type,
-                "frame": [
-                    "x": frame.x,
-                    "y": frame.y,
-                    "width": frame.width,
-                    "height": frame.height,
-                ],
-            ])
-        }
-    }
-
     class Play: BridgeFunction {
         func execute(parameters: [String: Any]) throws -> [String: Any] {
             DispatchQueue.main.async {
@@ -294,11 +245,8 @@ class MediaPlayerManager: NSObject {
     }
 
     /// Builds (or reuses) the shared player. Returns true when a new player was built.
-    /// `publishOverlay` is only true for the legacy WebView overlay path; the
-    /// `<native:media-player>` element draws itself in the screen tree and must not
-    /// make the shell's `MediaPlayerOverlayHost` draw a second player on top.
     @discardableResult
-    func setPlayer(url: String, type: String, frame: MediaPlayerFrame, courseName: String? = nil, materialName: String? = nil, appearance: String? = nil, sessionContext: MediaPlayerSessionContext? = nil, force: Bool = false, publishOverlay: Bool = true, startTime: Double? = nil) -> Bool {
+    func setPlayer(url: String, type: String, frame: MediaPlayerFrame, courseName: String? = nil, materialName: String? = nil, appearance: String? = nil, sessionContext: MediaPlayerSessionContext? = nil, force: Bool = false, startTime: Double? = nil) -> Bool {
         guard let sourceURL = URL(string: url) else {
             DebugLogger.shared.log("[MediaPlayer] Invalid URL: \(url)")
             return false
@@ -321,12 +269,6 @@ class MediaPlayerManager: NSObject {
         if isSameSource {
             if let existingPlayer = player, playerViewController?.player !== existingPlayer {
                 playerViewController?.player = existingPlayer
-            }
-
-            if publishOverlay {
-                DispatchQueue.main.async {
-                    MediaPlayerState.shared.updateMediaPlayer(url: url, type: type, frame: frame, courseName: courseName, materialName: materialName, appearance: appearance, sessionContext: sessionContext)
-                }
             }
 
             updateNowPlayingInfo()
@@ -375,13 +317,6 @@ class MediaPlayerManager: NSObject {
             setupNowPlayingSession()  // metadata is written inside becomeActiveIfPossible callback
         } else {
             updateNowPlayingInfoFallback()
-        }
-
-        // Store player and frame info for the legacy overlay host to use
-        if publishOverlay {
-            DispatchQueue.main.async {
-                MediaPlayerState.shared.updateMediaPlayer(url: url, type: type, frame: frame, courseName: courseName, materialName: materialName, appearance: appearance, sessionContext: sessionContext)
-            }
         }
 
         didPlayToEnd = false
@@ -445,9 +380,6 @@ class MediaPlayerManager: NSObject {
 
         clearNowPlayingSession()
 
-        DispatchQueue.main.async {
-            MediaPlayerState.shared.clearMediaPlayer()
-        }
         NotificationCenter.default.post(name: Self.playerChangedNotification, object: nil)
         DebugLogger.shared.log("[MediaPlayer] Stopped")
     }
@@ -776,7 +708,6 @@ class MediaPlayerManager: NSObject {
                 materialName: config.title,
                 appearance: config.appearance,
                 sessionContext: config.sessionContext,
-                publishOverlay: false,
                 startTime: config.start
             )
         } else if currentCourseName != config.courseName || currentMaterialName != config.title {

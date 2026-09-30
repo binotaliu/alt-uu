@@ -120,30 +120,46 @@ it('android frame capture copies the video surface, watermarks the student id an
     expect($overlay)->toContain('MediaFrameCapture.registerPlayerView');
 });
 
-it('ios SetPlayer accepts a force flag that skips the same-source shortcut and resumes position', function () {
-    $source = File::get(base_path('packages/altuu/plugin-media-player/resources/ios/Sources/MediaPlayerFunctions.swift'));
+it('media player manifest no longer registers the frame based SetPlayer overlay bridge function', function () {
+    $manifest = json_decode(File::get(base_path('packages/altuu/plugin-media-player/nativephp.json')), true);
 
-    expect($source)
-        ->toContain('let force = (parameters["force"] as? Bool) ?? false')
+    expect(array_column($manifest['bridge_functions'], 'name'))->not->toContain('MediaPlayer.SetPlayer');
+});
+
+it('the legacy webview overlay host and state are gone from both platforms', function () {
+    $root = base_path('packages/altuu/plugin-media-player/resources');
+
+    expect(file_exists("{$root}/ios/Sources/MediaPlayerState.swift"))->toBeFalse();
+
+    foreach ([
+        "{$root}/ios/Sources/MediaPlayerFunctions.swift",
+        "{$root}/ios/Sources/NativeMediaPlayerView.swift",
+        "{$root}/android/src/MediaPlayerFunctions.kt",
+        "{$root}/android/src/MediaPlayerState.kt",
+    ] as $path) {
+        expect(File::get($path))
+            ->not->toContain('MediaPlayerOverlayHost')
+            ->not->toContain('MediaPlayerState.')
+            ->not->toContain('class SetPlayer')
+            ->not->toContain('publishOverlay');
+    }
+
+    expect(File::get("{$root}/js/mediaPlayer.js"))->not->toContain('SetPlayer');
+});
+
+it('the element player manager keeps the force flag that resumes position on a rebuild', function () {
+    $ios = File::get(base_path('packages/altuu/plugin-media-player/resources/ios/Sources/MediaPlayerFunctions.swift'));
+    $android = File::get(base_path('packages/altuu/plugin-media-player/resources/android/src/MediaPlayerFunctions.kt'));
+
+    expect($ios)
         ->toContain('force: Bool = false')
         ->toContain('let isSameSource = !force &&')
         ->toContain('let resumeTime: Double?');
-});
 
-it('android SetPlayer accepts a force flag that skips the same-source shortcut and resumes position', function () {
-    $source = File::get(base_path('packages/altuu/plugin-media-player/resources/android/src/MediaPlayerFunctions.kt'));
-
-    expect($source)
-        ->toContain('val force = parameters["force"] as? Boolean ?: false')
+    expect($android)
         ->toContain('force: Boolean = false')
         ->toContain('val isSameSource = !force &&')
         ->toContain('val resumePositionMs');
-});
-
-it('media player js bridge still forwards the force flag for the legacy webview shell', function () {
-    $js = File::get(base_path('packages/altuu/plugin-media-player/resources/js/mediaPlayer.js'));
-
-    expect($js)->toContain('force = false')->toContain('...(force ? { force: true } : {})');
 });
 
 it('media player php facade no longer exposes the frame based overlay and controls the element player', function () {

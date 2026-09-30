@@ -4,14 +4,7 @@
  @example
  import { mediaPlayer } from '@altuu/plugin-media-player';
 
- // Set up media player
- await mediaPlayer.setPlayer({
-     url: 'https://example.com/video.mp4',
-     type: 'video',
-     frame: [10, 100, 320, 200]
- });
-
- // Control playback
+ // Control playback (the player itself is the <native:media-player> element)
  await mediaPlayer.play();
  await mediaPlayer.pause();
  await mediaPlayer.seek(30);
@@ -46,35 +39,6 @@ async function bridgeCall(method, params = {}) {
     }
 
     return nativeResponse;
-}
-
-/**
- * Set up the media player
- * @param {Object} config - Configuration object
- * @param {string} config.url - Media URL (audio or video)
- * @param {string} config.type - Media type ('audio' or 'video')
- * @param {Array<number>} config.frame - Display frame [x, y, width, height]
- * @param {boolean} [config.force] - Rebuild the player even if the same source is loaded
- * @returns {Promise<Object>}
- */
-export async function setPlayer(config) {
-    const { url, type, frame = [0, 0, 320, 200], force = false } = config;
-
-    if (!url || !type) {
-        throw new Error('Missing required parameters: url and type');
-    }
-
-    return bridgeCall('MediaPlayer.SetPlayer', {
-        url,
-        type,
-        frame: {
-            x: frame[0],
-            y: frame[1],
-            width: frame[2],
-            height: frame[3],
-        },
-        ...(force ? { force: true } : {}),
-    });
 }
 
 /**

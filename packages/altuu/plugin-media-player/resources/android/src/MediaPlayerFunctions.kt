@@ -93,8 +93,6 @@ object MediaPlayerManager {
     val currentCourseNameValue: String? get() = currentCourseName
     val currentMaterialNameValue: String? get() = currentMaterialName
 
-    /** Only the legacy WebView overlay path (SetPlayer with a frame) publishes overlay state. */
-    private var overlayPublishing: Boolean = true
     private var appliedSourceKey: String? = null
     private var appliedRateProp: Float? = null
     private var lastEmittedState: String? = null
@@ -104,9 +102,7 @@ object MediaPlayerManager {
 
     /**
      * Builds (or reuses) the shared player. Returns true when a new player was built.
-     * `publishOverlay` is only true for the legacy WebView overlay; the element draws
-     * itself in the screen tree and must not make the shell's MediaPlayerOverlayHost draw
-     * a second player. `autoplay = null` keeps the legacy default (video plays, audio waits).
+     * `autoplay = null` keeps the default (video plays, audio waits).
      */
     fun setPlayer(
         activity: FragmentActivity,
@@ -118,7 +114,6 @@ object MediaPlayerManager {
         appearance: String?,
         sessionContext: MediaPlayerSessionContext?,
         force: Boolean = false,
-        publishOverlay: Boolean = true,
         subtitleUrl: String? = null,
         startPositionMs: Long = 0L,
         autoplay: Boolean? = null,
@@ -133,8 +128,6 @@ object MediaPlayerManager {
             android.util.Log.w("MediaPlayer", "setPlayer: ignoring request against a finishing/destroyed activity for url=$url")
             return false
         }
-
-        overlayPublishing = publishOverlay
 
         val normalizedType = type.lowercase()
         val isSameSource = !force && currentUrl == url && currentType == normalizedType && player != null
@@ -157,7 +150,6 @@ object MediaPlayerManager {
             currentMaterialName = materialName
             currentAppearance = appearance
             currentSessionContext = sessionContext
-            syncMediaPlayerState()
             updateMediaSessionMetadata()
             return false
         }
@@ -216,7 +208,6 @@ object MediaPlayerManager {
                             applyPlaybackSpeed(playbackSpeed)
                             ensureMediaSession(activity)
                             updateMediaSessionMetadata()
-                            syncMediaPlayerState()
                             return
                         }
 
@@ -248,7 +239,6 @@ object MediaPlayerManager {
         currentUrl = url
         lastEmittedState = null
         playerRevisionState.intValue += 1
-        syncMediaPlayerState()
 
         return true
     }
@@ -405,7 +395,6 @@ object MediaPlayerManager {
                 materialName = config.title,
                 appearance = config.appearance,
                 sessionContext = config.sessionContext,
-                publishOverlay = false,
                 subtitleUrl = config.subtitles,
                 startPositionMs = ((config.start ?: 0.0) * 1000).toLong(),
                 autoplay = config.autoplay,
@@ -576,29 +565,6 @@ object MediaPlayerManager {
         mediaSession?.isActive = false
         mediaSession?.release()
         mediaSession = null
-
-        MediaPlayerState.clearMediaPlayer()
-    }
-
-    private fun syncMediaPlayerState() {
-        if (!overlayPublishing) {
-            return
-        }
-
-        val url = currentUrl ?: return
-
-        android.util.Log.d("MediaPlayer", "syncMediaPlayerState: url=$url type=$currentType frame=(${currentFrame.x},${currentFrame.y},${currentFrame.width}x${currentFrame.height}) courseName=$currentCourseName materialName=$currentMaterialName")
-
-        MediaPlayerState.updateMediaPlayer(
-            MediaPlayerData(
-                url = url,
-                type = currentType,
-                frame = currentFrame,
-                courseName = currentCourseName,
-                materialName = currentMaterialName,
-                appearance = currentAppearance,
-            ),
-        )
     }
 
     private fun ensureMediaSession(activity: FragmentActivity) {
@@ -786,61 +752,6 @@ object MediaPlayerFunctions {
             is Number -> value.toFloat()
             is String -> value.toFloatOrNull() ?: fallback
             else -> fallback
-        }
-    }
-
-    class SetPlayer(private val activity: FragmentActivity) : BridgeFunction {
-        override fun execute(parameters: Map<String, Any>): Map<String, Any> {
-            val url = parameters["url"] as? String
-                ?: throw BridgeError.InvalidParameters("Missing url parameter")
-            val type = parameters["type"] as? String
-                ?: throw BridgeError.InvalidParameters("Missing type parameter")
-            val frameMap = getObjectParameter(parameters, "frame")
-                ?: throw BridgeError.InvalidParameters("Missing frame parameter")
-
-            val courseName = parameters["courseName"] as? String
-            val materialName = parameters["materialName"] as? String
-            val appearance = parameters["appearance"] as? String
-
-            val frame = MediaPlayerFrame(
-                x = getFloatParameter(frameMap, "x", 0f),
-                y = getFloatParameter(frameMap, "y", 0f),
-                width = getFloatParameter(frameMap, "width", 320f),
-                height = getFloatParameter(frameMap, "height", 200f),
-            )
-
-            val sessionContext = MediaPlayerSessionContext.fromMap(
-                getObjectParameter(parameters, "sessionContext"),
-            )
-            val force = parameters["force"] as? Boolean ?: false
-
-            Handler(Looper.getMainLooper()).post {
-                MediaPlayerManager.setPlayer(
-                    activity,
-                    url,
-                    type,
-                    frame,
-                    courseName,
-                    materialName,
-                    appearance,
-                    sessionContext,
-                    force,
-                )
-            }
-
-            return BridgeResponse.success(
-                mapOf(
-                    "status" to "player_set",
-                    "url" to url,
-                    "type" to type,
-                    "frame" to mapOf(
-                        "x" to frame.x,
-                        "y" to frame.y,
-                        "width" to frame.width,
-                        "height" to frame.height,
-                    ),
-                ),
-            )
         }
     }
 
