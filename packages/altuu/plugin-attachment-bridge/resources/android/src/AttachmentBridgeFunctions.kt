@@ -41,6 +41,7 @@ import com.nativephp.mobile.bridge.BridgeResponse
 import com.nativephp.mobile.network.PHPRequest
 import com.nativephp.mobile.security.LaravelCookieStore
 import com.nativephp.mobile.security.LaravelSecurity
+import com.nativephp.mobile.utils.NativeActionCoordinator
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
@@ -208,6 +209,160 @@ object AttachmentBridgeFunctions {
                 "platform" to "android"
             ))
         }
+    }
+
+    /**
+     * Opens the Storage Access Framework picker and reports the result
+     * asynchronously through a NativePHP event (`event` / `cancelledEvent` are
+     * the PHP event class names sent by the facade). Returns immediately.
+     */
+    class PickDocument(private val activity: FragmentActivity) : BridgeFunction {
+        override fun execute(parameters: Map<String, Any>): Map<String, Any> {
+            val request = PickRequest(
+                id = (parameters["id"] as? String)?.takeIf { it.isNotEmpty() },
+                mimeTypes = (parameters["mimeTypes"] as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
+                maxBytes = (parameters["maxBytes"] as? Number)?.toLong() ?: DEFAULT_MAX_PICK_BYTES,
+                event = (parameters["event"] as? String)
+                    ?: "AltUU\\AttachmentBridge\\Events\\DocumentPicked",
+                cancelledEvent = (parameters["cancelledEvent"] as? String)
+                    ?: "AltUU\\AttachmentBridge\\Events\\DocumentPickCancelled"
+            )
+
+            mainHandler.post {
+                launchOpenDocumentPicker(activity, request)
+            }
+
+            return BridgeResponse.success(mapOf(
+                "queued" to true,
+                "platform" to "android"
+            ))
+        }
+    }
+
+    // endregion
+
+    // region Document Picker
+
+    private const val DEFAULT_MAX_PICK_BYTES = 10_485_760L
+
+    private data class PickRequest(
+        val id: String?,
+        val mimeTypes: List<String>,
+        val maxBytes: Long,
+        val event: String,
+        val cancelledEvent: String
+    )
+
+    private fun launchOpenDocumentPicker(activity: FragmentActivity, request: PickRequest) {
+        val requestKey = "attachment-pick-${UUID.randomUUID()}"
+        lateinit var launcher: ActivityResultLauncher<Intent>
+
+        launcher = activity.activityResultRegistry.register(
+            requestKey,
+            ActivityResultContracts.StartActivityForResult()
+        ) { result ->
+            launcher.unregister()
+
+            val uri = if (result.resultCode == Activity.RESULT_OK) result.data?.data else null
+
+            if (uri == null) {
+                dispatchPickCancelled(activity, request, "cancelled")
+                return@register
+            }
+
+            executor.execute {
+                copyPickedDocument(activity, uri, request)
+            }
+        }
+
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = if (request.mimeTypes.size == 1) request.mimeTypes[0] else "*/*"
+            if (request.mimeTypes.size > 1) {
+                putExtra(Intent.EXTRA_MIME_TYPES, request.mimeTypes.toTypedArray())
+            }
+            putExtra(Intent.EXTRA_ALLOW_MULTIPLE, false)
+        }
+
+        try {
+            launcher.launch(intent)
+        } catch (_: Exception) {
+            launcher.unregister()
+            dispatchPickCancelled(activity, request, "failed")
+        }
+    }
+
+    /** Runs on the worker executor: copies the picked document into cacheDir and dispatches the event. */
+    private fun copyPickedDocument(activity: FragmentActivity, uri: Uri, request: PickRequest) {
+        try {
+            val resolver = activity.contentResolver
+            var displayName: String? = null
+            var declaredSize: Long = -1
+
+            resolver.query(uri, null, null, null, null)?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val nameIndex = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                    val sizeIndex = cursor.getColumnIndex(android.provider.OpenableColumns.SIZE)
+                    if (nameIndex >= 0) displayName = cursor.getString(nameIndex)
+                    if (sizeIndex >= 0 && !cursor.isNull(sizeIndex)) declaredSize = cursor.getLong(sizeIndex)
+                }
+            }
+
+            if (declaredSize > request.maxBytes) {
+                dispatchPickCancelled(activity, request, "too_large")
+                return
+            }
+
+            val name = (displayName ?: uri.lastPathSegment ?: "document")
+                .replace('/', '_')
+                .replace('\\', '_')
+                .trim()
+                .ifEmpty { "document" }
+
+            val directory = File(File(activity.cacheDir, "picked-documents"), UUID.randomUUID().toString())
+            directory.mkdirs()
+            val destination = File(directory, name)
+
+            var copied = 0L
+            resolver.openInputStream(uri)?.use { input ->
+                FileOutputStream(destination).use { output ->
+                    val buffer = ByteArray(16 * 1024)
+                    while (true) {
+                        val read = input.read(buffer)
+                        if (read < 0) break
+                        copied += read
+                        if (copied > request.maxBytes) {
+                            throw IllegalStateException("too_large")
+                        }
+                        output.write(buffer, 0, read)
+                    }
+                }
+            } ?: throw IllegalStateException("unreadable")
+
+            val mimeType = resolver.getType(uri)?.takeIf { it.isNotEmpty() } ?: guessMimeType(destination)
+
+            val payload = JSONObject()
+                .put("id", request.id ?: JSONObject.NULL)
+                .put("path", destination.absolutePath)
+                .put("name", name)
+                .put("mimeType", mimeType)
+                .put("size", copied)
+
+            NativeActionCoordinator.dispatchEvent(activity, request.event, payload.toString())
+        } catch (e: IllegalStateException) {
+            dispatchPickCancelled(activity, request, if (e.message == "too_large") "too_large" else "failed")
+        } catch (e: Exception) {
+            Log.e(TAG, "PickDocument failed: ${e.message}", e)
+            dispatchPickCancelled(activity, request, "failed")
+        }
+    }
+
+    private fun dispatchPickCancelled(activity: FragmentActivity, request: PickRequest, reason: String) {
+        val payload = JSONObject()
+            .put("id", request.id ?: JSONObject.NULL)
+            .put("reason", reason)
+
+        NativeActionCoordinator.dispatchEvent(activity, request.cancelledEvent, payload.toString())
     }
 
     // endregion

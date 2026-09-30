@@ -50,20 +50,28 @@
                 </native:row>
                 <native:text
                     class="text-theme-on-surface-variant text-xs leading-relaxed"
-                    >貼上先前匯出的 JSON
-                    內容以還原學習紀錄。只有使用者名稱與本裝置帳號相符的資料才會被匯入。</native:text
+                    >選擇先前匯出的 JSON
+                    檔案以還原學習紀錄。只有使用者名稱與本裝置帳號相符的資料才會被匯入。</native:text
                 >
 
                 <native:button
                     ref="import"
                     variant="secondary"
-                    :label="$importing ? '匯入中…' : '貼上內容匯入'"
+                    :label="$importing ? '匯入中…' : '選擇檔案匯入'"
                     :ios-icon="Ios::ArrowUpDoc"
                     :android-icon="Android::FileUpload"
                     :loading="$importing"
                     :disabled="$importing"
                     @tap="openImport"
                 />
+
+                @if ($importError !== '' && ! $importSheetVisible)
+                    <native:text
+                        ref="import-error"
+                        class="text-theme-destructive text-xs"
+                        >{{ $importError }}</native:text
+                    >
+                @endif
 
                 @if ($importResult !== null)
                     <native:column ref="import-result" class="w-full gap-1">

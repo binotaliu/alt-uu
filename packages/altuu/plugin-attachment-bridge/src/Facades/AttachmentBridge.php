@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Facade;
 /**
  * @method static object|null download(string $url, ?string $filename = null)
  * @method static object|null openUrl(string $url, array $cookies = [], string $method = 'GET', array $postForm = [], ?string $css = null)
+ * @method static string|null pickDocument(array $mimeTypes = [], ?string $id = null, int $maxBytes = 10485760)
  *
  * @see \AltUU\AttachmentBridge\AttachmentBridge
  */

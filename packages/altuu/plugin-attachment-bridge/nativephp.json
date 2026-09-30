@@ -29,6 +29,12 @@
             "ios": "AttachmentBridgeFunctions.OpenLocalFile",
             "android": "com.altuu.plugins.attachment_bridge.AttachmentBridgeFunctions.OpenLocalFile",
             "description": "Open a downloaded local file path via native preview or app chooser"
+        },
+        {
+            "name": "AttachmentBridge.PickDocument",
+            "ios": "AttachmentBridgeFunctions.PickDocument",
+            "android": "com.altuu.plugins.attachment_bridge.AttachmentBridgeFunctions.PickDocument",
+            "description": "Open the system document picker, copy the chosen file into app storage and dispatch DocumentPicked / DocumentPickCancelled"
         }
     ],
     "ios": {
@@ -45,6 +51,9 @@
     "android": {
         "min_version": 31
     },
-    "events": [],
+    "events": [
+        "AltUU\\AttachmentBridge\\Events\\DocumentPicked",
+        "AltUU\\AttachmentBridge\\Events\\DocumentPickCancelled"
+    ],
     "service_provider": "AltUU\\AttachmentBridge\\AttachmentBridgeServiceProvider"
 }

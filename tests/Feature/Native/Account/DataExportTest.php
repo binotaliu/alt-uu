@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use AltUU\AttachmentBridge\Events\DocumentPickCancelled;
+use AltUU\AttachmentBridge\Events\DocumentPicked;
 use App\Models\Account;
 use App\Models\AccountDailyActivity;
 use App\Models\KeyValueStore;
@@ -214,3 +216,135 @@ it('cancels the import sheet without importing', function (): void {
         ->assertSet('importSheetVisible', false)
         ->assertSet('importResult', null);
 });
+
+// ── Document picker ─────────────────────────────────────────────────────────
+
+function dataExportFakePicker(): void
+{
+    Native::fakeBridge()->respondTo('AttachmentBridge.PickDocument', ['status' => 'success', 'data' => ['queued' => true]]);
+}
+
+function dataExportPickedFile(string $contents): string
+{
+    File::ensureDirectoryExists(storage_path('app/data-exports'));
+    $path = storage_path('app/data-exports/picked-'.bin2hex(random_bytes(4)).'.json');
+    File::put($path, $contents);
+
+    return $path;
+}
+
+function dataExportEmptyDocument(): string
+{
+    return '{"accounts": {"s1111111": 1}, "playbackProgress": [], "accountDailyActivities": []}';
+}
+
+it('opens the document picker instead of the paste sheet when one is available', function (): void {
+    dataExportSubscribe();
+    dataExportFakePicker();
+
+    $screen = Native::test(DataExport::class)
+        ->tap('import')
+        ->assertNativeCalled('AttachmentBridge.PickDocument', fn (array $params): bool => $params['mimeTypes'] === ['application/json', 'text/plain']
+            && $params['id'] !== ''
+            && str_ends_with($params['event'], 'DocumentPicked'))
+        ->assertSet('importSheetVisible', false)
+        ->assertSet('upgradeSheetVisible', false);
+
+    expect($screen->get('pickId'))->not->toBe('');
+});
+
+it('falls back to the paste sheet when the picker is unavailable', function (): void {
+    dataExportSubscribe();
+
+    Native::test(DataExport::class)
+        ->tap('import')
+        ->assertSet('importSheetVisible', true)
+        ->assertSet('pickId', '');
+});
+
+it('imports the picked file, summarises it and deletes the temporary copy', function (): void {
+    dataExportSubscribe();
+    dataExportSeedRecords($this->account);
+    dataExportFakePicker();
+
+    Native::test(DataExport::class)->tap('export');
+    $json = File::get(File::files(storage_path('app/data-exports'))[0]->getPathname());
+    PlaybackProgress::query()->delete();
+    AccountDailyActivity::query()->delete();
+
+    $path = dataExportPickedFile($json);
+
+    $screen = Native::test(DataExport::class)->tap('import');
+
+    $screen->emitNative(DocumentPicked::class, [
+        'id' => $screen->get('pickId'),
+        'path' => $path,
+        'name' => 'export.json',
+        'mimeType' => 'application/json',
+        'size' => strlen($json),
+    ])
+        ->assertSet('pickId', '')
+        ->assertSet('importError', '')
+        ->assertSee('已匯入 1 個帳號的資料，共 1 筆播放進度、1 筆每日學習活動。')
+        ->assertNativeCalled('Dialog.Toast', fn (array $params): bool => $params['message'] === '已匯入資料');
+
+    expect(File::exists($path))->toBeFalse()
+        ->and(PlaybackProgress::query()->count())->toBe(1);
+});
+
+it('ignores a picked file that belongs to another request', function (): void {
+    dataExportSubscribe();
+    dataExportFakePicker();
+
+    $path = dataExportPickedFile(dataExportEmptyDocument());
+
+    Native::test(DataExport::class)
+        ->tap('import')
+        ->emitNative(DocumentPicked::class, ['id' => 'someone-else', 'path' => $path, 'name' => 'x.json', 'mimeType' => 'application/json', 'size' => 10])
+        ->assertSet('importResult', null)
+        ->assertNativeNotCalled('Dialog.Toast');
+
+    expect(File::exists($path))->toBeTrue();
+});
+
+it('shows an error for a picked file that is not a valid export', function (): void {
+    dataExportSubscribe();
+    dataExportFakePicker();
+
+    $path = dataExportPickedFile('definitely not json');
+
+    $screen = Native::test(DataExport::class)->tap('import');
+
+    $screen->emitNative(DocumentPicked::class, ['id' => $screen->get('pickId'), 'path' => $path, 'name' => 'x.json', 'mimeType' => 'application/json', 'size' => 19])
+        ->assertSet('importSheetVisible', false)
+        ->assertSet('importError', '匯入失敗，請確認檔案格式是否正確。')
+        ->assertSee('匯入失敗，請確認檔案格式是否正確。');
+
+    expect(File::exists($path))->toBeFalse();
+});
+
+it('reports an unreadable picked file', function (): void {
+    dataExportSubscribe();
+    dataExportFakePicker();
+
+    $screen = Native::test(DataExport::class)->tap('import');
+
+    $screen->emitNative(DocumentPicked::class, ['id' => $screen->get('pickId'), 'path' => storage_path('app/data-exports/missing.json'), 'name' => 'x.json', 'mimeType' => 'application/json', 'size' => 0])
+        ->assertSet('importError', '無法讀取所選檔案。');
+});
+
+it('stays quiet when the picker is dismissed and explains oversized or failed picks', function (string $reason, string $expected): void {
+    dataExportSubscribe();
+    dataExportFakePicker();
+
+    $screen = Native::test(DataExport::class)->tap('import');
+
+    $screen->emitNative(DocumentPickCancelled::class, ['id' => $screen->get('pickId'), 'reason' => $reason])
+        ->assertSet('pickId', '')
+        ->assertSet('importError', $expected)
+        ->assertSet('importSheetVisible', false);
+})->with([
+    'dismissed' => ['cancelled', ''],
+    'too large' => ['too_large', '檔案太大，無法匯入。'],
+    'failed' => ['failed', '無法讀取所選檔案。'],
+]);

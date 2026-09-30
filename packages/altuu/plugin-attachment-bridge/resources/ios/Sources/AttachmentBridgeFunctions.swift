@@ -126,6 +126,150 @@ enum AttachmentBridgeFunctions {
             ])
         }
     }
+
+    /// Opens the system document picker and reports the result asynchronously
+    /// through a NativePHP event (`event` / `cancelledEvent` are the PHP event
+    /// class names, sent by the facade). Returns immediately.
+    class PickDocument: BridgeFunction {
+        func execute(parameters: [String: Any]) throws -> [String: Any] {
+            let request = AttachmentDocumentPicker.Request(
+                id: parameters["id"] as? String,
+                mimeTypes: (parameters["mimeTypes"] as? [String]) ?? [],
+                maxBytes: (parameters["maxBytes"] as? NSNumber)?.int64Value ?? 10_485_760,
+                event: (parameters["event"] as? String) ?? "AltUU\\AttachmentBridge\\Events\\DocumentPicked",
+                cancelledEvent: (parameters["cancelledEvent"] as? String) ?? "AltUU\\AttachmentBridge\\Events\\DocumentPickCancelled"
+            )
+
+            DispatchQueue.main.async {
+                AttachmentDocumentPicker.shared.present(request)
+            }
+
+            return BridgeResponse.success(data: [
+                "queued": true,
+                "platform": "ios"
+            ])
+        }
+    }
+}
+
+/// UIDocumentPickerViewController wrapper. `asCopy: true` makes iOS hand back
+/// a copy inside the app sandbox, so no security-scoped access is needed; the
+/// file is then moved to a stable temp path PHP can read and delete.
+private final class AttachmentDocumentPicker: NSObject, UIDocumentPickerDelegate {
+    struct Request {
+        let id: String?
+        let mimeTypes: [String]
+        let maxBytes: Int64
+        let event: String
+        let cancelledEvent: String
+    }
+
+    static let shared = AttachmentDocumentPicker()
+
+    private var pending: Request?
+
+    func present(_ request: Request) {
+        guard pending == nil else {
+            // One picker at a time; a second call while one is open is dropped.
+            dispatchCancelled(request, reason: "cancelled")
+            return
+        }
+
+        guard let presenter = topViewController() else {
+            dispatchCancelled(request, reason: "failed")
+            return
+        }
+
+        let types = request.mimeTypes.compactMap { UTType(mimeType: $0) }
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: types.isEmpty ? [.item] : types, asCopy: true)
+        picker.allowsMultipleSelection = false
+        picker.delegate = self
+
+        pending = request
+        presenter.present(picker, animated: true)
+    }
+
+    func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+        guard let request = pending else { return }
+        pending = nil
+
+        guard let source = urls.first else {
+            dispatchCancelled(request, reason: "cancelled")
+            return
+        }
+
+        do {
+            let size = try Int64(source.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0)
+            guard size <= request.maxBytes else {
+                dispatchCancelled(request, reason: "too_large")
+                return
+            }
+
+            let directory = FileManager.default.temporaryDirectory
+                .appendingPathComponent("altuu-picked", isDirectory: true)
+                .appendingPathComponent(UUID().uuidString, isDirectory: true)
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+
+            let name = sanitizedFilename(source.lastPathComponent)
+            let destination = directory.appendingPathComponent(name)
+            try FileManager.default.copyItem(at: source, to: destination)
+
+            let mimeType = UTType(filenameExtension: destination.pathExtension)?.preferredMIMEType ?? "application/octet-stream"
+
+            let payload: [String: Any?] = [
+                "id": request.id,
+                "path": destination.path,
+                "name": name,
+                "mimeType": mimeType,
+                "size": Int(size),
+            ]
+            LaravelBridge.shared.send?(request.event, payload)
+        } catch {
+            dispatchCancelled(request, reason: "failed")
+        }
+    }
+
+    func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
+        guard let request = pending else { return }
+        pending = nil
+        dispatchCancelled(request, reason: "cancelled")
+    }
+
+    private func dispatchCancelled(_ request: Request, reason: String) {
+        let payload: [String: Any?] = ["id": request.id, "reason": reason]
+        LaravelBridge.shared.send?(request.cancelledEvent, payload)
+    }
+
+    private func sanitizedFilename(_ filename: String) -> String {
+        let cleaned = filename
+            .replacingOccurrences(of: "/", with: "_")
+            .replacingOccurrences(of: ":", with: "_")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return cleaned.isEmpty ? "document" : cleaned
+    }
+
+    private func topViewController(base: UIViewController? = nil) -> UIViewController? {
+        let root = base ?? UIApplication.shared
+            .connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap { $0.windows }
+            .first(where: { $0.isKeyWindow })?
+            .rootViewController
+
+        if let navigation = root as? UINavigationController {
+            return topViewController(base: navigation.visibleViewController)
+        }
+
+        if let tab = root as? UITabBarController {
+            return topViewController(base: tab.selectedViewController)
+        }
+
+        if let presented = root?.presentedViewController {
+            return topViewController(base: presented)
+        }
+
+        return root
+    }
 }
 
 private final class AttachmentBridgeCoordinator: NSObject, QLPreviewControllerDataSource {

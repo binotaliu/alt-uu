@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\NativeComponents\Account;
 
+use AltUU\AttachmentBridge\Events\DocumentPickCancelled;
+use AltUU\AttachmentBridge\Events\DocumentPicked;
+use AltUU\AttachmentBridge\Facades\AttachmentBridge;
 use AltUU\Domains\Account\Exceptions\PremiumRequiredException;
 use AltUU\Domains\DataPortability\Actions\ExportAccountData;
 use AltUU\Domains\DataPortability\Actions\ImportAccountData;
@@ -16,6 +19,7 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use JsonException;
+use Native\Mobile\Attributes\On;
 use Native\Mobile\Edge\NativeComponent;
 use Native\Mobile\Facades\Share;
 use Throwable;
@@ -28,14 +32,12 @@ use Throwable;
  * AttachmentBridge download of `/api/data-export`.
  *
  * Import is gated by Alt UU+ (the cached entitlement decides which UI to show,
- * `ImportAccountData` re-checks and throws PremiumRequiredException). The core
- * `File` facade only offers move/copy, and no installed plugin exposes a
- * document picker to PHP, so the SPA's file input cannot be reproduced: the
- * user pastes the exported JSON text into a sheet instead. Replace
- * `submitImport()`'s source with the picked file's contents once a picker
- * exists.
- */
-final class DataExport extends NativeComponent
+ * `ImportAccountData` re-checks and throws PremiumRequiredException). Tapping
+ * import opens the system document picker (`AttachmentBridge::pickDocument()`,
+ * result via `DocumentPicked` / `DocumentPickCancelled`), like the SPA's file
+ * input. When no picker is available (`pickDocument()` returns null) the user
+ * pastes the exported JSON text into a sheet instead.
+ */ final class DataExport extends NativeComponent
 {
     use ShowsToasts;
 
@@ -46,6 +48,9 @@ final class DataExport extends NativeComponent
     public string $exportError = '';
 
     public bool $importSheetVisible = false;
+
+    /** Correlation id of the document picker request in flight, '' when none. */
+    public string $pickId = '';
 
     public string $importText = '';
 
@@ -109,7 +114,55 @@ final class DataExport extends NativeComponent
         }
 
         $this->importError = '';
-        $this->importSheetVisible = true;
+        $this->importResult = null;
+
+        $pickId = AttachmentBridge::pickDocument(['application/json', 'text/plain']);
+
+        if ($pickId === null) {
+            $this->importSheetVisible = true;
+
+            return;
+        }
+
+        $this->pickId = $pickId;
+    }
+
+    #[On(DocumentPicked::class)]
+    public function onDocumentPicked(?string $id, string $path, string $name, string $mimeType, int $size): void
+    {
+        if ($this->pickId === '' || $id !== $this->pickId) {
+            return;
+        }
+
+        $this->pickId = '';
+
+        try {
+            $json = File::get($path);
+        } catch (Throwable) {
+            $this->importError = '無法讀取所選檔案。';
+
+            return;
+        } finally {
+            File::delete($path);
+        }
+
+        $this->importJson($json);
+    }
+
+    #[On(DocumentPickCancelled::class)]
+    public function onDocumentPickCancelled(?string $id, string $reason = 'cancelled'): void
+    {
+        if ($this->pickId === '' || $id !== $this->pickId) {
+            return;
+        }
+
+        $this->pickId = '';
+
+        $this->importError = match ($reason) {
+            'too_large' => '檔案太大，無法匯入。',
+            'failed' => '無法讀取所選檔案。',
+            default => '',
+        };
     }
 
     public function closeImport(): void
@@ -121,6 +174,11 @@ final class DataExport extends NativeComponent
 
     public function submitImport(): void
     {
+        $this->importJson($this->importText);
+    }
+
+    private function importJson(string $json): void
+    {
         if ($this->importing) {
             return;
         }
@@ -130,7 +188,7 @@ final class DataExport extends NativeComponent
         $this->importResult = null;
 
         try {
-            $payload = json_decode(trim($this->importText), true, 512, JSON_THROW_ON_ERROR);
+            $payload = json_decode(trim($json), true, 512, JSON_THROW_ON_ERROR);
 
             if (! is_array($payload)) {
                 throw new JsonException('Not an object.');
