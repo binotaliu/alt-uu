@@ -7,7 +7,6 @@ use App\Models\PlaybackProgress;
 use App\Services\AccountActiveProfile;
 use App\Services\AccountCredentialsStore;
 use App\Services\UUSessionStore;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
@@ -250,13 +249,11 @@ it('keeps course-path-info cache isolated between accounts sharing the same cour
         ]),
     ]);
 
-    $request = Request::create('/test', 'GET');
-
     app(AccountActiveProfile::class)->set($first->id);
-    $resultForFirst = app(GetCoursePathInfo::class)($request, '1001');
+    $resultForFirst = app(GetCoursePathInfo::class)('1001');
 
     app(AccountActiveProfile::class)->set($second->id);
-    $resultForSecond = app(GetCoursePathInfo::class)($request, '1001');
+    $resultForSecond = app(GetCoursePathInfo::class)('1001');
 
     expect($resultForFirst['pathInfo']->pathText)->toBe('A 的課程內容')
         ->and($resultForSecond['pathInfo']->pathText)->toBe('B 的課程內容')

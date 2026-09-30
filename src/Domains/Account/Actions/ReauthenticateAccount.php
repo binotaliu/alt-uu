@@ -4,11 +4,10 @@ declare(strict_types=1);
 
 namespace AltUU\Domains\Account\Actions;
 
+use AltUU\Domains\Account\Actions\Results\AccountSessionResult;
 use AltUU\Domains\Account\DataTransferObjects\ReauthenticateAccountInputData;
 use App\Models\Account;
 use App\Services\AccountManager;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 final readonly class ReauthenticateAccount
 {
@@ -17,18 +16,18 @@ final readonly class ReauthenticateAccount
         private ListAccounts $listAccounts,
     ) {}
 
-    public function __invoke(Request $request, Account $account, ReauthenticateAccountInputData $input): JsonResponse
+    public function __invoke(Account $account, ReauthenticateAccountInputData $input): AccountSessionResult
     {
-        $result = $this->accounts->attemptLogin($request, $account->username, $input->password);
+        $result = $this->accounts->attemptLogin($account->username, $input->password);
 
         if (! $result['ok']) {
-            return response()->json($result, 422);
+            return new AccountSessionResult(
+                ok: false,
+                message: $result['message'],
+                raw: $result['raw'] ?? null,
+            );
         }
 
-        return response()->json([
-            'ok' => true,
-            'message' => '',
-            'accounts' => ($this->listAccounts)(),
-        ]);
+        return new AccountSessionResult(ok: true, accounts: ($this->listAccounts)());
     }
 }

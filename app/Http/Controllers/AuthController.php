@@ -8,17 +8,44 @@ use AltUU\Domains\Auth\Actions\Login;
 use AltUU\Domains\Auth\Actions\Logout;
 use AltUU\Domains\Auth\DataTransferObjects\LoginInputData;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 final class AuthController
 {
-    public function store(Request $request, LoginInputData $input, Login $login): JsonResponse
+    public function store(LoginInputData $input, Login $login): JsonResponse
     {
-        return $login($request, $input);
+        $result = $login($input);
+
+        if (! $result->ok) {
+            return response()->json([
+                'ok' => false,
+                'message' => $result->message,
+                'raw' => $result->raw,
+            ], 422);
+        }
+
+        $this->queueAppBootCookie();
+
+        return response()->json(['ok' => true]);
     }
 
-    public function destroy(Request $request, Logout $logout): JsonResponse
+    public function destroy(Logout $logout): JsonResponse
     {
-        return $logout($request);
+        $logout();
+
+        return response()->json(['ok' => true]);
+    }
+
+    private function queueAppBootCookie(): void
+    {
+        cookie()->queue(cookie(
+            $this->appBootCookieName(),
+            '1',
+            (int) config('hungu.cookie_minutes', 720),
+        ));
+    }
+
+    private function appBootCookieName(): string
+    {
+        return (string) config('hungu.app_boot_cookie_name', 'hungu_app_boot');
     }
 }

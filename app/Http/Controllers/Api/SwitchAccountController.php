@@ -7,12 +7,17 @@ namespace App\Http\Controllers\Api;
 use AltUU\Domains\Account\Actions\SwitchAccount;
 use App\Models\Account;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 final class SwitchAccountController
 {
-    public function __invoke(Request $request, Account $account, SwitchAccount $switchAccount): JsonResponse
+    public function __invoke(Account $account, SwitchAccount $switchAccount): JsonResponse
     {
-        return $switchAccount($request, $account);
+        $result = $switchAccount($account);
+
+        return response()->json([
+            'ok' => $result->ok,
+            'message' => $result->message,
+            'accounts' => $result->accounts,
+        ], $result->ok ? 200 : 422);
     }
 }

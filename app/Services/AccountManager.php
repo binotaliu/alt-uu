@@ -6,7 +6,6 @@ namespace App\Services;
 
 use App\Models\Account;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 
 final class AccountManager
@@ -40,9 +39,21 @@ final class AccountManager
     /**
      * @return array{ok: bool, message: string}
      */
-    public function attemptLogin(Request $request, string $username, string $password): array
+    public function attemptLogin(string $username, string $password): array
     {
-        return $this->authenticator->attemptLogin($request, $username, $password);
+        return $this->authenticator->attemptLogin($username, $password);
+    }
+
+    /**
+     * Profile stored on the active account's Hungu session, if any.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function activeProfile(): ?array
+    {
+        $profile = Arr::get($this->sessionStore->get(), 'profile');
+
+        return is_array($profile) ? $profile : null;
     }
 
     public function forget(int $accountId): void
@@ -54,18 +65,18 @@ final class AccountManager
      * Makes the given account the active profile and ensures its Hungu
      * session is valid, refreshing the Laravel session's displayed profile.
      */
-    public function activate(Request $request, Account $account): bool
+    public function activate(Account $account): bool
     {
         $this->activeProfile->set($account->id);
 
         $session = $this->sessionStore->get();
 
-        if (! is_array($session) && $this->authenticator->attemptRememberedLogin($request)) {
+        if (! is_array($session) && $this->authenticator->attemptRememberedLogin()) {
             $session = $this->sessionStore->get();
         }
 
         if (! is_array($session)) {
-            $this->profileSession->forget($request);
+            $this->profileSession->forget();
 
             return false;
         }
@@ -73,7 +84,7 @@ final class AccountManager
         $profile = Arr::get($session, 'profile');
 
         if (is_array($profile)) {
-            $this->profileSession->put($request, $profile);
+            $this->profileSession->put($profile);
         }
 
         return true;

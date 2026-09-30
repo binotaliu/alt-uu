@@ -6,7 +6,7 @@ namespace App\Services;
 
 use AltUU\Domains\Course\Actions\SyncCurrentCourse;
 use App\Models\Account;
-use Illuminate\Http\Request;
+use Illuminate\Contracts\Session\Session;
 use Illuminate\Support\Arr;
 
 class UUSessionAuthenticator
@@ -19,13 +19,13 @@ class UUSessionAuthenticator
         private readonly UUSessionStore $sessionStore,
         private readonly AccountCredentialsStore $accountCredentialsStore,
         private readonly AccountActiveProfile $activeProfile,
+        private readonly Session $session,
     ) {}
 
     /**
      * @return array{ok: bool, message: string, raw?: array<string, mixed>}
      */
     public function attemptLogin(
-        Request $request,
         string $username,
         string $password,
     ): array {
@@ -78,9 +78,9 @@ class UUSessionAuthenticator
         $this->accountCredentialsStore->put($normalizedUsername, $password);
 
         $this->proxyClient->syncSession($sessionData);
-        $this->profileSession->put($request, $sessionData['profile']);
+        $this->profileSession->put($sessionData['profile']);
 
-        $this->refreshProfileFromRemote($request, $sessionData, false);
+        $this->refreshProfileFromRemote($sessionData, false);
 
         return [
             'ok' => true,
@@ -88,7 +88,7 @@ class UUSessionAuthenticator
         ];
     }
 
-    public function validateCurrentSession(Request $request): bool
+    public function validateCurrentSession(): bool
     {
         $session = $this->sessionStore->get();
 
@@ -96,10 +96,10 @@ class UUSessionAuthenticator
             return false;
         }
 
-        return is_array($this->refreshProfileFromRemote($request, $session, true));
+        return is_array($this->refreshProfileFromRemote($session, true));
     }
 
-    public function attemptRememberedLogin(Request $request): bool
+    public function attemptRememberedLogin(): bool
     {
         $credentials = $this->accountCredentialsStore->get();
 
@@ -108,10 +108,8 @@ class UUSessionAuthenticator
         }
 
         $result = $this->attemptLogin(
-            $request,
             $credentials['username'],
             $credentials['password'],
-            true,
         );
 
         if (! $result['ok']) {
@@ -125,18 +123,14 @@ class UUSessionAuthenticator
             return false;
         }
 
-        $currentCourseId = '';
-
-        if ($request->hasSession()) {
-            $currentCourseId = (string) $request->session()->get(
-                'hungu.current_course_id.'.($this->activeProfile->get() ?? 0),
-                '',
-            );
-        }
+        $currentCourseId = (string) $this->session->get(
+            'hungu.current_course_id.'.($this->activeProfile->get() ?? 0),
+            '',
+        );
 
         if ($currentCourseId !== '') {
             try {
-                app(SyncCurrentCourse::class)($request, $currentCourseId, true);
+                app(SyncCurrentCourse::class)($currentCourseId, true);
             } catch (\Throwable $e) {
                 report($e);
             }
@@ -150,7 +144,6 @@ class UUSessionAuthenticator
      * @return array<string, mixed>|null
      */
     private function refreshProfileFromRemote(
-        Request $request,
         array $session,
         bool $invalidateOnFailure,
     ): ?array {
@@ -160,7 +153,7 @@ class UUSessionAuthenticator
         if (($payload['code'] ?? 500) !== 0) {
             if ($invalidateOnFailure) {
                 $this->sessionStore->forget();
-                $this->profileSession->forget($request);
+                $this->profileSession->forget();
             }
 
             return null;
@@ -174,7 +167,7 @@ class UUSessionAuthenticator
         if (! is_array($profile)) {
             if ($invalidateOnFailure) {
                 $this->sessionStore->forget();
-                $this->profileSession->forget($request);
+                $this->profileSession->forget();
             }
 
             return null;
@@ -182,7 +175,7 @@ class UUSessionAuthenticator
 
         $session['profile'] = $profile;
         $this->proxyClient->syncSession($session);
-        $this->profileSession->put($request, $profile);
+        $this->profileSession->put($profile);
 
         return $session;
     }

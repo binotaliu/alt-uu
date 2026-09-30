@@ -4,13 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
-use App\Services\AccountActiveProfile;
-use App\Services\UUProfileSession;
-use App\Services\UUSessionAuthenticator;
-use App\Services\UUSessionStore;
+use App\Services\HunguSessionResolver;
 use Closure;
 use Illuminate\Http\Request;
-use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Route;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -19,10 +15,7 @@ final class EnsureHunguSession
     public const REQUEST_ATTRIBUTE = 'hungu.session';
 
     public function __construct(
-        private readonly UUSessionStore $sessionStore,
-        private readonly UUSessionAuthenticator $authenticator,
-        private readonly UUProfileSession $profileSession,
-        private readonly AccountActiveProfile $activeProfile,
+        private readonly HunguSessionResolver $resolver,
     ) {}
 
     /**
@@ -32,33 +25,19 @@ final class EnsureHunguSession
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // Captured before attemptRememberedLogin runs: a failed remembered
-        // login soft-deletes the active account and clears this pointer, so
-        // reading it afterwards would lose track of which account just died.
-        $attemptedAccountId = $this->activeProfile->get();
+        $resolution = $this->resolver->resolve();
 
-        $session = $this->sessionStore->get();
-
-        if (! is_array($session) && $this->authenticator->attemptRememberedLogin($request)) {
-            $session = $this->sessionStore->get();
-        }
-
-        if (! is_array($session)) {
-            $this->profileSession->forget($request);
-
-            return $this->unauthenticatedResponse($request, $attemptedAccountId);
+        if (! $resolution->isAuthenticated()) {
+            return $this->unauthenticatedResponse($request, $resolution->attemptedAccountId);
         }
 
         if ($this->shouldDeferBootValidation($request)) {
             return $this->bootValidationResponse($request);
         }
 
-        $profile = Arr::get($session, 'profile');
-        if (is_array($profile)) {
-            $this->profileSession->put($request, $profile);
-        }
+        $this->resolver->primeProfile($resolution->session);
 
-        $request->attributes->set(self::REQUEST_ATTRIBUTE, $session);
+        $request->attributes->set(self::REQUEST_ATTRIBUTE, $resolution->session);
 
         $response = $next($request);
 

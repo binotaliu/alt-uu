@@ -8,7 +8,6 @@ use App\Services\UUProxyClient;
 use App\Services\UUSessionAuthenticator;
 use App\Services\UUSessionStore;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\Request;
 use Mockery as MockeryManager;
 use Tests\TestCase;
 
@@ -32,6 +31,7 @@ it('syncs current course when reauthentication succeeds', function () {
         $sessionStore,
         $accountCredentialsStore,
         $activeProfile,
+        $this->app->make('session.store'),
     ]);
 
     $authenticator->shouldReceive('attemptLogin')
@@ -41,19 +41,16 @@ it('syncs current course when reauthentication succeeds', function () {
     $syncCurrentCourse = MockeryManager::mock(SyncCurrentCourse::class);
     $syncCurrentCourse->shouldReceive('__invoke')
         ->once()
-        ->withArgs(function ($request, $cid, $force) {
-            return $request instanceof Request
-                && $cid === '10050266'
+        ->withArgs(function ($cid, $force) {
+            return $cid === '10050266'
                 && $force === true;
         });
 
     $this->app->instance(SyncCurrentCourse::class, $syncCurrentCourse);
 
-    $request = Request::create('/test', 'GET');
-    $request->setLaravelSession($this->app->make('session.store'));
-    $request->session()->put('hungu.current_course_id.42', '10050266');
+    $this->app->make('session.store')->put('hungu.current_course_id.42', '10050266');
 
-    $result = $authenticator->attemptRememberedLogin($request);
+    $result = $authenticator->attemptRememberedLogin();
 
     expect($result)->toBeTrue();
 });

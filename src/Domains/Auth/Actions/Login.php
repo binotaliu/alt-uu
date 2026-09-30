@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace AltUU\Domains\Auth\Actions;
 
+use AltUU\Domains\Auth\Actions\Results\LoginResult;
 use AltUU\Domains\Auth\DataTransferObjects\LoginInputData;
 use App\Services\UUAuthClient;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 final readonly class Login
 {
@@ -15,41 +14,22 @@ final readonly class Login
         private UUAuthClient $authClient,
     ) {}
 
-    public function __invoke(Request $request, LoginInputData $input): JsonResponse
+    public function __invoke(LoginInputData $input): LoginResult
     {
         $result = $this->authClient->attemptLogin(
-            $request,
             $input->username,
             $input->password,
         );
 
         if (! $result['ok']) {
-            $message = $this->mapFailedMessage($result['message']);
-
-            return response()->json([
-                'ok' => false,
-                'message' => $message,
-                'raw' => $result['raw'] ?? null,
-            ], 422);
+            return new LoginResult(
+                ok: false,
+                message: $this->mapFailedMessage($result['message']),
+                raw: $result['raw'] ?? null,
+            );
         }
 
-        $this->queueAppBootCookie();
-
-        return response()->json(['ok' => true]);
-    }
-
-    private function queueAppBootCookie(): void
-    {
-        cookie()->queue(cookie(
-            $this->appBootCookieName(),
-            '1',
-            (int) config('hungu.cookie_minutes', 720),
-        ));
-    }
-
-    private function appBootCookieName(): string
-    {
-        return (string) config('hungu.app_boot_cookie_name', 'hungu_app_boot');
+        return new LoginResult(ok: true);
     }
 
     private function mapFailedMessage(?string $sourceMessage): string

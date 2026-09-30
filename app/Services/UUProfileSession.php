@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use Illuminate\Http\Request;
+use Illuminate\Contracts\Session\Session;
 use Illuminate\Support\Arr;
 
 class UUProfileSession
 {
     private const SESSION_KEY = 'hungu.profile';
+
+    public function __construct(private readonly Session $session) {}
 
     /**
      * @return array<string, string>|null
@@ -40,13 +42,13 @@ class UUProfileSession
     /**
      * @param  array<string, string>  $profile
      */
-    public function put(Request $request, array $profile): void
+    public function put(array $profile): void
     {
-        $request->session()->put(self::SESSION_KEY, $profile);
+        $this->session->put(self::SESSION_KEY, $profile);
     }
 
-    public function forget(Request $request): void
+    public function forget(): void
     {
-        $request->session()->forget(self::SESSION_KEY);
+        $this->session->forget(self::SESSION_KEY);
     }
 }

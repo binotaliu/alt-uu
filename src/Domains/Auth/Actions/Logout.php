@@ -6,8 +6,7 @@ namespace AltUU\Domains\Auth\Actions;
 
 use AltUU\Domains\Diagnostics\Actions\ForgetDiagnosticLog;
 use App\Services\UUAuthClient;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
+use Illuminate\Contracts\Session\Session;
 use Illuminate\Support\Facades\DB;
 
 final readonly class Logout
@@ -15,16 +14,17 @@ final readonly class Logout
     public function __construct(
         private UUAuthClient $authClient,
         private ForgetDiagnosticLog $forgetDiagnosticLog,
+        private Session $session,
     ) {}
 
-    public function __invoke(Request $request): JsonResponse
+    public function __invoke(): void
     {
         try {
-            $this->authClient->logout($request);
+            $this->authClient->logout();
         } finally {
-            if ($request->hasSession()) {
-                $request->session()->invalidate();
-                $request->session()->regenerateToken();
+            if ($this->session->isStarted()) {
+                $this->session->invalidate();
+                $this->session->regenerateToken();
             }
 
             DB::table('cache')->delete();
@@ -34,7 +34,5 @@ final readonly class Logout
             // than letting it keep capturing for the rest of its 30 minutes.
             ($this->forgetDiagnosticLog)(stopRecording: true);
         }
-
-        return response()->json(['ok' => true]);
     }
 }

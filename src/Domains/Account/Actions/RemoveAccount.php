@@ -8,7 +8,6 @@ use AltUU\Domains\Account\ViewModels\AccountViewModel;
 use AltUU\Domains\Diagnostics\Actions\ForgetDiagnosticLog;
 use App\Models\Account;
 use App\Services\AccountManager;
-use Illuminate\Http\Request;
 
 final readonly class RemoveAccount
 {
@@ -21,7 +20,7 @@ final readonly class RemoveAccount
     /**
      * @return array<int, AccountViewModel>
      */
-    public function __invoke(Request $request, Account $account): array
+    public function __invoke(Account $account): array
     {
         $wasActive = $this->accounts->activeId() === $account->id;
 
@@ -38,7 +37,7 @@ final readonly class RemoveAccount
             $next = Account::query()->first();
 
             if ($next instanceof Account) {
-                $this->accounts->activate($request, $next);
+                $this->accounts->activate($next);
             }
         }
 

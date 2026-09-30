@@ -5,18 +5,18 @@ declare(strict_types=1);
 namespace AltUU\Domains\Course\Actions;
 
 use App\Services\UUCourseClient;
-use Illuminate\Http\Request;
+use Illuminate\Contracts\Session\Session;
 
 class SyncCurrentCourse
 {
     private const CURRENT_COURSE_SESSION_KEY_PREFIX = 'hungu.current_course_id.';
 
-    public function __construct(private UUCourseClient $courseClient) {}
+    public function __construct(private UUCourseClient $courseClient, private Session $session) {}
 
-    public function __invoke(Request $request, string $cid, bool $force = false): void
+    public function __invoke(string $cid, bool $force = false): void
     {
         $sessionKey = self::CURRENT_COURSE_SESSION_KEY_PREFIX.($this->courseClient->currentAccountId() ?? 0);
-        $currentCourseId = (string) $request->session()->get($sessionKey, '');
+        $currentCourseId = (string) $this->session->get($sessionKey, '');
 
         if ($currentCourseId === $cid && ! $force) {
             return;
@@ -31,7 +31,7 @@ class SyncCurrentCourse
             $this->courseClient->setCookie('browserTabIdx', $browserTabIdx);
         }
 
-        $request->session()->put($sessionKey, $cid);
+        $this->session->put($sessionKey, $cid);
     }
 
     private function extractBrowserTabIdx(string $body): ?string

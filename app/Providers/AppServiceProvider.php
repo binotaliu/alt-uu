@@ -70,10 +70,9 @@ final class AppServiceProvider extends ServiceProvider
 
         $this->app->resolving(UUProxyClient::class, function (UUProxyClient $proxyClient, $app): void {
             $proxyClient->setReauthenticationHandler(function () use ($app): bool {
-                $request = $app->make(Request::class);
                 $authenticator = $app->make(UUSessionAuthenticator::class);
 
-                return $authenticator->attemptRememberedLogin($request);
+                return $authenticator->attemptRememberedLogin();
             });
         });
 

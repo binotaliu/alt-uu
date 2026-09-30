@@ -8,12 +8,10 @@ use AltUU\Domains\Account\Actions\ReauthenticateAccount;
 use AltUU\Domains\Account\DataTransferObjects\ReauthenticateAccountInputData;
 use App\Models\Account;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 final class ReauthenticateAccountController
 {
     public function __invoke(
-        Request $request,
         int $account,
         ReauthenticateAccountInputData $input,
         ReauthenticateAccount $reauthenticateAccount,
@@ -23,6 +21,20 @@ final class ReauthenticateAccountController
         // client ever gets a chance to offer this re-login screen for it.
         $accountModel = Account::withTrashed()->findOrFail($account);
 
-        return $reauthenticateAccount($request, $accountModel, $input);
+        $result = $reauthenticateAccount($accountModel, $input);
+
+        if (! $result->ok) {
+            return response()->json([
+                'ok' => false,
+                'message' => $result->message,
+                ...($result->raw !== null ? ['raw' => $result->raw] : []),
+            ], 422);
+        }
+
+        return response()->json([
+            'ok' => true,
+            'message' => '',
+            'accounts' => $result->accounts,
+        ]);
     }
 }

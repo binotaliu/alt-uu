@@ -12,21 +12,34 @@ use AltUU\Domains\Account\DataTransferObjects\RenameAccountInputData;
 use AltUU\Domains\Account\ViewModels\AccountViewModel;
 use App\Models\Account;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 
 final class AccountController
 {
-    public function store(Request $request, AddAccountInputData $input, AddAccount $addAccount): JsonResponse
+    public function store(AddAccountInputData $input, AddAccount $addAccount): JsonResponse
     {
-        return $addAccount($request, $input);
+        $result = $addAccount($input);
+
+        if (! $result->ok) {
+            return response()->json([
+                'ok' => false,
+                'message' => $result->message,
+                ...($result->raw !== null ? ['raw' => $result->raw] : []),
+            ], 422);
+        }
+
+        return response()->json([
+            'ok' => true,
+            'message' => '',
+            'accounts' => $result->accounts,
+        ]);
     }
 
     /**
      * @return array<int, AccountViewModel>
      */
-    public function destroy(Request $request, Account $account, RemoveAccount $removeAccount): array
+    public function destroy(Account $account, RemoveAccount $removeAccount): array
     {
-        return $removeAccount($request, $account);
+        return $removeAccount($account);
     }
 
     /**

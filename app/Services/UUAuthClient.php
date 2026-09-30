@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use Illuminate\Http\Request;
-
 final class UUAuthClient
 {
     public function __construct(
@@ -19,16 +17,16 @@ final class UUAuthClient
     /**
      * @return array{ok: bool, message: string, raw?: array<string, mixed>}
      */
-    public function attemptLogin(Request $request, string $username, string $password): array
+    public function attemptLogin(string $username, string $password): array
     {
-        return $this->authenticator->attemptLogin($request, $username, $password);
+        return $this->authenticator->attemptLogin($username, $password);
     }
 
-    public function logout(Request $request): void
+    public function logout(): void
     {
         $this->proxyClient->request('logout', 'POST');
         $this->sessionStore->forget();
         $this->accountCredentialsStore->forget();
-        $this->profileSession->forget($request);
+        $this->profileSession->forget();
     }
 }

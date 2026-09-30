@@ -7,7 +7,6 @@ namespace App\Http\Controllers;
 use AltUU\Domains\AppPreference\Actions\GetNouToolsIntegrationEnabled;
 use App\Services\UUSessionAuthenticator;
 use App\Services\UUSessionStore;
-use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 final class BootstrapSessionController
@@ -16,7 +15,6 @@ final class BootstrapSessionController
      * @return array{ok: bool, redirect: string, nouToolsIntegrationEnabled: bool}|Response
      */
     public function __invoke(
-        Request $request,
         UUSessionStore $sessionStore,
         UUSessionAuthenticator $authenticator,
         GetNouToolsIntegrationEnabled $getNouToolsEnabled,
@@ -24,11 +22,11 @@ final class BootstrapSessionController
         $sessionIsValid = false;
 
         if ($sessionStore->has()) {
-            $sessionIsValid = $authenticator->validateCurrentSession($request);
+            $sessionIsValid = $authenticator->validateCurrentSession();
         }
 
         if (! $sessionIsValid) {
-            $sessionIsValid = $authenticator->attemptRememberedLogin($request);
+            $sessionIsValid = $authenticator->attemptRememberedLogin();
         }
 
         if (! $sessionIsValid) {
