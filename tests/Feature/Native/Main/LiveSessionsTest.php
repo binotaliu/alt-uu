@@ -150,7 +150,7 @@ it('gates the tab while NOU Tools is off and enables it from the confirm sheet',
 
     expect($screen->get('gateVisible'))->toBeTrue();
 
-    $screen->tap('confirm');
+    $screen->tap('gate-confirm');
 
     expect($screen->get('gateVisible'))->toBeFalse()
         ->and(app(GetNouToolsIntegrationEnabled::class)())->toBeTrue();
@@ -162,7 +162,7 @@ it('keeps the gate when the user cancels and lets them reopen it', function (): 
     MainFixtures::preferences(['nouToolsIntegrationEnabled' => false]);
     MainFixtures::fakeUpstream(threeSessions());
 
-    $screen = Native::test(LiveSessions::class)->tap('cancel');
+    $screen = Native::test(LiveSessions::class)->tap('gate-cancel');
 
     expect($screen->get('gateVisible'))->toBeFalse()
         ->and(app(GetNouToolsIntegrationEnabled::class)())->toBeFalse();

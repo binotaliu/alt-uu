@@ -173,6 +173,7 @@
 
     <native:confirm-sheet
         key="remove-account"
+        ref-prefix="remove-"
         :visible="$pendingRemovalId !== null"
         title="移除帳號"
         message="確定要移除這個帳號嗎？移除後將登出該帳號的所有裝置端資料。"
@@ -185,6 +186,7 @@
 
     <native:text-input-sheet
         key="rename-account"
+        ref-prefix="rename-"
         :visible="$renamingAccountId !== null"
         title="修改名稱"
         description="設定這個帳號的自訂名稱，僅顯示在這個裝置上。"

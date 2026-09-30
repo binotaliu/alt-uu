@@ -10,6 +10,7 @@ use AltUU\Domains\Course\Actions\ListCourses;
 use AltUU\Domains\Course\ViewModels\CourseItemViewModel;
 use App\NativeComponents\Concerns\GuardsHunguSession;
 use App\NativeComponents\Concerns\ShowsSessionExpiredPicker;
+use App\NativeComponents\Courses\Material\ActiveMediaSession;
 use App\NativeComponents\Courses\Support\LoadFailure;
 use App\NativeComponents\Support\CourseListing;
 use App\NativeComponents\Support\ReleaseNotes;
@@ -25,8 +26,9 @@ use Throwable;
  * banners. Courses are grouped by semester; the per-course counters load in a
  * second step so a slow or failing tasks page never hides the list.
  *
- * Not ported: `restoreActiveMediaRoute` (the media player now lives in the
- * material screen; resuming an active session belongs to that rewrite).
+ * `restoreActiveMediaRoute`: when PHP restarted under a still-running native
+ * player, mount() pushes the material screen of that session instead of
+ * loading the list (which reloads on resume once the user comes back).
  */
 #[Lazy]
 final class CourseList extends NativeComponent
@@ -71,6 +73,11 @@ final class CourseList extends NativeComponent
         }
 
         $this->bootShell();
+
+        if ($this->restoreActiveMediaSession()) {
+            return;
+        }
+
         $this->loadCourses();
         $this->loadTasksCount();
     }
@@ -109,6 +116,19 @@ final class CourseList extends NativeComponent
         $this->courses = [];
         $this->tasksCount = [];
         $this->retry();
+    }
+
+    private function restoreActiveMediaSession(): bool
+    {
+        $session = ActiveMediaSession::find();
+
+        if ($session === null) {
+            return false;
+        }
+
+        $this->navigate($this->route('native.courses.material.show', ['cid' => $session['cid'], 'scoid' => $session['activityId']]));
+
+        return true;
     }
 
     private function bootShell(): void

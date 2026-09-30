@@ -1,5 +1,5 @@
 <native:bottom-sheet
-    ref="confirm-sheet"
+    ref="{{ $refPrefix }}confirm-sheet"
     :visible="$visible"
     detents="small"
     @dismiss="cancel"
@@ -18,14 +18,14 @@
 
         <native:row class="w-full justify-end gap-3">
             <native:button
-                ref="cancel"
+                ref="{{ $refPrefix }}cancel"
                 variant="secondary"
                 :label="$cancelLabel"
                 :disabled="$processing"
                 @tap="cancel"
             />
             <native:button
-                ref="confirm"
+                ref="{{ $refPrefix }}confirm"
                 :variant="$danger ? 'destructive' : 'primary'"
                 :label="$confirmLabel"
                 :loading="$processing"

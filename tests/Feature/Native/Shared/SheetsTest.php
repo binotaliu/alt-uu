@@ -65,3 +65,12 @@ it('shows the validation error and blocks input while saving', function (): void
 
     expect($host->get('events'))->toBe([]);
 });
+
+it('prefixes every ref with refPrefix so several sheets on one screen are unambiguous', function (): void {
+    $host = RecordingHost::mountView('confirm-sheet', ['visible' => true, 'refPrefix' => 'block-'])
+        ->tap('block-confirm')
+        ->tap('block-cancel')
+        ->dismissSheet('block-confirm-sheet');
+
+    expect($host->get('events'))->toBe([['confirm'], ['cancel'], ['cancel']]);
+});

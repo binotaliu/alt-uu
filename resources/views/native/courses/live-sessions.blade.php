@@ -211,6 +211,7 @@
 
     <native:confirm-sheet
         key="nou-tools-gate"
+        ref-prefix="gate-"
         :visible="$gateVisible"
         title="開啟 NOU 小幫手整合"
         message="此功能需要開啟 NOU 小幫手整合才可使用。"

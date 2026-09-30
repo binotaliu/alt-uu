@@ -1,5 +1,6 @@
 <native:confirm-sheet
     key="confirm"
+    ref-prefix="{{ $state['refPrefix'] ?? '' }}"
     :visible="$state['visible'] ?? false"
     title="移除帳號"
     message="移除後需要重新登入。"

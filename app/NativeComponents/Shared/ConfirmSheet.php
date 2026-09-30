@@ -14,7 +14,9 @@ use Native\Mobile\Edge\NativeComponent;
  *
  * Props: `visible`, `title`, `message`, `confirmLabel` (default 確認),
  * `cancelLabel` (default 取消), `danger` (destructive confirm button),
- * `processing` (confirm shows a spinner, buttons ignore taps).
+ * `processing` (confirm shows a spinner, buttons ignore taps),
+ * `refPrefix` (prefix of every ref, e.g. `block-` gives `block-confirm`; hosts
+ * with several sheets set a unique one so `tap('confirm')` is unambiguous).
  * Events: `confirm` (no args), `cancel` (no args; also fired on swipe-down or
  * tap-outside).
  *
@@ -37,6 +39,8 @@ final class ConfirmSheet extends NativeComponent
     public string $cancelLabel = '取消';
 
     public bool $danger = false;
+
+    public string $refPrefix = '';
 
     public bool $processing = false;
 

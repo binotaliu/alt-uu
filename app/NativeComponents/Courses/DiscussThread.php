@@ -32,6 +32,7 @@ use App\NativeComponents\Courses\Concerns\DescribesLoadFailures;
 use App\Services\UUCourseClient;
 use Illuminate\View\View;
 use Native\Mobile\Edge\NativeComponent;
+use Native\Mobile\Edge\SharedValue;
 use Throwable;
 
 /**
@@ -595,7 +596,7 @@ final class DiscussThread extends NativeComponent
 
     public function render(): View
     {
-        return view('native.courses.discuss-thread');
+        return view('native.courses.discuss-thread', ['lightboxZoom' => SharedValue::make(1.0)]);
     }
 
     // ---- loading ---------------------------------------------------------

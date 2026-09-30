@@ -21,6 +21,7 @@
 @else
     <native:attachment-row
         key="fallback"
+        ref-prefix="image-fallback-"
         cid="{{ $cid }}"
         :filename="$filename ?? ''"
         :href="$href"

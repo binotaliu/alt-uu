@@ -7,6 +7,7 @@ namespace App\NativeComponents\Settings;
 use AltUU\Domains\Diagnostics\Actions\ListConnectivityServices;
 use AltUU\Domains\Diagnostics\Actions\RunConnectivityCheck;
 use AltUU\Domains\Diagnostics\Enums\ConnectivityServiceEnum;
+use App\NativeComponents\Support\ConnectivityRetryTracker;
 use Illuminate\View\View;
 use Native\Mobile\Attributes\Poll;
 use Native\Mobile\Edge\NativeComponent;
@@ -73,6 +74,8 @@ final class ConnectivityDiagnostics extends NativeComponent
 
     public function runCheck(): void
     {
+        ConnectivityRetryTracker::noteDiagnosticsRun();
+
         $this->checking = true;
         $this->awaitingNetwork = false;
         $this->error = null;

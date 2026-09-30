@@ -3,7 +3,7 @@
 
 <native:column class="w-full gap-1">
     <native:pressable
-        ref="attachment"
+        ref="{{ $refPrefix }}attachment"
         class="w-full"
         a11y-label="{{ $displayName }}"
         a11y-hint="下載並開啟附件"
@@ -13,7 +13,10 @@
             class="bg-theme-surface-variant w-full items-center gap-2 rounded-xl px-3 py-2.5 {{ $working ? 'opacity-70' : '' }}"
         >
             @if ($working)
-                <native:activity-indicator ref="working" native:poll="1s" />
+                <native:activity-indicator
+                    ref="{{ $refPrefix }}working"
+                    native:poll="1s"
+                />
             @else
                 <native:icon
                     :ios="Ios::Paperclip"
@@ -31,7 +34,10 @@
     </native:pressable>
 
     @if ($errorMessage !== '')
-        <native:pressable ref="dismiss-error" @tap="dismissError">
+        <native:pressable
+            ref="{{ $refPrefix }}dismiss-error"
+            @tap="dismissError"
+        >
             <native:text
                 class="text-theme-destructive px-1 text-xs"
                 >{{ $errorMessage }}</native:text
@@ -42,6 +48,7 @@
     @if ($confirm)
         <native:confirm-sheet
             key="confirm"
+            ref-prefix="{{ $refPrefix }}download-"
             :visible="$confirming"
             title="下載附件"
             message="確定要下載並開啟「{{ $displayName }}」嗎？"

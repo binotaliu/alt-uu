@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\NativeComponents\Shared;
 
+use App\NativeComponents\Support\ConnectivityRetryTracker;
 use Illuminate\View\View;
 use Native\Mobile\Edge\NativeComponent;
 
@@ -19,6 +20,10 @@ use Native\Mobile\Edge\NativeComponent;
  * `detail` keys (all optional): `displayCode`, `stageLabel`, `operationLabel`,
  * `method`, `url`, `durationMs`, `status`, `upstreamStatus`, `requestId`,
  * `exception` (`['class','message','file','line']`).
+ *
+ * Repeated retries (3 within 2 minutes, at most once per 30 minutes) open a
+ * 「連線似乎有問題」 sheet that offers the connectivity diagnostics
+ * (`ConnectivityRetryTracker`, port of `connectivity.noteRetry()`).
  */
 final class ErrorRetry extends NativeComponent
 {
@@ -31,13 +36,31 @@ final class ErrorRetry extends NativeComponent
 
     public bool $expanded = false;
 
+    public bool $connectivityPromptVisible = false;
+
     public function retry(): void
     {
         if ($this->retrying) {
             return;
         }
 
+        if (ConnectivityRetryTracker::noteRetry()) {
+            $this->connectivityPromptVisible = true;
+        }
+
         $this->emit('retry');
+    }
+
+    public function dismissConnectivityPrompt(): void
+    {
+        ConnectivityRetryTracker::noteDiagnosticsRun();
+        $this->connectivityPromptVisible = false;
+    }
+
+    public function openConnectivityDiagnostics(): void
+    {
+        $this->dismissConnectivityPrompt();
+        $this->navigate($this->route('native.settings.diagnostics'));
     }
 
     public function toggleDetail(): void

@@ -33,6 +33,7 @@ use App\NativeComponents\Courses\Concerns\DescribesLoadFailures;
 use App\NativeComponents\Courses\Concerns\OpensAttachmentBrowser;
 use App\NativeComponents\Courses\Material\ActiveMediaSession;
 use App\NativeComponents\Courses\Material\MaterialUrls;
+use App\NativeComponents\Support\TronclassLink;
 use App\Services\UUCourseClient;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Validation\ValidationException;
@@ -1016,11 +1017,7 @@ final class Material extends NativeComponent
 
     public function openTronclass(string $url): void
     {
-        $result = AttachmentBridge::openTronclass(MaterialUrls::tronclassTarget($url));
-
-        if ($result === null) {
-            Browser::inApp($url);
-        }
+        TronclassLink::open($url);
     }
 
     public function openExternal(string $url): void

@@ -14,7 +14,8 @@ use Native\Mobile\Edge\NativeComponent;
  *
  * Props: `visible`, `title`, `description`, `initialValue`, `placeholder`,
  * `maxLength` (0 = unlimited), `confirmLabel` (default 儲存), `cancelLabel`,
- * `processing`, `error` (message shown under the field).
+ * `processing`, `error` (message shown under the field), `refPrefix` (prefix of
+ * every ref, see `ConfirmSheet`).
  * Events: `confirm` with the entered text as the LAST argument
  * (`@confirm="saveName"` calls `saveName($value)`), `cancel` (also on
  * swipe-down / tap-outside).
@@ -43,6 +44,8 @@ final class TextInputSheet extends NativeComponent
     public string $confirmLabel = '儲存';
 
     public string $cancelLabel = '取消';
+
+    public string $refPrefix = '';
 
     public bool $processing = false;
 

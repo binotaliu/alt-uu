@@ -86,13 +86,13 @@ it('asks for confirmation before downloading when requested', function (): void 
 
     expect(AttachmentDownload::query()->count())->toBe(0);
 
-    $host->tap('confirm');
+    $host->tap('download-confirm');
 
     expect(AttachmentDownload::query()->count())->toBe(1);
 });
 
 it('does nothing when the confirmation is cancelled', function (): void {
-    RecordingHost::mountView('attachment-row', ['confirm' => true])->tap('attachment')->tap('cancel');
+    RecordingHost::mountView('attachment-row', ['confirm' => true])->tap('attachment')->tap('download-cancel');
 
     expect(AttachmentDownload::query()->count())->toBe(0);
 });

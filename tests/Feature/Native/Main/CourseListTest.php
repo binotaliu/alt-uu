@@ -128,3 +128,23 @@ it('skips What\'s New before onboarding is done', function (): void {
 
     expect(Native::test(CourseList::class)->get('whatsNewVisible'))->toBeFalse();
 });
+
+it('restores the material screen of a still-playing native player instead of loading the list', function (): void {
+    fakeCourseUpstream();
+    Native::fakeBridge()->respondTo('MediaPlayer.GetState', ['status' => 'success', 'data' => ['isActive' => true, 'sessionContext' => [
+        'routePath' => '/native/courses/1001/V1', 'cid' => '1001', 'activityId' => 'V1', 'startedAt' => now()->toIso8601String(),
+    ]]]);
+
+    Native::test(CourseList::class)
+        ->assertNavigatedTo('/native/courses/1001/V1')
+        ->assertSet('courses', []);
+
+    Http::assertNotSent(fn ($request): bool => str_contains($request->url(), 'my-course-list'));
+});
+
+it('does not navigate away when no native player session is running', function (): void {
+    fakeCourseUpstream();
+    Native::fakeBridge()->respondTo('MediaPlayer.GetState', ['status' => 'success', 'data' => ['isActive' => false]]);
+
+    Native::test(CourseList::class)->assertNoNavigation()->assertSee('資料結構');
+});

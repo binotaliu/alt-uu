@@ -67,14 +67,6 @@ final class MaterialUrls
         return false;
     }
 
-    /**
-     * The custom-scheme URL the tronclass app is opened with.
-     */
-    public static function tronclassTarget(string $url): string
-    {
-        return 'tronclass://navigate?url='.rawurlencode($url);
-    }
-
     public static function sameHost(?string $first, ?string $second): bool
     {
         $firstHost = is_string($first) ? parse_url($first, PHP_URL_HOST) : null;

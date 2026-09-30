@@ -65,4 +65,16 @@
             </native:pressable>
         </native:column>
     @endif
+
+    <native:confirm-sheet
+        key="connectivity-prompt"
+        ref-prefix="connectivity-"
+        :visible="$connectivityPromptVisible"
+        title="連線似乎有問題"
+        message="Alt UU 目前無法正常連線至伺服器，可能是您的網路，也可能是學校系統暫時無法使用。您可以前往連線診斷頁面檢視詳細狀態。"
+        confirm-label="前往診斷"
+        cancel-label="稍後再說"
+        @confirm="openConnectivityDiagnostics"
+        @cancel="dismissConnectivityPrompt"
+    />
 </native:column>

@@ -90,6 +90,7 @@
             <native:column class="w-full gap-1">
                 <native:attachment-row
                     key="link-download"
+                    ref-prefix="link-download-"
                     cid="{{ $cid }}"
                     :filename="$linkDownloadName"
                     :href="$linkDownloadHref"
@@ -133,6 +134,7 @@
                     @if ($attachment->href)
                         <native:attachment-row
                             key="file-{{ $post->floor }}-{{ md5((string) $attachment->href) }}"
+                            ref-prefix="file-{{ $post->floor }}-{{ substr(md5((string) $attachment->href), 0, 8) }}-"
                             cid="{{ $cid }}"
                             :filename="$attachment->filename ?? ''"
                             :href="$attachment->href"

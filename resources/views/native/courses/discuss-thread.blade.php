@@ -276,6 +276,7 @@
 
     <native:confirm-sheet
         key="block-sheet"
+        ref-prefix="block-"
         :visible="$blockVisible"
         title="封鎖使用者"
         message="確定要封鎖名稱為「{{ $blockRealname }}」、帳號為「{{ $blockPoster }}」的使用者嗎？封鎖後，所有相同名稱使用者的所有貼文將被隱藏。"
@@ -288,6 +289,7 @@
 
     <native:confirm-sheet
         key="delete-whisper-sheet"
+        ref-prefix="delete-whisper-"
         :visible="$deleteWhisperVisible"
         title="刪除留言"
         message="確定要刪除這則留言嗎？"
@@ -308,12 +310,21 @@
             class="h-full w-full items-center justify-center bg-black"
         >
             @if ($lightboxSrc !== '')
-                <native:image
-                    src="{{ $lightboxSrc }}"
-                    alt="{{ $lightboxAlt }}"
-                    fit="contain"
+                <native:gesture-area
+                    ref="image-zoom"
                     class="h-full w-full"
-                />
+                    :pinch="$lightboxZoom"
+                    pinch-min="1"
+                    pinch-max="4"
+                >
+                    <native:image
+                        src="{{ $lightboxSrc }}"
+                        alt="{{ $lightboxAlt }}"
+                        fit="contain"
+                        class="h-full w-full"
+                        :scale="$lightboxZoom"
+                    />
+                </native:gesture-area>
             @endif
             <native:button
                 ref="close-image"

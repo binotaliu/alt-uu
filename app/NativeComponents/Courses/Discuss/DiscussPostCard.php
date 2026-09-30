@@ -9,6 +9,7 @@ use AltUU\Domains\Discuss\ViewModels\AttachmentViewModel;
 use AltUU\Domains\Discuss\ViewModels\PostViewModel;
 use AltUU\Domains\Discuss\ViewModels\WhisperViewModel;
 use App\NativeComponents\Support\AttachmentKind;
+use App\NativeComponents\Support\TronclassLink;
 use Illuminate\View\View;
 use Native\Mobile\Edge\NativeComponent;
 use Native\Mobile\Facades\Browser;
@@ -142,7 +143,7 @@ final class DiscussPostCard extends NativeComponent
 
     public function openTronclass(string $url): void
     {
-        AttachmentBridge::openTronclass($url);
+        TronclassLink::open($url);
     }
 
     public function openSystem(string $url): void

@@ -390,6 +390,8 @@ it('opens a downloaded image in the fullscreen viewer and closes it', function (
 
     expect($screen->get('lightboxSrc'))->toEndWith('attachments/pic.png')->and($screen->get('lightboxAlt'))->toBe('pic.png');
 
+    $screen->assertElement('gesture_area', fn (array $node): bool => isset($node['props']['pinch-id']) && ($node['props']['pinch-min'] ?? null) == 1 && ($node['props']['pinch-max'] ?? null) == 4);
+
     $screen->tap('close-image')->assertSet('lightboxSrc', '');
 });
 
@@ -423,10 +425,17 @@ it('offers school files and material-proxy links as downloads instead of browsin
 });
 
 it('opens tronclass links through the attachment bridge', function (): void {
-    $screen = openThread();
-    threadLinkTap($screen, 'https://tronclass.nou.edu.tw/course/1');
+    $bridge = Native::fakeBridge()->respondTo('AttachmentBridge.OpenTronclass', ['status' => 'success', 'data' => ['opened' => true]]);
+    threadLinkTap(openThread(), 'https://tronclass.nou.edu.tw/course/1');
 
-    $screen->assertNativeCalled('AttachmentBridge.OpenTronclass');
+    $bridge->assertCalled('AttachmentBridge.OpenTronclass', fn (array $params): bool => $params['url'] === 'tronclass://navigate?url='.rawurlencode('https://tronclass.nou.edu.tw/course/1'));
+});
+
+it('falls back to the in-app browser when the tronclass app cannot be opened', function (): void {
+    $bridge = Native::fakeBridge()->respondTo('AttachmentBridge.OpenTronclass', '');
+    threadLinkTap(openThread(), 'https://tronclass.nou.edu.tw/course/1');
+
+    $bridge->assertCalled('Browser.OpenInApp', fn (array $params): bool => $params['url'] === 'https://tronclass.nou.edu.tw/course/1');
 });
 
 // ── session ────────────────────────────────────────────────────────────────

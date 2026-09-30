@@ -23,7 +23,9 @@ use Throwable;
  * Props: `cid`, `filename`, `href` (source URL on the school host), `source`
  * (`hungu` default or `school_portal`), `confirm` (ask 確認下載 in a sheet
  * before starting; the discussion thread does, homework does not),
- * `downloadFilename` (optional override sent to the queue, e.g. `x.pdf`).
+ * `downloadFilename` (optional override sent to the queue, e.g. `x.pdf`),
+ * `refPrefix` (prefix of every ref incl. the confirm sheet's `{prefix}download-confirm`;
+ * set a unique one on each row that uses `confirm` when several share a screen).
  * Events: `opened` (local file handed to the OS viewer), `failed` (message).
  *
  * Flow: confirm (optional) -> QueueAttachmentDownload -> the row polls the task
@@ -48,6 +50,8 @@ final class AttachmentRow extends NativeComponent
     public bool $confirm = false;
 
     public string $downloadFilename = '';
+
+    public string $refPrefix = '';
 
     public bool $confirming = false;
 

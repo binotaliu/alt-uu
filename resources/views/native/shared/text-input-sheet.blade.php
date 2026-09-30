@@ -1,5 +1,5 @@
 <native:bottom-sheet
-    ref="text-input-sheet"
+    ref="{{ $refPrefix }}text-input-sheet"
     :visible="$visible"
     detents="medium"
     @dismiss="cancel"
@@ -19,7 +19,7 @@
         </native:column>
 
         <native:outlined-text-input
-            ref="input"
+            ref="{{ $refPrefix }}input"
             native:model="value"
             :placeholder="$placeholder"
             :max-length="$maxLength"
@@ -31,14 +31,14 @@
 
         <native:row class="w-full justify-end gap-3">
             <native:button
-                ref="cancel"
+                ref="{{ $refPrefix }}cancel"
                 variant="secondary"
                 :label="$cancelLabel"
                 :disabled="$processing"
                 @tap="cancel"
             />
             <native:button
-                ref="confirm"
+                ref="{{ $refPrefix }}confirm"
                 variant="primary"
                 :label="$processing ? '儲存中…' : $confirmLabel"
                 :loading="$processing"

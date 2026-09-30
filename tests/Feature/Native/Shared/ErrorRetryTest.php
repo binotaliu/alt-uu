@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\NativeComponents\Shared\ErrorRetry;
+use Illuminate\Support\Facades\Cache;
 use Native\Mobile\Testing\Native;
 use Tests\Feature\Native\Fixtures\RecordingHost;
 
@@ -52,4 +53,44 @@ it('hides the detail toggle when there is no detail', function (): void {
     Native::test(ErrorRetry::class)
         ->set('message', '失敗')
         ->assertDontSee('詳細資料');
+});
+
+function promptSheetVisible(mixed $screen): bool
+{
+    return $screen->get('connectivityPromptVisible') === true;
+}
+
+it('suggests the diagnostics after three quick retries', function (): void {
+    Cache::flush();
+    $screen = Native::test(ErrorRetry::class)->set('message', '失敗');
+
+    $screen->tap('retry')->tap('retry');
+    expect(promptSheetVisible($screen))->toBeFalse();
+
+    $screen->tap('retry')->assertSet('connectivityPromptVisible', true);
+});
+
+it('opens the diagnostics from the prompt and stays quiet afterwards', function (): void {
+    Cache::flush();
+    $screen = Native::test(ErrorRetry::class)->set('message', '失敗');
+
+    $screen->tap('retry')->tap('retry')->tap('retry')
+        ->tap('connectivity-confirm')
+        ->assertSet('connectivityPromptVisible', false)
+        ->assertNavigatedTo('/native/settings/diagnostics');
+
+    $quiet = Native::test(ErrorRetry::class)->set('message', '失敗');
+    $quiet->tap('retry')->tap('retry')->tap('retry')->assertSet('connectivityPromptVisible', false);
+});
+
+it('closes the prompt with 稍後再說 and stays quiet', function (): void {
+    Cache::flush();
+    $screen = Native::test(ErrorRetry::class)->set('message', '失敗');
+
+    $screen->tap('retry')->tap('retry')->tap('retry')
+        ->tap('connectivity-cancel')
+        ->assertSet('connectivityPromptVisible', false)
+        ->assertNoNavigation();
+
+    $screen->tap('retry')->tap('retry')->tap('retry')->assertSet('connectivityPromptVisible', false);
 });

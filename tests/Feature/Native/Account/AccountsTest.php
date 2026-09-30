@@ -190,7 +190,7 @@ it('rejects a nickname longer than 30 characters', function (): void {
 it('cancels a rename without saving', function (): void {
     Native::test(Accounts::class)
         ->call('openRename', $this->first->id)
-        ->dismissSheet('text-input-sheet')
+        ->dismissSheet('rename-text-input-sheet')
         ->assertSet('renamingAccountId', null);
 
     expect($this->first->fresh()->nickname)->toBe('小明');
@@ -202,7 +202,7 @@ it('removes an inactive account after confirmation and stays put', function (): 
         ->tap('remove-'.$this->second->id)
         ->assertSet('pendingRemovalId', $this->second->id)
         ->assertElement('bottom_sheet', fn (array $node): bool => ($node['props']['visible'] ?? null) === true)
-        ->tap('confirm')
+        ->tap('remove-confirm')
         ->assertSet('pendingRemovalId', null)
         ->assertNoNavigation()
         ->assertDontSee('s2222222');
@@ -213,7 +213,7 @@ it('removes an inactive account after confirmation and stays put', function (): 
 it('keeps the account when removal is cancelled', function (): void {
     Native::test(Accounts::class)
         ->call('askRemove', $this->second->id)
-        ->tap('cancel')
+        ->tap('remove-cancel')
         ->assertSet('pendingRemovalId', null);
 
     expect(Account::query()->whereKey($this->second->id)->exists())->toBeTrue();
@@ -222,7 +222,7 @@ it('keeps the account when removal is cancelled', function (): void {
 it('removing the active account falls through to the remaining account', function (): void {
     Native::test(Accounts::class)
         ->call('askRemove', $this->first->id)
-        ->tap('confirm')
+        ->tap('remove-confirm')
         ->assertNoNavigation();
 
     expect(app(AccountActiveProfile::class)->get())->toBe($this->second->id);
@@ -238,7 +238,7 @@ it('lands on login when the next account has a dead session and is dropped', fun
 
     Native::test(Accounts::class)
         ->call('askRemove', $this->first->id)
-        ->tap('confirm')
+        ->tap('remove-confirm')
         ->assertReplacedWith('/native/login');
 });
 
@@ -247,7 +247,7 @@ it('goes to the login screen after removing the last account', function (): void
 
     Native::test(Accounts::class)
         ->call('askRemove', $this->first->id)
-        ->tap('confirm')
+        ->tap('remove-confirm')
         ->assertReplacedWith('/native/login');
 
     expect(Account::query()->count())->toBe(0);
@@ -257,7 +257,7 @@ it('toasts when the account to remove is already gone', function (): void {
     $screen = Native::test(Accounts::class)->call('askRemove', $this->second->id);
     Account::query()->whereKey($this->second->id)->forceDelete();
 
-    $screen->tap('confirm')
+    $screen->tap('remove-confirm')
         ->assertSet('pendingRemovalId', null)
         ->assertNativeCalled('Dialog.Toast', fn (array $params): bool => $params['message'] === '找不到這個帳號。');
 });
