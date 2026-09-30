@@ -1,6 +1,6 @@
 import SwiftUI
 
-// MARK: - Media Player Overlay State
+// MARK: - Media Player Overlay State (LEGACY: WebView shell only)
 
 /**
  Plugin-owned state for the native media player overlay.
@@ -9,6 +9,10 @@ import SwiftUI
  the shell's UI state. `MediaPlayerFunctions` publishes here and
  `MediaPlayerOverlayHost` renders it; the shell only needs to mount the host
  above the WebView (see plugin-nativephp-patch, ContentView.swift).
+
+ Native screens do NOT use this: `<native:media-player>` (AltUUMediaPlayerRenderer)
+ draws itself in the tree and calls the manager with `publishOverlay: false`. Remove this
+ file together with the shell patch when the WebView shell is dropped.
  */
 final class MediaPlayerState: ObservableObject {
     static let shared = MediaPlayerState()

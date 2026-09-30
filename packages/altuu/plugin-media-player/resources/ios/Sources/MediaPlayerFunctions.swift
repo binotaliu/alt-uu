@@ -21,6 +21,8 @@ enum MediaPlayerFunctions {
         )
     }
 
+    /// LEGACY: WebView-relative overlay path. Native screens use `<native:media-player>`
+    /// (see AltUUMediaPlayerRenderer), which never publishes overlay state.
     class SetPlayer: BridgeFunction {
         func execute(parameters: [String: Any]) throws -> [String: Any] {
             guard let url = parameters["url"] as? String else {
@@ -194,6 +196,27 @@ class MediaPlayerManager: NSObject {
     private var nowPlayingTimeObserverToken: Any?
     private var nowPlayingTimeObserverPlayer: AVPlayer?
 
+    // MARK: `<native:media-player>` element state
+
+    static let playerChangedNotification = Notification.Name("AltUUMediaPlayerChanged")
+
+    /// Text the element's `watermark` prop stamps on captured frames.
+    private(set) var watermarkText: String?
+    /// Callback ids of the element that currently owns the player (all 0 = nobody listens).
+    let elementEvents = MediaElementEvents()
+    private var appliedSourceKey: String?
+    private var appliedRateProp: Float?
+    private var observedPlayer: AVPlayer?
+    private var statusObservation: NSKeyValueObservation?
+    private var itemStatusObservation: NSKeyValueObservation?
+    private var endObserver: NSObjectProtocol?
+    private var lastProgressEmit: Date = .distantPast
+    private var lastEmittedState: String?
+    private var didPlayToEnd = false
+
+    var currentCourseNameValue: String? { currentCourseName }
+    var currentMaterialNameValue: String? { currentMaterialName }
+
     override private init() {
         super.init()
 
@@ -270,10 +293,15 @@ class MediaPlayerManager: NSObject {
         playerViewController = nil
     }
 
-    func setPlayer(url: String, type: String, frame: MediaPlayerFrame, courseName: String? = nil, materialName: String? = nil, appearance: String? = nil, sessionContext: MediaPlayerSessionContext? = nil, force: Bool = false) {
+    /// Builds (or reuses) the shared player. Returns true when a new player was built.
+    /// `publishOverlay` is only true for the legacy WebView overlay path; the
+    /// `<native:media-player>` element draws itself in the screen tree and must not
+    /// make the shell's `MediaPlayerOverlayHost` draw a second player on top.
+    @discardableResult
+    func setPlayer(url: String, type: String, frame: MediaPlayerFrame, courseName: String? = nil, materialName: String? = nil, appearance: String? = nil, sessionContext: MediaPlayerSessionContext? = nil, force: Bool = false, publishOverlay: Bool = true, startTime: Double? = nil) -> Bool {
         guard let sourceURL = URL(string: url) else {
             DebugLogger.shared.log("[MediaPlayer] Invalid URL: \(url)")
-            return
+            return false
         }
 
         configureAudioSession()
@@ -295,13 +323,15 @@ class MediaPlayerManager: NSObject {
                 playerViewController?.player = existingPlayer
             }
 
-            DispatchQueue.main.async {
-                MediaPlayerState.shared.updateMediaPlayer(url: url, type: type, frame: frame, courseName: courseName, materialName: materialName, appearance: appearance, sessionContext: sessionContext)
+            if publishOverlay {
+                DispatchQueue.main.async {
+                    MediaPlayerState.shared.updateMediaPlayer(url: url, type: type, frame: frame, courseName: courseName, materialName: materialName, appearance: appearance, sessionContext: sessionContext)
+                }
             }
 
             updateNowPlayingInfo()
             DebugLogger.shared.log("[MediaPlayer] Reused existing player for \(type): \(url)")
-            return
+            return false
         }
 
         removeNowPlayingInfoTimeObserver()
@@ -331,6 +361,8 @@ class MediaPlayerManager: NSObject {
 
         if let resumeTime, resumeTime > 0 {
             player.seek(to: CMTime(seconds: resumeTime, preferredTimescale: 600), toleranceBefore: .zero, toleranceAfter: .zero)
+        } else if let startTime, startTime > 0 {
+            player.seek(to: CMTime(seconds: startTime, preferredTimescale: 600), toleranceBefore: .zero, toleranceAfter: .zero)
         }
 
         installNowPlayingInfoTimeObserver()
@@ -345,12 +377,18 @@ class MediaPlayerManager: NSObject {
             updateNowPlayingInfoFallback()
         }
 
-        // Store player and frame info for UI to use
-        DispatchQueue.main.async {
-            MediaPlayerState.shared.updateMediaPlayer(url: url, type: type, frame: frame, courseName: courseName, materialName: materialName, appearance: appearance, sessionContext: sessionContext)
+        // Store player and frame info for the legacy overlay host to use
+        if publishOverlay {
+            DispatchQueue.main.async {
+                MediaPlayerState.shared.updateMediaPlayer(url: url, type: type, frame: frame, courseName: courseName, materialName: materialName, appearance: appearance, sessionContext: sessionContext)
+            }
         }
 
+        didPlayToEnd = false
+        NotificationCenter.default.post(name: Self.playerChangedNotification, object: nil)
+
         DebugLogger.shared.log("[MediaPlayer] Player set for \(type): \(url) (appearance: \(appearance ?? "system"), route: \(sessionContext?.routePath ?? "nil"))")
+        return true
     }
 
     func play() {
@@ -359,6 +397,7 @@ class MediaPlayerManager: NSObject {
         }
 
         let rateToUse = playbackRate <= 0 ? 1.0 : playbackRate
+        didPlayToEnd = false
         if #available(iOS 16.0, *) {
             player.defaultRate = rateToUse
         }
@@ -391,6 +430,7 @@ class MediaPlayerManager: NSObject {
         }
 
         removeNowPlayingInfoTimeObserver()
+        removeElementObservers()
 
         player?.pause()
         player?.seek(to: .zero)
@@ -399,17 +439,24 @@ class MediaPlayerManager: NSObject {
         videoOutput = nil
         currentURL = nil
         currentSessionContext = nil
+        appliedSourceKey = nil
+        appliedRateProp = nil
+        didPlayToEnd = false
 
         clearNowPlayingSession()
 
         DispatchQueue.main.async {
             MediaPlayerState.shared.clearMediaPlayer()
         }
+        NotificationCenter.default.post(name: Self.playerChangedNotification, object: nil)
         DebugLogger.shared.log("[MediaPlayer] Stopped")
     }
 
     func seek(to time: CMTime) {
-        player?.seek(to: time)
+        didPlayToEnd = false
+        player?.seek(to: time) { [weak self] _ in
+            DispatchQueue.main.async { self?.emitProgress() }
+        }
         updateNowPlayingInfo()
         DebugLogger.shared.log("[MediaPlayer] Seeking to \(time.seconds)s")
     }
@@ -521,6 +568,7 @@ class MediaPlayerManager: NSObject {
             }
 
             self.updateNowPlayingInfo()
+            self.emitProgressIfDue()
         }
     }
 
@@ -658,6 +706,9 @@ class MediaPlayerManager: NSObject {
         var data: [String: Any] = [
             "isActive": player != nil,
             "currentTime": getCurrentTime(),
+            "duration": getDuration(),
+            "state": currentStateName(),
+            "playbackRate": playbackRate,
             "type": currentType,
         ]
 
@@ -698,5 +749,293 @@ class MediaPlayerManager: NSObject {
 
     func getPlaybackRate() -> Float {
         return playbackRate
+    }
+
+    // MARK: - `<native:media-player>` element integration
+
+    /// Applies the element's props. Idempotent: every PHP render re-sends every prop,
+    /// so the source is only reloaded when `url`/`kind` change, the start position and
+    /// autoplay only apply to a freshly built player, and the rate only when the PROP
+    /// changed (a rate picked natively is never overwritten by a later render).
+    func applyElement(_ config: MediaElementConfig) {
+        elementEvents.bind(config)
+        watermarkText = config.watermark
+
+        let key = "\(config.url)|\(config.kind)"
+        let isNewSource = key != appliedSourceKey || player == nil
+        var built = false
+
+        if isNewSource {
+            appliedSourceKey = key
+            appliedRateProp = nil
+            built = setPlayer(
+                url: config.url,
+                type: config.kind,
+                frame: MediaPlayerFrame(x: 0, y: 0, width: 0, height: 0),
+                courseName: config.courseName,
+                materialName: config.title,
+                appearance: config.appearance,
+                sessionContext: config.sessionContext,
+                publishOverlay: false,
+                startTime: config.start
+            )
+        } else if currentCourseName != config.courseName || currentMaterialName != config.title {
+            currentCourseName = config.courseName
+            currentMaterialName = config.title
+            updateNowPlayingInfo()
+        }
+
+        if observedPlayer !== player {
+            installElementObservers()
+        }
+
+        if appliedRateProp != config.rate {
+            appliedRateProp = config.rate
+            setPlaybackRate(config.rate)
+        }
+
+        if built && config.autoplay {
+            play()
+        }
+    }
+
+    /// The element left the tree. Only pause and mute its events: SwiftUI also
+    /// dismantles views while rebuilding them, so the real stop is PHP's
+    /// (`MediaPlayback::unmount()` calls `MediaPlayer.Stop` with the URL).
+    func detachElement(nodeId: Int) {
+        guard elementEvents.nodeId == nodeId else {
+            return
+        }
+
+        pause()
+        elementEvents.clear()
+    }
+
+    func currentStateName() -> String {
+        guard let player else {
+            return "idle"
+        }
+
+        if didPlayToEnd {
+            return "ended"
+        }
+
+        switch player.timeControlStatus {
+        case .playing:
+            return "playing"
+        case .waitingToPlayAtSpecifiedRate:
+            return "buffering"
+        case .paused:
+            return player.currentItem?.status == .readyToPlay ? "paused" : "idle"
+        @unknown default:
+            return "idle"
+        }
+    }
+
+    private func installElementObservers() {
+        removeElementObservers()
+
+        guard let player else {
+            return
+        }
+
+        observedPlayer = player
+        lastEmittedState = nil
+
+        // KVO callbacks arrive on arbitrary threads; everything below is main-thread.
+        statusObservation = player.observe(\.timeControlStatus, options: [.new]) { [weak self] _, _ in
+            DispatchQueue.main.async { self?.emitStateIfChanged() }
+        }
+
+        if let item = player.currentItem {
+            itemStatusObservation = item.observe(\.status, options: [.new]) { [weak self] item, _ in
+                guard item.status == .failed else {
+                    return
+                }
+
+                let message = item.error?.localizedDescription ?? "無法播放此媒體"
+                let code = (item.error as NSError?)?.code ?? 0
+                DispatchQueue.main.async { self?.emitError(message: message, code: code) }
+            }
+
+            endObserver = NotificationCenter.default.addObserver(forName: .AVPlayerItemDidPlayToEndTime, object: item, queue: .main) { [weak self] _ in
+                self?.didPlayToEnd = true
+                self?.emitStateIfChanged()
+                self?.emitProgress()
+                self?.emitEnded()
+            }
+        }
+    }
+
+    private func removeElementObservers() {
+        statusObservation?.invalidate()
+        statusObservation = nil
+        itemStatusObservation?.invalidate()
+        itemStatusObservation = nil
+
+        if let endObserver {
+            NotificationCenter.default.removeObserver(endObserver)
+        }
+
+        endObserver = nil
+        observedPlayer = nil
+    }
+
+    private func timingPayload() -> [String: Any] {
+        ["currentTime": getCurrentTime(), "duration": getDuration()]
+    }
+
+    private func emitStateIfChanged() {
+        let state = currentStateName()
+
+        guard state != lastEmittedState else {
+            return
+        }
+
+        lastEmittedState = state
+
+        var payload = timingPayload()
+        payload["state"] = state
+        elementEvents.send(elementEvents.stateChangeId, payload)
+
+        // A pause is the moment a study timer wants an up-to-date position.
+        if state == "paused" {
+            emitProgress()
+        }
+    }
+
+    /// `progress` while playing, at most every 5 seconds (each event costs a PHP render).
+    private func emitProgressIfDue() {
+        guard elementEvents.progressId != 0, currentStateName() == "playing", Date().timeIntervalSince(lastProgressEmit) >= 5 else {
+            return
+        }
+
+        emitProgress()
+    }
+
+    func emitProgress() {
+        guard elementEvents.progressId != 0, player != nil else {
+            return
+        }
+
+        lastProgressEmit = Date()
+
+        var payload = timingPayload()
+        payload["state"] = currentStateName()
+        elementEvents.send(elementEvents.progressId, payload)
+    }
+
+    private func emitEnded() {
+        elementEvents.send(elementEvents.endedId, timingPayload())
+    }
+
+    private func emitError(message: String, code: Int) {
+        elementEvents.send(elementEvents.errorId, ["message": message, "code": code])
+    }
+}
+
+// MARK: - Element config and events
+
+/// Everything `<native:media-player>` sends, parsed once per render.
+struct MediaElementConfig {
+    let nodeId: Int
+    let url: String
+    let kind: String
+    let title: String?
+    let courseName: String?
+    let poster: String?
+    let subtitles: String?
+    let start: Double?
+    let rate: Float
+    let appearance: String?
+    let watermark: String?
+    let autoplay: Bool
+    let sessionContext: MediaPlayerSessionContext?
+    let progressId: Int
+    let stateChangeId: Int
+    let endedId: Int
+    let errorId: Int
+
+    init(node: NativeUINode) {
+        func optional(_ key: String) -> String? {
+            let value = node.props.getString(key)
+            return value.isEmpty ? nil : value
+        }
+
+        nodeId = node.id
+        url = node.props.getString("src")
+        kind = node.props.getString("kind") == "audio" ? "audio" : "video"
+        title = optional("title")
+        courseName = optional("course_name")
+        poster = optional("poster")
+        subtitles = optional("subtitles")
+        let startSeconds = Double(node.props.getFloat("start", default: 0))
+        start = startSeconds > 0 ? startSeconds : nil
+        rate = Float(node.props.getFloat("rate", default: 1))
+        appearance = optional("appearance")
+        watermark = optional("watermark")
+        autoplay = node.props.getBool("autoplay", default: false)
+        progressId = node.props.getCallbackId("on_progress")
+        stateChangeId = node.props.getCallbackId("on_state_change")
+        endedId = node.props.getCallbackId("on_ended")
+        errorId = node.props.getCallbackId("on_error")
+
+        if let raw = optional("session_context"),
+           let data = raw.data(using: .utf8),
+           let dictionary = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] {
+            sessionContext = MediaPlayerSessionContext(
+                routePath: dictionary["routePath"] as? String,
+                cid: dictionary["cid"] as? String,
+                activityId: dictionary["activityId"] as? String,
+                href: dictionary["href"] as? String,
+                startedAt: dictionary["startedAt"] as? String
+            )
+        } else {
+            sessionContext = nil
+        }
+    }
+
+    /// Identity of everything that should re-run `applyElement`.
+    var signature: String {
+        [
+            url, kind, title ?? "", courseName ?? "", "\(start ?? 0)", "\(rate)", appearance ?? "",
+            watermark ?? "", "\(autoplay)", "\(progressId)|\(stateChangeId)|\(endedId)|\(errorId)|\(nodeId)",
+        ].joined(separator: "\u{1F}")
+    }
+}
+
+/// Text-payload event dispatch to the element that owns the player (JSON strings, like html-view).
+final class MediaElementEvents {
+    private(set) var nodeId = 0
+    private(set) var progressId = 0
+    private(set) var stateChangeId = 0
+    private(set) var endedId = 0
+    private(set) var errorId = 0
+
+    func bind(_ config: MediaElementConfig) {
+        nodeId = config.nodeId
+        progressId = config.progressId
+        stateChangeId = config.stateChangeId
+        endedId = config.endedId
+        errorId = config.errorId
+    }
+
+    func clear() {
+        nodeId = 0
+        progressId = 0
+        stateChangeId = 0
+        endedId = 0
+        errorId = 0
+    }
+
+    func send(_ callbackId: Int, _ payload: [String: Any]) {
+        guard callbackId != 0,
+              JSONSerialization.isValidJSONObject(payload),
+              let data = try? JSONSerialization.data(withJSONObject: payload),
+              let text = String(data: data, encoding: .utf8) else {
+            return
+        }
+
+        NativeElementBridge.sendTextChangeEvent(callbackId, nodeId: nodeId, text: text)
     }
 }

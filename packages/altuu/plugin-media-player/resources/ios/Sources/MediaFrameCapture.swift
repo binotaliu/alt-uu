@@ -8,12 +8,16 @@ extension MediaPlayerFunctions {
 
     class CaptureFrame: BridgeFunction {
         func execute(parameters: [String: Any]) throws -> [String: Any] {
-            guard let studentId = parameters["studentId"] as? String, !studentId.isEmpty else {
+            // Legacy callers pass studentId; the element's `watermark` prop is the fallback.
+            let manager = MediaPlayerManager.shared
+            let passedId = (parameters["studentId"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+
+            guard let studentId = passedId ?? manager.watermarkText, !studentId.isEmpty else {
                 throw NSError(domain: "MediaPlayer", code: 422, userInfo: [NSLocalizedDescriptionKey: "Missing studentId parameter"])
             }
 
-            let courseName = parameters["courseName"] as? String
-            let materialName = parameters["materialName"] as? String
+            let courseName = (parameters["courseName"] as? String) ?? manager.currentCourseNameValue
+            let materialName = (parameters["materialName"] as? String) ?? manager.currentMaterialNameValue
 
             let capture = {
                 MediaFrameCapture.captureAndShare(

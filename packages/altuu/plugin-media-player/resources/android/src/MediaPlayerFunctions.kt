@@ -5,10 +5,13 @@ import android.media.session.MediaSession
 import android.media.session.PlaybackState
 import android.os.Handler
 import android.os.Looper
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.fragment.app.FragmentActivity
 import androidx.media3.common.AudioAttributes
+import android.net.Uri
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
@@ -16,6 +19,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import com.nativephp.mobile.bridge.BridgeError
 import com.nativephp.mobile.bridge.BridgeFunction
 import com.nativephp.mobile.bridge.BridgeResponse
+import com.nativephp.mobile.ui.nativerender.NativeUIBridge
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -73,6 +77,37 @@ object MediaPlayerManager {
     private var isPrepared: Boolean = false
     private val mainHandler = Handler(Looper.getMainLooper())
 
+    // region `<native:media-player>` element state
+
+    /**
+     * Bumped whenever the ExoPlayer instance is created or released. Composables read it
+     * so a PlayerView built before the player existed re-binds instead of staying blank.
+     */
+    private val playerRevisionState = mutableIntStateOf(0)
+    val playerRevision: Int get() = playerRevisionState.intValue
+
+    /** Text the element's `watermark` prop stamps on captured frames. */
+    var watermarkText: String? = null
+        private set
+
+    val currentCourseNameValue: String? get() = currentCourseName
+    val currentMaterialNameValue: String? get() = currentMaterialName
+
+    /** Only the legacy WebView overlay path (SetPlayer with a frame) publishes overlay state. */
+    private var overlayPublishing: Boolean = true
+    private var appliedSourceKey: String? = null
+    private var appliedRateProp: Float? = null
+    private var lastEmittedState: String? = null
+    private var lastProgressEmitMs: Long = 0L
+
+    // endregion
+
+    /**
+     * Builds (or reuses) the shared player. Returns true when a new player was built.
+     * `publishOverlay` is only true for the legacy WebView overlay; the element draws
+     * itself in the screen tree and must not make the shell's MediaPlayerOverlayHost draw
+     * a second player. `autoplay = null` keeps the legacy default (video plays, audio waits).
+     */
     fun setPlayer(
         activity: FragmentActivity,
         url: String,
@@ -83,7 +118,11 @@ object MediaPlayerManager {
         appearance: String?,
         sessionContext: MediaPlayerSessionContext?,
         force: Boolean = false,
-    ) {
+        publishOverlay: Boolean = true,
+        subtitleUrl: String? = null,
+        startPositionMs: Long = 0L,
+        autoplay: Boolean? = null,
+    ): Boolean {
         if (activity.isFinishing || activity.isDestroyed) {
             // The Activity reference captured when this bridge call was
             // dispatched no longer backs a live screen (e.g. it was
@@ -92,8 +131,10 @@ object MediaPlayerManager {
             // meaningless at best and crash at worst, so drop the request
             // instead of touching the currently active player.
             android.util.Log.w("MediaPlayer", "setPlayer: ignoring request against a finishing/destroyed activity for url=$url")
-            return
+            return false
         }
+
+        overlayPublishing = publishOverlay
 
         val normalizedType = type.lowercase()
         val isSameSource = !force && currentUrl == url && currentType == normalizedType && player != null
@@ -118,7 +159,7 @@ object MediaPlayerManager {
             currentSessionContext = sessionContext
             syncMediaPlayerState()
             updateMediaSessionMetadata()
-            return
+            return false
         }
 
         // Release existing player BEFORE updating state, so releasePlayer()'s
@@ -134,6 +175,23 @@ object MediaPlayerManager {
 
         android.util.Log.d("MediaPlayer", "setPlayer: after releasePlayer - frame=(${currentFrame.x},${currentFrame.y},${currentFrame.width}x${currentFrame.height}) courseName=$currentCourseName materialName=$currentMaterialName")
 
+        val mediaItem = MediaItem.Builder()
+            .setUri(url)
+            .apply {
+                if (!subtitleUrl.isNullOrBlank() && normalizedType == "video") {
+                    setSubtitleConfigurations(
+                        listOf(
+                            MediaItem.SubtitleConfiguration.Builder(Uri.parse(subtitleUrl))
+                                .setMimeType(MimeTypes.TEXT_VTT)
+                                .setSelectionFlags(C.SELECTION_FLAG_DEFAULT)
+                                .build(),
+                        ),
+                    )
+                }
+            }
+            .build()
+        val initialPositionMs = if (resumePositionMs > 0L) resumePositionMs else startPositionMs
+
         val exoPlayer = ExoPlayer.Builder(activity)
             .build()
             .apply {
@@ -144,12 +202,13 @@ object MediaPlayerManager {
                         .build(),
                     false,
                 )
-                if (resumePositionMs > 0L) {
-                    setMediaItem(MediaItem.fromUri(url), resumePositionMs)
+                if (initialPositionMs > 0L) {
+                    setMediaItem(mediaItem, initialPositionMs)
                 } else {
-                    setMediaItem(MediaItem.fromUri(url))
+                    setMediaItem(mediaItem)
                 }
-                playWhenReady = normalizedType == "video" || shouldResumePlayback
+                playWhenReady = autoplay ?: (normalizedType == "video" || shouldResumePlayback)
+                addListener(elementListener)
                 addListener(object : Player.Listener {
                     override fun onPlaybackStateChanged(playbackState: Int) {
                         if (playbackState == Player.STATE_READY) {
@@ -187,7 +246,11 @@ object MediaPlayerManager {
 
         player = exoPlayer
         currentUrl = url
+        lastEmittedState = null
+        playerRevisionState.intValue += 1
         syncMediaPlayerState()
+
+        return true
     }
 
     fun play() {
@@ -301,6 +364,8 @@ object MediaPlayerManager {
         val data = mutableMapOf<String, Any>(
             "isActive" to (player != null),
             "currentTime" to getCurrentTimeSeconds(),
+            "duration" to getDurationSeconds(),
+            "state" to currentStateName(),
             "type" to currentType,
             "playbackRate" to playbackSpeed,
         )
@@ -316,6 +381,173 @@ object MediaPlayerManager {
         return data
     }
 
+    // region `<native:media-player>` element integration
+
+    /**
+     * Applies the element's props. Idempotent: every PHP render re-sends every prop, so the
+     * source only reloads when url/kind change, start + autoplay only apply to a freshly
+     * built player, and the rate only when the PROP changed (a rate picked in the native
+     * controls is never overwritten by a later render).
+     */
+    fun applyElement(activity: FragmentActivity, config: MediaElementConfig) {
+        MediaElementEvents.bind(config)
+        watermarkText = config.watermark
+
+        val key = "${config.url}|${config.kind}"
+
+        if (key != appliedSourceKey || player == null) {
+            val built = setPlayer(
+                activity = activity,
+                url = config.url,
+                type = config.kind,
+                frame = MediaPlayerFrame(),
+                courseName = config.courseName,
+                materialName = config.title,
+                appearance = config.appearance,
+                sessionContext = config.sessionContext,
+                publishOverlay = false,
+                subtitleUrl = config.subtitles,
+                startPositionMs = ((config.start ?: 0.0) * 1000).toLong(),
+                autoplay = config.autoplay,
+            )
+
+            if (built || player != null) {
+                appliedSourceKey = key
+                appliedRateProp = null
+            }
+        } else if (currentCourseName != config.courseName || currentMaterialName != config.title) {
+            currentCourseName = config.courseName
+            currentMaterialName = config.title
+            updateMediaSessionMetadata()
+        }
+
+        if (appliedRateProp != config.rate) {
+            appliedRateProp = config.rate
+            setPlaybackSpeed(config.rate)
+        }
+
+        if (player != null) {
+            startProgressTicker()
+        }
+    }
+
+    /**
+     * The element left the composition. Only pause and mute its events: Compose also
+     * disposes views while recomposing them, so the real stop is PHP's
+     * (`MediaPlayback::unmount()` calls MediaPlayer.Stop with the URL).
+     */
+    fun detachElement(nodeId: Int) {
+        if (MediaElementEvents.nodeId != nodeId) {
+            return
+        }
+
+        stopProgressTicker()
+        pause()
+        MediaElementEvents.clear()
+    }
+
+    fun currentStateName(): String {
+        val exoPlayer = player ?: return "idle"
+
+        return when {
+            exoPlayer.playbackState == Player.STATE_ENDED -> "ended"
+            exoPlayer.playbackState == Player.STATE_BUFFERING -> "buffering"
+            exoPlayer.isPlaying -> "playing"
+            exoPlayer.playbackState == Player.STATE_READY -> "paused"
+            else -> "idle"
+        }
+    }
+
+    private val elementListener = object : Player.Listener {
+        override fun onPlaybackStateChanged(playbackState: Int) {
+            emitStateIfChanged()
+
+            if (playbackState == Player.STATE_ENDED) {
+                emitProgress()
+                MediaElementEvents.send(MediaElementEvents.endedId, timingPayload())
+            }
+        }
+
+        override fun onIsPlayingChanged(isPlaying: Boolean) {
+            emitStateIfChanged()
+        }
+
+        override fun onPositionDiscontinuity(
+            oldPosition: Player.PositionInfo,
+            newPosition: Player.PositionInfo,
+            reason: Int,
+        ) {
+            if (reason == Player.DISCONTINUITY_REASON_SEEK) {
+                emitProgress()
+            }
+        }
+
+        override fun onPlayerError(error: PlaybackException) {
+            MediaElementEvents.send(
+                MediaElementEvents.errorId,
+                JSONObject().put("message", error.message ?: "無法播放此媒體").put("code", error.errorCode),
+            )
+        }
+    }
+
+    private val progressTicker = object : Runnable {
+        override fun run() {
+            emitProgressIfDue()
+            mainHandler.postDelayed(this, 1000L)
+        }
+    }
+
+    private fun startProgressTicker() {
+        mainHandler.removeCallbacks(progressTicker)
+        mainHandler.postDelayed(progressTicker, 1000L)
+    }
+
+    private fun stopProgressTicker() {
+        mainHandler.removeCallbacks(progressTicker)
+    }
+
+    private fun timingPayload(): JSONObject = JSONObject()
+        .put("currentTime", getCurrentTimeSeconds())
+        .put("duration", getDurationSeconds())
+
+    private fun emitStateIfChanged() {
+        val state = currentStateName()
+
+        if (state == lastEmittedState) {
+            return
+        }
+
+        lastEmittedState = state
+        MediaElementEvents.send(MediaElementEvents.stateChangeId, timingPayload().put("state", state))
+
+        // A pause is the moment a study timer wants an up-to-date position.
+        if (state == "paused") {
+            emitProgress()
+        }
+    }
+
+    /** `progress` while playing, at most every 5 seconds (each event costs a PHP render). */
+    private fun emitProgressIfDue() {
+        if (MediaElementEvents.progressId == 0 || currentStateName() != "playing") {
+            return
+        }
+
+        if (android.os.SystemClock.elapsedRealtime() - lastProgressEmitMs >= 5000L) {
+            emitProgress()
+        }
+    }
+
+    private fun emitProgress() {
+        if (MediaElementEvents.progressId == 0 || player == null) {
+            return
+        }
+
+        lastProgressEmitMs = android.os.SystemClock.elapsedRealtime()
+        MediaElementEvents.send(MediaElementEvents.progressId, timingPayload().put("state", currentStateName()))
+    }
+
+    // endregion
+
     // region Private Helpers
 
     private fun applyPlaybackSpeed(speed: Float) {
@@ -326,8 +558,13 @@ object MediaPlayerManager {
     }
 
     private fun releasePlayer() {
+        stopProgressTicker()
         player?.release()
         player = null
+        appliedSourceKey = null
+        appliedRateProp = null
+        lastEmittedState = null
+        playerRevisionState.intValue += 1
         isPrepared = false
         currentUrl = null
         currentFrame = MediaPlayerFrame()
@@ -344,6 +581,10 @@ object MediaPlayerManager {
     }
 
     private fun syncMediaPlayerState() {
+        if (!overlayPublishing) {
+            return
+        }
+
         val url = currentUrl ?: return
 
         android.util.Log.d("MediaPlayer", "syncMediaPlayerState: url=$url type=$currentType frame=(${currentFrame.x},${currentFrame.y},${currentFrame.width}x${currentFrame.height}) courseName=$currentCourseName materialName=$currentMaterialName")
@@ -446,6 +687,48 @@ object MediaPlayerManager {
     }
 
     // endregion
+}
+
+// endregion
+
+// region Element events
+
+/** Text-payload (JSON) event dispatch to the element that owns the player, like html-view. */
+object MediaElementEvents {
+    @Volatile var nodeId: Int = 0
+        private set
+    @Volatile var progressId: Int = 0
+        private set
+    @Volatile var stateChangeId: Int = 0
+        private set
+    @Volatile var endedId: Int = 0
+        private set
+    @Volatile var errorId: Int = 0
+        private set
+
+    fun bind(config: MediaElementConfig) {
+        nodeId = config.nodeId
+        progressId = config.progressId
+        stateChangeId = config.stateChangeId
+        endedId = config.endedId
+        errorId = config.errorId
+    }
+
+    fun clear() {
+        nodeId = 0
+        progressId = 0
+        stateChangeId = 0
+        endedId = 0
+        errorId = 0
+    }
+
+    fun send(callbackId: Int, payload: JSONObject) {
+        if (callbackId == 0) {
+            return
+        }
+
+        NativeUIBridge.sendTextChangeEvent(callbackId, nodeId, payload.toString())
+    }
 }
 
 // endregion
@@ -637,14 +920,16 @@ object MediaPlayerFunctions {
 
     class CaptureFrame(private val activity: FragmentActivity) : BridgeFunction {
         override fun execute(parameters: Map<String, Any>): Map<String, Any> {
+            // Legacy callers pass studentId; the element's `watermark` prop is the fallback.
             val studentId = (parameters["studentId"] as? String)?.takeIf { it.isNotBlank() }
+                ?: MediaPlayerManager.watermarkText?.takeIf { it.isNotBlank() }
                 ?: throw BridgeError.InvalidParameters("Missing studentId parameter")
 
             val seconds = MediaFrameCapture.captureAndShare(
                 activity = activity,
                 studentId = studentId,
-                courseName = parameters["courseName"] as? String,
-                materialName = parameters["materialName"] as? String,
+                courseName = (parameters["courseName"] as? String) ?: MediaPlayerManager.currentCourseNameValue,
+                materialName = (parameters["materialName"] as? String) ?: MediaPlayerManager.currentMaterialNameValue,
             )
 
             return BridgeResponse.success(

@@ -16,7 +16,9 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -51,6 +53,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -63,7 +68,11 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
+import android.graphics.BitmapFactory
 import com.nativephp.mobile.ui.MaterialIcon
+import com.nativephp.plugins.native_ui.NativeUITheme
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.delay
 import java.util.Locale
 
@@ -73,8 +82,57 @@ private val AudioLightGradient = listOf(Color(0xFFFFF4EC), Color(0xFFFFE2D1))
 private val AudioDarkGradient = listOf(Color(0xFF30221C), Color(0xFF1F1814))
 private val PlaybackRateOptions = listOf(0.75f, 1.0f, 1.25f, 1.5f, 2.0f)
 
+/**
+ * Colours of one player. The element (`useNativeTheme`) reads the mobile-ui theme tokens
+ * pushed by `NativeAccent::apply` (`accent` / `on-accent` / `surface`), so an accent
+ * change re-themes it without a bridge call. The legacy WebView overlay keeps its fixed
+ * warm palette (the WebView shell has no theme push).
+ */
+private data class PlayerColors(
+    val theme: Color,
+    val onTheme: Color,
+    val gradient: List<Color>,
+    val subtle: Color,
+)
+
 @Composable
-fun NativeMediaPlayerOverlay(data: MediaPlayerData, modifier: Modifier = Modifier, isInPiP: Boolean = false) {
+private fun rememberPlayerColors(appearance: String?, useNativeTheme: Boolean): PlayerColors {
+    val systemDark = isSystemInDarkTheme()
+    val isDark = when (appearance?.lowercase(Locale.US)) {
+        "dark" -> true
+        "light" -> false
+        else -> if (useNativeTheme) systemDark else MaterialTheme.colorScheme.surface.luminance() < 0.5f
+    }
+
+    if (useNativeTheme) {
+        val tokens = if (isDark) NativeUITheme.dark else NativeUITheme.light
+
+        return PlayerColors(
+            theme = tokens.accent,
+            onTheme = tokens.onAccent,
+            gradient = listOf(tokens.surface, tokens.surfaceVariant),
+            subtle = tokens.onSurfaceVariant,
+        )
+    }
+
+    return PlayerColors(
+        theme = if (isDark) ThemeColorDark else ThemeColor,
+        onTheme = Color.White,
+        gradient = if (isDark) AudioDarkGradient else AudioLightGradient,
+        subtle = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+}
+
+@Composable
+fun NativeMediaPlayerOverlay(
+    data: MediaPlayerData,
+    modifier: Modifier = Modifier,
+    isInPiP: Boolean = false,
+    useNativeTheme: Boolean = false,
+) {
+    val colors = rememberPlayerColors(data.appearance, useNativeTheme)
+    val playerRevision = MediaPlayerManager.playerRevision
+    var hasStarted by remember(data.url, data.type) { mutableStateOf(false) }
     var isPlaying by remember(data.url, data.type) { mutableStateOf(MediaPlayerManager.isPlaying()) }
     var currentTime by remember(data.url, data.type) { mutableFloatStateOf(MediaPlayerManager.getCurrentTimeSeconds().toFloat()) }
     var duration by remember(data.url, data.type) { mutableFloatStateOf(MediaPlayerManager.getDurationSeconds().toFloat()) }
@@ -86,6 +144,9 @@ fun NativeMediaPlayerOverlay(data: MediaPlayerData, modifier: Modifier = Modifie
             currentTime = MediaPlayerManager.getCurrentTimeSeconds().toFloat()
             duration = MediaPlayerManager.getDurationSeconds().toFloat().coerceAtLeast(0f)
             playbackSpeed = MediaPlayerManager.getPlaybackSpeed()
+            if (isPlaying || currentTime > 0.1f) {
+                hasStarted = true
+            }
             delay(300)
         }
     }
@@ -97,6 +158,7 @@ fun NativeMediaPlayerOverlay(data: MediaPlayerData, modifier: Modifier = Modifie
             currentTime = currentTime,
             duration = duration,
             playbackSpeed = playbackSpeed,
+            colors = colors,
             modifier = modifier,
         )
     } else {
@@ -105,6 +167,9 @@ fun NativeMediaPlayerOverlay(data: MediaPlayerData, modifier: Modifier = Modifie
             isPlaying = isPlaying,
             playbackSpeed = playbackSpeed,
             isInPiP = isInPiP,
+            colors = colors,
+            playerRevision = playerRevision,
+            hasStarted = hasStarted,
             modifier = modifier,
         )
     }
@@ -117,10 +182,11 @@ private fun AudioOverlayContent(
     currentTime: Float,
     duration: Float,
     playbackSpeed: Float,
+    colors: PlayerColors,
     modifier: Modifier,
 ) {
-    val themeColor = if (MaterialTheme.colorScheme.surface.luminance() < 0.5f) ThemeColorDark else ThemeColor
-    val gradient = if (MaterialTheme.colorScheme.surface.luminance() < 0.5f) AudioDarkGradient else AudioLightGradient
+    val themeColor = colors.theme
+    val gradient = colors.gradient
     var isSeeking by remember { mutableStateOf(false) }
     var seekPosition by remember { mutableFloatStateOf(0f) }
 
@@ -161,7 +227,7 @@ private fun AudioOverlayContent(
                         Text(
                             text = data.courseName ?: "原生音訊播放器",
                             style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = colors.subtle,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
@@ -170,6 +236,7 @@ private fun AudioOverlayContent(
                     PlaybackRateMenuButton(
                         playbackSpeed = playbackSpeed,
                         themeColor = themeColor,
+                        onThemeColor = colors.onTheme,
                     )
                 }
 
@@ -182,7 +249,7 @@ private fun AudioOverlayContent(
                         MediaPlayerManager.skipBy(-10.0)
                     }
 
-                    PlayPauseButton(isPlaying = isPlaying, themeColor = themeColor)
+                    PlayPauseButton(isPlaying = isPlaying, themeColor = themeColor, onThemeColor = colors.onTheme)
 
                     SkipButton(iconName = "forward_10", contentDescription = "快轉 10 秒", themeColor = themeColor) {
                         MediaPlayerManager.skipBy(10.0)
@@ -220,12 +287,12 @@ private fun AudioOverlayContent(
                             Text(
                                 text = formatDuration(if (isSeeking) seekPosition.toDouble() else currentTime.toDouble()),
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = colors.subtle,
                             )
                             Text(
                                 text = formatDuration(duration.toDouble()),
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                color = colors.subtle,
                             )
                         }
                     }
@@ -241,10 +308,13 @@ private fun VideoOverlayContent(
     isPlaying: Boolean,
     playbackSpeed: Float,
     isInPiP: Boolean,
+    colors: PlayerColors,
+    playerRevision: Int,
+    hasStarted: Boolean,
     modifier: Modifier,
 ) {
     val context = LocalContext.current
-    val themeColor = if (MaterialTheme.colorScheme.surface.luminance() < 0.5f) ThemeColorDark else ThemeColor
+    val themeColor = colors.theme
     val activity = remember(context) { context.findActivity() }
     val supportsPip = remember(activity) { activity?.supportsPictureInPicture() == true }
     var isFullscreen by remember(data.url, data.type) { mutableStateOf(false) }
@@ -363,6 +433,9 @@ private fun VideoOverlayContent(
                 isFullscreen = true,
                 supportsPip = supportsPip,
                 themeColor = themeColor,
+                onThemeColor = colors.onTheme,
+                playerRevision = playerRevision,
+                hasStarted = hasStarted,
                 modifier = Modifier.fillMaxSize(),
                 onToggleFullscreen = { isFullscreen = false },
                 onControlsVisibilityChanged = { visible ->
@@ -385,6 +458,9 @@ private fun VideoOverlayContent(
         isFullscreen = false,
         supportsPip = supportsPip,
         themeColor = themeColor,
+        onThemeColor = colors.onTheme,
+        playerRevision = playerRevision,
+        hasStarted = hasStarted,
         modifier = modifier,
         onToggleFullscreen = { isFullscreen = true },
         onControlsVisibilityChanged = { visible ->
@@ -404,6 +480,9 @@ private fun VideoPlayerSurface(
     isFullscreen: Boolean,
     supportsPip: Boolean,
     themeColor: Color,
+    onThemeColor: Color,
+    playerRevision: Int,
+    hasStarted: Boolean,
     modifier: Modifier,
     onToggleFullscreen: () -> Unit,
     onControlsVisibilityChanged: (Boolean) -> Unit,
@@ -411,6 +490,7 @@ private fun VideoPlayerSurface(
 ) {
     var isTopOverlayVisible by remember(data.url, data.type, isFullscreen) { mutableStateOf(false) }
     var playerViewRef by remember(data.url, data.type, isFullscreen) { mutableStateOf<PlayerView?>(null) }
+    val posterBitmap = rememberPosterBitmap(data.poster)
 
     Card(
         modifier = modifier,
@@ -447,6 +527,9 @@ private fun VideoPlayerSurface(
                     }
                 },
                 update = { playerView ->
+                    // `playerRevision` changes when the shared player is (re)built, which can
+                    // happen after this PlayerView was created (element props arrive async).
+                    playerView.tag = playerRevision
                     playerView.player = MediaPlayerManager.getPlayer()
                     playerViewRef = playerView
                     MediaFrameCapture.registerPlayerView(playerView)
@@ -457,6 +540,17 @@ private fun VideoPlayerSurface(
                 },
                 modifier = Modifier.fillMaxSize(),
             )
+
+            if (!hasStarted && posterBitmap != null) {
+                Image(
+                    bitmap = posterBitmap,
+                    contentDescription = null,
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black),
+                )
+            }
 
             if (!isInPiP) {
                 androidx.compose.animation.AnimatedVisibility(
@@ -521,6 +615,7 @@ private fun VideoPlayerSurface(
                             PlaybackRateMenuButton(
                                 playbackSpeed = playbackSpeed,
                                 themeColor = themeColor,
+                                onThemeColor = onThemeColor,
                                 filled = false,
                             )
 
@@ -545,7 +640,7 @@ private fun VideoPlayerSurface(
 }
 
 @Composable
-private fun PlayPauseButton(isPlaying: Boolean, themeColor: Color) {
+private fun PlayPauseButton(isPlaying: Boolean, themeColor: Color, onThemeColor: Color) {
     Box(
         modifier = Modifier
             .size(38.dp)
@@ -567,7 +662,7 @@ private fun PlayPauseButton(isPlaying: Boolean, themeColor: Color) {
             name = if (isPlaying) "pause" else "play_arrow",
             contentDescription = if (isPlaying) "暫停" else "播放",
             size = 20.dp,
-            tint = Color.White,
+            tint = onThemeColor,
         )
     }
 }
@@ -646,10 +741,10 @@ private fun VideoFullscreenButton(
 }
 
 @Composable
-private fun PlaybackRateMenuButton(playbackSpeed: Float, themeColor: Color, filled: Boolean = true) {
+private fun PlaybackRateMenuButton(playbackSpeed: Float, themeColor: Color, onThemeColor: Color, filled: Boolean = true) {
     var isExpanded by remember { mutableStateOf(false) }
     val backgroundColor = if (filled) themeColor else Color.Black.copy(alpha = 0.35f)
-    val textColor = Color.White
+    val textColor = if (filled) onThemeColor else Color.White
 
     Box {
         Text(
@@ -689,6 +784,26 @@ private fun PlaybackRateMenuButton(playbackSpeed: Float, themeColor: Color, fill
             }
         }
     }
+}
+
+/** Decodes the poster off the main thread; null while loading or when it cannot be fetched. */
+@Composable
+private fun rememberPosterBitmap(url: String?): ImageBitmap? {
+    var bitmap by remember(url) { mutableStateOf<ImageBitmap?>(null) }
+
+    LaunchedEffect(url) {
+        bitmap = null
+
+        if (!url.isNullOrBlank()) {
+            bitmap = withContext(Dispatchers.IO) {
+                runCatching {
+                    java.net.URL(url).openStream().use { BitmapFactory.decodeStream(it) }?.asImageBitmap()
+                }.getOrNull()
+            }
+        }
+    }
+
+    return bitmap
 }
 
 private fun Context.findActivity(): Activity? {

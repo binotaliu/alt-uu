@@ -36,10 +36,15 @@ data class MediaPlayerData(
     val courseName: String? = null,
     val materialName: String? = null,
     val appearance: String? = null,
+    val poster: String? = null,
 )
 
 /**
- * Plugin-owned overlay state.
+ * LEGACY (WebView shell only): plugin-owned overlay state.
+ *
+ * Native screens do NOT use this: `<native:media-player>` (MediaPlayerRenderer) draws itself in
+ * the tree and calls the manager with `publishOverlay = false`. Remove it together with the
+ * shell patch when the WebView shell is dropped.
  *
  * NativePHP v4 removed `NativeUIState`, so the overlay no longer piggybacks on
  * the shell's UI state. [MediaPlayerFunctions] publishes here and

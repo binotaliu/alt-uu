@@ -3,18 +3,58 @@ import AVFoundation
 import AVKit
 
 /// SwiftUI view that displays a native media player (audio or video).
+///
+/// Two callers: the legacy WebView overlay host (`MediaPlayerOverlayHost`, plays on
+/// appear, accent from `AccentPalette`) and the `<native:media-player>` element
+/// (`AltUUMediaPlayerRenderer`: the element decides when to play, colours come
+/// from the mobile-ui theme and the appearance override is scoped to this view).
 struct NativeMediaPlayerView: View {
-    let data: MediaPlayerData
+    let url: String
+    let type: String
+    let materialName: String?
+    let courseName: String?
+    let appearance: String?
+    var poster: String?
+    var subtitleURL: String?
+    var playsOnAppear: Bool
+    var usesNativeTheme: Bool
 
     @Environment(\.scenePhase) private var scenePhase
     @State private var player: AVPlayer?
 
+    init(
+        url: String,
+        type: String,
+        materialName: String?,
+        courseName: String?,
+        appearance: String?,
+        poster: String? = nil,
+        subtitleURL: String? = nil,
+        playsOnAppear: Bool = true,
+        usesNativeTheme: Bool = false
+    ) {
+        self.url = url
+        self.type = type
+        self.materialName = materialName
+        self.courseName = courseName
+        self.appearance = appearance
+        self.poster = poster
+        self.subtitleURL = subtitleURL
+        self.playsOnAppear = playsOnAppear
+        self.usesNativeTheme = usesNativeTheme
+    }
+
+    /// Legacy overlay entry point.
+    init(data: MediaPlayerData) {
+        self.init(url: data.url, type: data.type, materialName: data.materialName, courseName: data.courseName, appearance: data.appearance)
+    }
+
     private var isAudio: Bool {
-        data.type.lowercased() == "audio"
+        type.lowercased() == "audio"
     }
 
     private var preferredColorScheme: ColorScheme? {
-        switch data.appearance?.lowercased() {
+        switch appearance?.lowercased() {
         case "light":
             return .light
         case "dark":
@@ -30,11 +70,13 @@ struct NativeMediaPlayerView: View {
                 if isAudio {
                     NativeAudioPlayerControls(
                         player: player,
-                        title: data.materialName,
-                        subtitle: data.courseName
+                        title: materialName,
+                        subtitle: courseName,
+                        usesNativeTheme: usesNativeTheme
                     )
                 } else {
                     NativeVideoPlayerContainer(player: player)
+                        .overlay(NativeVideoOverlays(player: player, poster: poster, subtitleURL: subtitleURL))
                         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                         .shadow(radius: 3)
                 }
@@ -45,10 +87,13 @@ struct NativeMediaPlayerView: View {
         .onAppear {
             syncPlayerFromManager()
         }
-        .onChange(of: data.url) { _, _ in
+        .onReceive(NotificationCenter.default.publisher(for: MediaPlayerManager.playerChangedNotification)) { _ in
             syncPlayerFromManager()
         }
-        .onChange(of: data.type) { _, _ in
+        .onChange(of: url) { _, _ in
+            syncPlayerFromManager()
+        }
+        .onChange(of: type) { _, _ in
             syncPlayerFromManager()
         }
         .onChange(of: scenePhase) { newPhase in
@@ -59,17 +104,113 @@ struct NativeMediaPlayerView: View {
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
             MediaPlayerManager.shared.startPictureInPictureIfNeeded()
         }
-        .preferredColorScheme(preferredColorScheme)
+        .modifier(AppearanceModifier(scheme: preferredColorScheme, scopedToView: usesNativeTheme))
     }
 
     private func syncPlayerFromManager() {
-        player = MediaPlayerManager.shared.getPlayer()
-        if player == nil {
-            DebugLogger.shared.log("[MediaPlayer] Native view missing shared player for \(data.type): \(data.url)")
+        let current = MediaPlayerManager.shared.getPlayer()
+
+        if current !== player {
+            player = current
+        }
+
+        if current == nil {
+            DebugLogger.shared.log("[MediaPlayer] Native view has no shared player yet for \(type): \(url)")
             return
         }
 
-        MediaPlayerManager.shared.play()
+        if playsOnAppear {
+            MediaPlayerManager.shared.play()
+        }
+    }
+}
+
+/// `.preferredColorScheme` styles the enclosing presentation, which is right for the
+/// full-window overlay but would flip the whole screen for an in-tree element, so the
+/// element only overrides the environment of its own subtree.
+private struct AppearanceModifier: ViewModifier {
+    let scheme: ColorScheme?
+    let scopedToView: Bool
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if scopedToView {
+            if let scheme {
+                content.environment(\.colorScheme, scheme)
+            } else {
+                content
+            }
+        } else {
+            content.preferredColorScheme(scheme)
+        }
+    }
+}
+
+/// Poster (until playback starts) and drawn WebVTT subtitles above the video.
+private struct NativeVideoOverlays: View {
+    let player: AVPlayer
+    let poster: String?
+    let subtitleURL: String?
+
+    @State private var cues: [SubtitleCue] = []
+    @State private var activeText: String?
+    @State private var hasStarted = false
+
+    private let ticker = Timer.publish(every: 0.25, on: .main, in: .common).autoconnect()
+
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            if !hasStarted, let poster, let posterURL = URL(string: poster) {
+                AsyncImage(url: posterURL) { image in
+                    image.resizable().scaledToFit()
+                } placeholder: {
+                    Color.clear
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color.black)
+                .allowsHitTesting(false)
+            }
+
+            if let activeText {
+                Text(activeText)
+                    .font(.callout.weight(.semibold))
+                    .foregroundColor(.white)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(Color.black.opacity(0.6))
+                    .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                    .padding(.horizontal, 12)
+                    .padding(.bottom, 48)
+                    .allowsHitTesting(false)
+            }
+        }
+        .task(id: subtitleURL) {
+            guard let subtitleURL, let url = URL(string: subtitleURL) else {
+                cues = []
+                activeText = nil
+                return
+            }
+
+            cues = await WebVTTParser.load(from: url)
+        }
+        .onReceive(ticker) { _ in
+            let seconds = player.currentTime().seconds
+
+            if !hasStarted, player.timeControlStatus == .playing || (seconds.isFinite && seconds > 0.1) {
+                hasStarted = true
+            }
+
+            guard !cues.isEmpty, seconds.isFinite else {
+                return
+            }
+
+            let text = WebVTTParser.cue(at: seconds, in: cues)?.text
+
+            if text != activeText {
+                activeText = text
+            }
+        }
     }
 }
 
@@ -159,6 +300,7 @@ private struct NativeAudioPlayerControls: View {
     let player: AVPlayer
     let title: String?
     let subtitle: String?
+    var usesNativeTheme: Bool = false
 
     @State private var isPlaying = false
     @State private var currentTime: Double = 0
@@ -170,9 +312,24 @@ private struct NativeAudioPlayerControls: View {
 
     @Environment(\.colorScheme) private var colorScheme
     @ObservedObject private var accentPalette = AccentPalette.shared
+    @ObservedObject private var nativeTheme = NativeUITheme.shared
 
+    /// Element: the pushed mobile-ui `accent` token (follows `NativeAccent::apply`).
+    /// Legacy overlay: the AppAccent.SetColor palette.
     private var themeColor: Color {
-        AccentPalette.color(for: accentPalette.accentId, isDark: colorScheme == .dark)
+        if usesNativeTheme {
+            return nativeTheme.resolve(for: colorScheme).accent
+        }
+
+        return AccentPalette.color(for: accentPalette.accentId, isDark: colorScheme == .dark)
+    }
+
+    private var onThemeColor: Color {
+        usesNativeTheme ? nativeTheme.resolve(for: colorScheme).onAccent : (colorScheme == .dark ? .black : .white)
+    }
+
+    private var cardBackground: Color {
+        usesNativeTheme ? nativeTheme.resolve(for: colorScheme).surface : Color(.systemBackground)
     }
 
     private var subtitleColor: Color {
@@ -235,7 +392,7 @@ private struct NativeAudioPlayerControls: View {
                     Button(action: { uiState.showingRatePicker = true }) {
                         Text(formatRate(playbackRate))
                             .font(.caption2.weight(.semibold))
-                            .foregroundColor(colorScheme == .dark ? .black : .white)
+                            .foregroundColor(onThemeColor)
                             .padding(.vertical, 4)
                             .padding(.horizontal, 8)
                             .background(themeColor)
@@ -253,7 +410,7 @@ private struct NativeAudioPlayerControls: View {
 
                     AirPlayButton()
                         .frame(width: 28, height: 28)
-                        .background(Color(.systemBackground))
+                        .background(cardBackground)
                 }
             }
 
@@ -269,7 +426,7 @@ private struct NativeAudioPlayerControls: View {
                 Button(action: togglePlayback) {
                     Image(systemName: isPlaying ? "pause.fill" : "play.fill")
                         .font(.callout.weight(.semibold))
-                        .foregroundColor(.white)
+                        .foregroundColor(usesNativeTheme ? onThemeColor : .white)
                         .frame(width: 28, height: 28)
                         .background(themeColor)
                         .clipShape(Circle())
@@ -319,7 +476,7 @@ private struct NativeAudioPlayerControls: View {
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-        .background(Color(.systemBackground))
+        .background(cardBackground)
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
@@ -459,29 +616,13 @@ private struct AirPlayButton: UIViewRepresentable {
 #if DEBUG
 struct NativeMediaPlayerView_Previews: PreviewProvider {
     static var previews: some View {
-        NativeMediaPlayerView(data: MediaPlayerData(
-            url: "https://example.com/video.mp4",
-            type: "video",
-            frame: MediaPlayerFrame(x: 0, y: 0, width: 320, height: 180),
-            courseName: "Demo 課程",
-            materialName: "Demo 視頻",
-            appearance: "system",
-            sessionContext: nil
-        ))
-        .frame(width: 320, height: 180)
-        .previewLayout(.sizeThatFits)
+        NativeMediaPlayerView(url: "https://example.com/video.mp4", type: "video", materialName: "Demo 視頻", courseName: "Demo 課程", appearance: "system")
+            .frame(width: 320, height: 180)
+            .previewLayout(.sizeThatFits)
 
-        NativeMediaPlayerView(data: MediaPlayerData(
-            url: "https://example.com/audio.mp3",
-            type: "audio",
-            frame: MediaPlayerFrame(x: 0, y: 0, width: 320, height: 96),
-            courseName: "Demo 課程",
-            materialName: "Demo 音訊",
-            appearance: "dark",
-            sessionContext: nil
-        ))
-        .frame(width: 320, height: 96)
-        .previewLayout(.sizeThatFits)
+        NativeMediaPlayerView(url: "https://example.com/audio.mp3", type: "audio", materialName: "Demo 音訊", courseName: "Demo 課程", appearance: "dark", playsOnAppear: false, usesNativeTheme: true)
+            .frame(width: 320, height: 96)
+            .previewLayout(.sizeThatFits)
     }
 }
 #endif
