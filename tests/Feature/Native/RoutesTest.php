@@ -8,6 +8,7 @@ use App\NativeLayouts\GuestLayout;
 use App\NativeLayouts\MainTabsLayout;
 use App\NativeLayouts\StackLayout;
 use Illuminate\Support\Facades\Route;
+use Native\Mobile\Edge\NativeComponent;
 use Native\Mobile\Edge\NativeRouter;
 
 it('mounts every native route under the temporary /native prefix', function (): void {
@@ -65,4 +66,44 @@ it('resolves static segments before {param} siblings', function (): void {
 
     $resolved = NativeRouter::resolve('/native/login');
     expect($resolved['class'])->toBe(Login::class);
+});
+
+it('resolves every native route except the ones whose screens are still pending', function (): void {
+    $pending = [
+        '/native/courses/{cid}/discuss/{boardCid}/{bid}/{nid}',
+        '/native/courses/{cid}/{scoid}',
+    ];
+
+    $sampleParams = ['accountId' => '1', 'cid' => '10', 'boardCid' => '20', 'bid' => '30', 'nid' => '40', 'scoid' => '50'];
+
+    foreach (NativeRouter::registeredRoutes() as $pattern => $entry) {
+        if (in_array($pattern, $pending, true)) {
+            continue;
+        }
+
+        $uri = (string) preg_replace_callback(
+            '/\{(\w+)\}/',
+            fn (array $match): string => $sampleParams[$match[1]],
+            $pattern,
+        );
+
+        $resolved = NativeRouter::resolve($uri);
+
+        expect($resolved)->not->toBeNull("{$pattern} did not resolve")
+            ->and(class_exists($resolved['class']))->toBeTrue("{$pattern} class missing")
+            ->and(is_subclass_of($resolved['class'], NativeComponent::class))->toBeTrue()
+            ->and($resolved['layout'])->not->toBeNull();
+    }
+});
+
+it('only leaves the two documented routes without a screen class', function (): void {
+    $missing = collect(NativeRouter::registeredRoutes())
+        ->filter(fn (array $entry): bool => ! class_exists($entry['class'] ?? ''))
+        ->keys()
+        ->all();
+
+    expect($missing)->toEqualCanonicalizing([
+        '/native/courses/{cid}/discuss/{boardCid}/{bid}/{nid}',
+        '/native/courses/{cid}/{scoid}',
+    ]);
 });

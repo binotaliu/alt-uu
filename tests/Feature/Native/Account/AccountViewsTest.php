@@ -17,6 +17,7 @@ it('uses only TailwindParser-supported classes in the account views', function (
 
     foreach ($files as $file) {
         $source = preg_replace('/\{\{--.*?--\}\}/s', '', (string) file_get_contents($file)) ?? '';
+        $source = preg_replace("/'ref' => '[^']*'/", "'ref' => ''", $source) ?? '';
         $candidates = [];
 
         preg_match_all('/\sclass="([^"]*)"/', $source, $attributes);

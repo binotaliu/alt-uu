@@ -26,7 +26,9 @@ final class GuardedTestScreen extends NativeComponent
 
     public function render(): View
     {
-        return view('native.auth.login');
+        app('view')->addNamespace('native-fixtures', __DIR__.'/Fixtures/views');
+
+        return view('native-fixtures::guarded-screen');
     }
 }
 
