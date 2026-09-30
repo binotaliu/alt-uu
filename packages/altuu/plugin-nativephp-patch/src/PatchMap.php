@@ -18,23 +18,16 @@ final class PatchMap
                 [
                     'target' => 'NativePHP/ContentView.swift',
                     'upstream' => self::VENDOR_PATH.'/resources/xcode/NativePHP/ContentView.swift',
-                    'upstream_hash' => '4c325e9aeed290fbb080bb9ebc8f607d66b6a41ec48f959e38c384a8f6a33643',
+                    'upstream_hash' => '68742370d4321b085c457ab908dff17d22100f0004482443c1d976c224dad240',
                     'patched' => 'packages/altuu/plugin-nativephp-patch/resources/patches/ios/NativePHP/ContentView.swift',
-                    'patched_hash' => 'd9df51de9d177928b576dff6816f68cc6808a87e6918de3bd04ed529ff5cbd24',
-                ],
-                [
-                    'target' => 'NativePHP/NativeUI/NativeUIState.swift',
-                    'upstream' => self::VENDOR_PATH.'/resources/xcode/NativePHP/NativeUI/NativeUIState.swift',
-                    'upstream_hash' => '2eca86aed9555262b6fd220c26ca55b4ec46b6c5971bbc2dba0dc710ef3a167a',
-                    'patched' => 'packages/altuu/plugin-nativephp-patch/resources/patches/ios/NativePHP/NativeUI/NativeUIState.swift',
-                    'patched_hash' => '5ace535bd53ac3982a40dce447009ce51b8263a6f0d0dd7fdf3c3a1cb9f44dbc',
+                    'patched_hash' => '55012cffc5189471baacaa3644152b4503d4e6bc8f3f5744446a6a8235eb663d',
                 ],
                 [
                     'target' => 'NativePHP/PHPSchemeHandler.swift',
                     'upstream' => self::VENDOR_PATH.'/resources/xcode/NativePHP/PHPSchemeHandler.swift',
-                    'upstream_hash' => '89d4587949a5ca9b6eab122fad661b3b48c9b7b45889dd58040873fb3d2004d2',
+                    'upstream_hash' => '739c25032ac2ac1eba1609fd9a0138d96968dfa178e28edb9494804908c03060',
                     'patched' => 'packages/altuu/plugin-nativephp-patch/resources/patches/ios/NativePHP/PHPSchemeHandler.swift',
-                    'patched_hash' => 'dc4150de4ea5e015253ec92f430dc1d447ff258a79dc77d81efdaf67fca5b62e',
+                    'patched_hash' => 'fc176faad38e4222254565e46b2d1c2612c9b7f543bae232ce852717de25c431',
                 ],
             ],
             'android' => [
@@ -44,7 +37,7 @@ final class PatchMap
                     // AndroidManifest.xml 會先被修改過，所以這裡的 upstream_hash 會跟 vendor 裡的檔案不一樣，這裡的 upstream_hash 是修改過後的版本的 hash
                     'upstream_hash' => '*',
                     'patched' => 'packages/altuu/plugin-nativephp-patch/resources/patches/android/app/src/main/AndroidManifest.xml',
-                    'patched_hash' => '4acda9ac8881b49bb5f4f8eea970840694d5ecdc4612e111444f92ab574cdfe9',
+                    'patched_hash' => '145af1ea7886faef37062ee9e326483a8f54632432e1943ea6d6da670ac4cc8a',
                 ],
                 [
                     'target' => 'app/src/main/java/com/nativephp/mobile/ui/MainActivity.kt',
@@ -52,28 +45,14 @@ final class PatchMap
                     // 這裡的也是被修改 (REPLACE_STATUS_BAR_STYLE)
                     'upstream_hash' => '*',
                     'patched' => 'packages/altuu/plugin-nativephp-patch/resources/patches/android/app/src/main/java/com/nativephp/mobile/ui/MainActivity.kt',
-                    'patched_hash' => 'cef3d899cacf5c4fd2018ee0c4134807289e08503acfe49fc09fbc502762b18e',
-                ],
-                [
-                    'target' => 'app/src/main/java/com/nativephp/mobile/ui/NativeUIModels.kt',
-                    'upstream' => self::VENDOR_PATH.'/resources/androidstudio/app/src/main/java/com/nativephp/mobile/ui/NativeUIModels.kt',
-                    'upstream_hash' => '9dee0bb67eb0fa9b3fe926dd024813e6950208aa5155b5e22f84668cc73c9107',
-                    'patched' => 'packages/altuu/plugin-nativephp-patch/resources/patches/android/app/src/main/java/com/nativephp/mobile/ui/NativeUIModels.kt',
-                    'patched_hash' => '4f6af3023fa2ecad563b66246c5897c5d8a7f28b5f300973a2efafa0d912a6fb',
-                ],
-                [
-                    'target' => 'app/src/main/java/com/nativephp/mobile/ui/NativeUIState.kt',
-                    'upstream' => self::VENDOR_PATH.'/resources/androidstudio/app/src/main/java/com/nativephp/mobile/ui/NativeUIState.kt',
-                    'upstream_hash' => '261050d3ae71b44f3588d970c1068b68ace435b7886afc756b7deb0980da4c14',
-                    'patched' => 'packages/altuu/plugin-nativephp-patch/resources/patches/android/app/src/main/java/com/nativephp/mobile/ui/NativeUIState.kt',
-                    'patched_hash' => '0aadbf31176bb67fd24cf2ac9210dd2e58ff136d9e83c1e7894619dab1447f2c',
+                    'patched_hash' => '23416429be3764e344b1d6d1f3b3d1c0c1d1115dbeb5fc3a8e609bf39b835c21',
                 ],
                 [
                     'target' => 'app/src/main/java/com/nativephp/mobile/network/PHPWebViewClient.kt',
                     'upstream' => self::VENDOR_PATH.'/resources/androidstudio/app/src/main/java/com/nativephp/mobile/network/PHPWebViewClient.kt',
-                    'upstream_hash' => '86810698435695dc0be8e9b635c7b4dc64115541125afe1b011f2594455c51ae',
+                    'upstream_hash' => 'ccb315865cbc9606a7d6f514f44f62f1f606362eb0532bbf5da8d48df0d6a23c',
                     'patched' => 'packages/altuu/plugin-nativephp-patch/resources/patches/android/app/src/main/java/com/nativephp/mobile/network/PHPWebViewClient.kt',
-                    'patched_hash' => '7d541de21cdbb29a6da2ea0fd4a418ff4421814773eb7253d32c2043d2bef147',
+                    'patched_hash' => 'c6812e362e132d6934f010b1743718b657ee25a24679d28f5b412c4ddb119316',
                 ],
                 [
                     // Fixes a production SIGSEGV inside ts_resource_ex (Play Console:
@@ -92,9 +71,9 @@ final class PatchMap
                     // "altuu patch" comments in the patched file for the full writeup.
                     'target' => 'app/src/main/cpp/php_bridge.c',
                     'upstream' => self::VENDOR_PATH.'/resources/androidstudio/app/src/main/cpp/php_bridge.c',
-                    'upstream_hash' => '812c19a1e61a8160d62f5acf5d078b8447a63ae7022feec31327b6e41424cc0d',
+                    'upstream_hash' => 'a763c486ae55a2d780f0d0c98e6f21a717656d211a98914023e094f05faa26d3',
                     'patched' => 'packages/altuu/plugin-nativephp-patch/resources/patches/android/app/src/main/cpp/php_bridge.c',
-                    'patched_hash' => 'ba7ee02e745fbefb151054ad368731b698b95a4f0c5327b345d4f3c15503cf3e',
+                    'patched_hash' => '549e7ec6d24feba8e68d7d21d8668f82c8fb1cec49cb4ff1ff95d096a1dae6c5',
                 ],
                 [
                     // Upstream pins kotlin=2.0.0 in this catalog but hardcodes
@@ -104,9 +83,9 @@ final class PatchMap
                     // read it, causing "Unresolved reference" build failures. Bump kotlin to match.
                     'target' => 'gradle/libs.versions.toml',
                     'upstream' => self::VENDOR_PATH.'/resources/androidstudio/gradle/libs.versions.toml',
-                    'upstream_hash' => '856eb966c6b265506068998fbcc3958f9b33f1ec8002f50e9ec786f5f4dd068f',
+                    'upstream_hash' => '421ece4fdc93e3b1d5e4641d2d80117fa9bdf8972a155e9032aaafbb8b1edc80',
                     'patched' => 'packages/altuu/plugin-nativephp-patch/resources/patches/android/gradle/libs.versions.toml',
-                    'patched_hash' => '09a03ca7795bbe86e07f7a6415fa45ad9e201b5f4d453ac5897e5492129d4f0e',
+                    'patched_hash' => 'da05dcfbe4bbdcad25d846a99a323827d3a0ea8a16bbfd5f21576222b23dc1ff',
                 ],
             ],
         ];

@@ -64,7 +64,6 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import com.nativephp.mobile.ui.MaterialIcon
-import com.nativephp.mobile.ui.MediaPlayerData
 import kotlinx.coroutines.delay
 import java.util.Locale
 

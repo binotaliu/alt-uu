@@ -48,9 +48,9 @@ enum MediaPlayerFunctions {
             let sessionContext = MediaPlayerFunctions.parseSessionContext(from: parameters)
             let force = (parameters["force"] as? Bool) ?? false
 
-            // Get NativeUIState and update it
+            // Publish the state the overlay host renders
             DispatchQueue.main.async {
-                NativeUIState.shared.updateMediaPlayer(url: url, type: type, frame: frame, courseName: courseName, materialName: materialName, appearance: appearance, sessionContext: sessionContext)
+                MediaPlayerState.shared.updateMediaPlayer(url: url, type: type, frame: frame, courseName: courseName, materialName: materialName, appearance: appearance, sessionContext: sessionContext)
                 MediaPlayerManager.shared.setPlayer(url: url, type: type, frame: frame, courseName: courseName, materialName: materialName, appearance: appearance, sessionContext: sessionContext, force: force)
             }
 
@@ -296,7 +296,7 @@ class MediaPlayerManager: NSObject {
             }
 
             DispatchQueue.main.async {
-                NativeUIState.shared.updateMediaPlayer(url: url, type: type, frame: frame, courseName: courseName, materialName: materialName, appearance: appearance, sessionContext: sessionContext)
+                MediaPlayerState.shared.updateMediaPlayer(url: url, type: type, frame: frame, courseName: courseName, materialName: materialName, appearance: appearance, sessionContext: sessionContext)
             }
 
             updateNowPlayingInfo()
@@ -347,7 +347,7 @@ class MediaPlayerManager: NSObject {
 
         // Store player and frame info for UI to use
         DispatchQueue.main.async {
-            NativeUIState.shared.updateMediaPlayer(url: url, type: type, frame: frame, courseName: courseName, materialName: materialName, appearance: appearance, sessionContext: sessionContext)
+            MediaPlayerState.shared.updateMediaPlayer(url: url, type: type, frame: frame, courseName: courseName, materialName: materialName, appearance: appearance, sessionContext: sessionContext)
         }
 
         DebugLogger.shared.log("[MediaPlayer] Player set for \(type): \(url) (appearance: \(appearance ?? "system"), route: \(sessionContext?.routePath ?? "nil"))")
@@ -403,7 +403,7 @@ class MediaPlayerManager: NSObject {
         clearNowPlayingSession()
 
         DispatchQueue.main.async {
-            NativeUIState.shared.clearMediaPlayer()
+            MediaPlayerState.shared.clearMediaPlayer()
         }
         DebugLogger.shared.log("[MediaPlayer] Stopped")
     }

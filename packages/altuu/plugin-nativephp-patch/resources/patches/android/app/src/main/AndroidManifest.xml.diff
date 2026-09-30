@@ -1,6 +1,6 @@
---- /Users/binota/Developer/alt-uu-internal/vendor/nativephp/mobile/resources/androidstudio/app/src/main/AndroidManifest.xml
-+++ /Users/binota/Developer/alt-uu-internal/packages/altuu/plugin-nativephp-patch/resources/patches/android/app/src/main/AndroidManifest.xml
-@@ -11,7 +11,7 @@
+--- /Users/binota/Developer/alt-uu/vendor/nativephp/mobile/resources/androidstudio/app/src/main/AndroidManifest.xml
++++ /Users/binota/Developer/alt-uu/packages/altuu/plugin-nativephp-patch/resources/patches/android/app/src/main/AndroidManifest.xml
+@@ -15,7 +15,7 @@
          android:fullBackupContent="@xml/backup_rules"
          android:icon="@mipmap/ic_launcher"
          android:roundIcon="@mipmap/ic_launcher_round"
@@ -9,7 +9,7 @@
          android:networkSecurityConfig="@xml/network_security_config"
          android:supportsRtl="true"
          android:theme="@style/Theme.AndroidPHP"
-@@ -30,10 +30,12 @@
+@@ -34,10 +34,12 @@
          </provider>
          <activity
          android:name=".ui.MainActivity"

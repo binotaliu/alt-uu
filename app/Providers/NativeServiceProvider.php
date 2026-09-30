@@ -15,7 +15,6 @@ use Native\Mobile\Facades\System;
 use Native\Mobile\Providers\BrowserServiceProvider;
 use Native\Mobile\Providers\DeviceServiceProvider;
 use Native\Mobile\Providers\NetworkServiceProvider;
-use Native\Mobile\Providers\SystemServiceProvider;
 
 final class NativeServiceProvider extends ServiceProvider
 {
@@ -54,7 +53,6 @@ final class NativeServiceProvider extends ServiceProvider
     public function plugins(): array
     {
         return [
-            SystemServiceProvider::class,
             AttachmentBridgeServiceProvider::class,
             NativePHPPatchServiceProvider::class,
             BrowserServiceProvider::class,

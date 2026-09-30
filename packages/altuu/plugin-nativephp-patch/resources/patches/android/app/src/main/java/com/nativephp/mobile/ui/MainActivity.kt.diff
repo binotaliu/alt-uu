@@ -1,20 +1,20 @@
 --- /Users/binota/Developer/alt-uu/vendor/nativephp/mobile/resources/androidstudio/app/src/main/java/com/nativephp/mobile/ui/MainActivity.kt
 +++ /Users/binota/Developer/alt-uu/packages/altuu/plugin-nativephp-patch/resources/patches/android/app/src/main/java/com/nativephp/mobile/ui/MainActivity.kt
-@@ -46,6 +46,8 @@
- import androidx.compose.ui.res.painterResource
+@@ -54,6 +54,7 @@
  import androidx.compose.ui.unit.dp
  import androidx.compose.ui.unit.sp
-+import androidx.compose.ui.zIndex
-+import com.altuu.plugins.media_player.NativeMediaPlayerOverlay
  import androidx.compose.ui.viewinterop.AndroidView
++import com.altuu.plugins.media_player.MediaPlayerOverlayHost
  import androidx.core.view.WindowCompat
  import androidx.core.view.WindowInsetsControllerCompat
-@@ -66,9 +68,11 @@
-     private var shouldStopWatcher = false
-     private var pendingInsets: Insets? = null
-     private var showSplash by mutableStateOf(true)
-+    private var isInPiP by mutableStateOf(false)
+ import androidx.core.view.ViewCompat
+@@ -109,8 +110,12 @@
+     private var sensorManager: SensorManager? = null
+     private var shakeDetector: ShakeDetector? = null
  
++    // [media-player-android-pip-patch]
++    private var isInPiP by mutableStateOf(false)
++
      // Status bar style configuration - replaced during build
 -    private val statusBarStyle = "REPLACE_STATUS_BAR_STYLE"
 +    private val statusBarStyle = "auto"
@@ -22,51 +22,53 @@
  
      companion object {
          // Static instance holder for accessing MainActivity from other activities
-@@ -158,11 +162,18 @@
-             injectJavaScript(webView)
-         }
+@@ -275,11 +280,18 @@
+                 return@addCallback
+             }
  
-+        // [media-player-android-back-press-patch]
-         onBackPressedDispatcher.addCallback(this) {
--            if (webView.canGoBack()) {
--                webView.goBack()
+-            val web = webRenderer?.webView
+-            if (web?.canGoBack() == true) {
+-                web.goBack()
 -            } else {
 -                finish()
++            // [media-player-android-back-press-patch]
 +            dispatchBackPressedEventToWebView { isHandledByWebView ->
 +                if (isHandledByWebView) {
 +                    return@dispatchBackPressedEventToWebView
 +                }
 +
-+                if (webView.canGoBack()) {
-+                    webView.goBack()
++                val web = webRenderer?.webView
++                if (web?.canGoBack() == true) {
++                    web.goBack()
 +                } else {
 +                    finish()
 +                }
              }
          }
      }
-@@ -198,7 +209,7 @@
+@@ -485,7 +497,7 @@
          window.statusBarColor = android.graphics.Color.TRANSPARENT
          window.navigationBarColor = android.graphics.Color.TRANSPARENT
  
 -        when (statusBarStyle) {
 +        when (runtimeStatusBarStyle) {
              "auto" -> {
-                 // Auto-detect from system theme
                  val isSystemDarkMode = (resources.configuration.uiMode and
-@@ -227,7 +238,7 @@
+                     Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+@@ -508,12 +520,29 @@
                  Log.d("StatusBar", "🎨 System bars style: dark (dark icons with transparent background)")
              }
              else -> {
 -                Log.w("StatusBar", "⚠️ Unknown status bar style: $statusBarStyle, defaulting to auto")
 +                Log.w("StatusBar", "⚠️ Unknown status bar style: $runtimeStatusBarStyle, defaulting to auto")
-                 // Default to auto
                  val isSystemDarkMode = (resources.configuration.uiMode and
                      Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
-@@ -237,6 +248,23 @@
-         }
-     }
- 
+                 windowInsetsController.isAppearanceLightStatusBars = !isSystemDarkMode
+                 windowInsetsController.isAppearanceLightNavigationBars = !isSystemDarkMode
+             }
++        }
++    }
++
 +    private fun setStatusBarStyleFromWeb(rawStyle: String?) {
 +        val nextStyle = when (rawStyle?.trim()?.lowercase()) {
 +            "light" -> "light"
@@ -81,14 +83,11 @@
 +        runtimeStatusBarStyle = nextStyle
 +        runOnUiThread {
 +            configureStatusBar()
-+        }
-+    }
-+
-     private fun initializeEnvironmentAsync(onReady: () -> Unit) {
-         Thread {
-             Log.d("LaravelInit", "Starting async Laravel extraction...")
-@@ -305,6 +333,11 @@
-         NativePHPLifecycle.post(NativePHPLifecycle.Events.ON_PAUSE)
+         }
+     }
+ 
+@@ -599,6 +628,11 @@
+         registerShakeDetector()
      }
  
 +    override fun onPictureInPictureModeChanged(isInPictureInPictureMode: Boolean, newConfig: Configuration) {
@@ -96,96 +95,26 @@
 +        isInPiP = isInPictureInPictureMode
 +    }
 +
-     private fun handleDeepLinkIntent(intent: Intent?) {
-         // Check for notification URL extra (from local notification taps or foreground push)
-         val notificationUrl = intent?.getStringExtra("notification_url")
-@@ -353,12 +386,12 @@
-             Log.d("OAuth", "🔐 OAuth callback host: ${uri.host}")
-             Log.d("OAuth", "🔐 OAuth callback path: ${uri.path}")
-             Log.d("OAuth", "🔐 OAuth callback query: ${uri.query}")
--            
-+
-             // Check for common OAuth parameters
-             val code = uri.getQueryParameter("code")
-             val state = uri.getQueryParameter("state")
-             val error = uri.getQueryParameter("error")
--            
-+
-             if (code != null) {
-                 Log.d("OAuth", "✅ OAuth authorization code received: ${code.take(10)}...")
+     override fun onPause() {
+         super.onPause()
+         NativePHPLifecycle.post(NativePHPLifecycle.Events.ON_PAUSE)
+@@ -1445,9 +1479,44 @@
+                             }
+                         }
              }
-@@ -509,17 +542,10 @@
-             val reloadFile = File("${appStorageDir.absolutePath}/laravel/storage/framework/reload_signal.json")
-             var lastModified: Long = 0
- 
--            Log.d("HotReload", "Watcher started, persistent=${phpBridge.isPersistentMode()}")
--
-             while (!shouldStopWatcher && !Thread.currentThread().isInterrupted) {
-                 try {
-                     if (reloadFile.exists() && reloadFile.lastModified() > lastModified) {
-                         lastModified = reloadFile.lastModified()
--
--                        // Reboot the persistent runtime so it picks up file changes
--                        if (phpBridge.isPersistentMode()) {
--                            phpBridge.rebootPersistentRuntime()
--                        }
- 
-                         runOnUiThread {
-                             webView.stopLoading()
-@@ -898,16 +924,81 @@
-                 }
-             )
- 
++
 +            // [media-player-android-main-screen-patch]
-+            MediaPlayerOverlayLayer()
-+
-             // Splash overlay with fade animation (full screen, no insets)
-             AnimatedVisibility(
-                 visible = showSplash,
-                 exit = fadeOut(animationSpec = tween(300))
-             ) {
-                 SplashScreen()
-+            }
-+        }
-+    }
-+
-+    @Composable
-+    private fun MediaPlayerOverlayLayer() {
-+        val mediaPlayerData by NativeUIState.mediaPlayerData
-+
-+        mediaPlayerData?.let { data ->
-+            // [media-player-android-pip-patch]
-+            if (isInPiP) {
-+                Box(
-+                    modifier = Modifier
-+                        .fillMaxSize()
-+                        .background(Color.Black)
-+                        .zIndex(20f),
-+                ) {
-+                    NativeMediaPlayerOverlay(
-+                        data = data,
-+                        isInPiP = true,
-+                        modifier = Modifier.fillMaxSize(),
-+                    )
-+                }
-+            } else {
-+                NativeMediaPlayerOverlay(
-+                    data = data,
-+                    modifier = Modifier
-+                        .offset(x = data.frame.x.dp, y = data.frame.y.dp)
-+                        .size(width = data.frame.width.dp, height = data.frame.height.dp)
-+                        .zIndex(20f),
-+                )
-             }
++            MediaPlayerOverlayHost(isInPiP = isInPiP)
          }
      }
- 
++
 +    private fun dispatchBackPressedEventToWebView(onResult: (Boolean) -> Unit) {
-+        if (!::webView.isInitialized) {
++        val web = webRenderer?.webView
++        if (web == null) {
 +            onResult(false)
 +            return
 +        }
-+
+ 
 +        val backPressScript = """
 +            (() => {
 +                try {
@@ -203,8 +132,8 @@
 +            })();
 +        """.trimIndent()
 +
-+        webView.post {
-+            webView.evaluateJavascript(backPressScript) { result ->
++        web.post {
++            web.evaluateJavascript(backPressScript) { result ->
 +                val normalized = result?.trim()?.trim('"')
 +                onResult(normalized == "handled")
 +            }
@@ -214,9 +143,9 @@
      /**
       * Splash screen composable - shows custom image or fallback text
       */
-@@ -1045,6 +1136,11 @@
-                 }
-             }
+@@ -1547,6 +1616,11 @@
+             // calling window.AndroidBridge.openDrawer() don't throw.
+             Log.w("AndroidBridge", "openDrawer() is no longer supported — the WebView-mode side drawer was removed")
          }
 +
 +        @android.webkit.JavascriptInterface
@@ -225,6 +154,4 @@
 +        }
      }
  
--}
-\ No newline at end of file
-+}
+ }

@@ -16,9 +16,6 @@ import androidx.media3.exoplayer.ExoPlayer
 import com.nativephp.mobile.bridge.BridgeError
 import com.nativephp.mobile.bridge.BridgeFunction
 import com.nativephp.mobile.bridge.BridgeResponse
-import com.nativephp.mobile.ui.MediaPlayerData
-import com.nativephp.mobile.ui.MediaPlayerFrame
-import com.nativephp.mobile.ui.NativeUIState
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -119,7 +116,7 @@ object MediaPlayerManager {
             currentMaterialName = materialName
             currentAppearance = appearance
             currentSessionContext = sessionContext
-            syncNativeUIState()
+            syncMediaPlayerState()
             updateMediaSessionMetadata()
             return
         }
@@ -160,7 +157,7 @@ object MediaPlayerManager {
                             applyPlaybackSpeed(playbackSpeed)
                             ensureMediaSession(activity)
                             updateMediaSessionMetadata()
-                            syncNativeUIState()
+                            syncMediaPlayerState()
                             return
                         }
 
@@ -190,7 +187,7 @@ object MediaPlayerManager {
 
         player = exoPlayer
         currentUrl = url
-        syncNativeUIState()
+        syncMediaPlayerState()
     }
 
     fun play() {
@@ -343,15 +340,15 @@ object MediaPlayerManager {
         mediaSession?.release()
         mediaSession = null
 
-        NativeUIState.clearMediaPlayer()
+        MediaPlayerState.clearMediaPlayer()
     }
 
-    private fun syncNativeUIState() {
+    private fun syncMediaPlayerState() {
         val url = currentUrl ?: return
 
-        android.util.Log.d("MediaPlayer", "syncNativeUIState: url=$url type=$currentType frame=(${currentFrame.x},${currentFrame.y},${currentFrame.width}x${currentFrame.height}) courseName=$currentCourseName materialName=$currentMaterialName")
+        android.util.Log.d("MediaPlayer", "syncMediaPlayerState: url=$url type=$currentType frame=(${currentFrame.x},${currentFrame.y},${currentFrame.width}x${currentFrame.height}) courseName=$currentCourseName materialName=$currentMaterialName")
 
-        NativeUIState.updateMediaPlayer(
+        MediaPlayerState.updateMediaPlayer(
             MediaPlayerData(
                 url = url,
                 type = currentType,

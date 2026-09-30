@@ -1,5 +1,5 @@
---- /Users/binota/Developer/alt-uu-internal/vendor/nativephp/mobile/resources/androidstudio/gradle/libs.versions.toml
-+++ /Users/binota/Developer/alt-uu-internal/packages/altuu/plugin-nativephp-patch/resources/patches/android/gradle/libs.versions.toml
+--- /Users/binota/Developer/alt-uu/vendor/nativephp/mobile/resources/androidstudio/gradle/libs.versions.toml
++++ /Users/binota/Developer/alt-uu/packages/altuu/plugin-nativephp-patch/resources/patches/android/gradle/libs.versions.toml
 @@ -1,6 +1,6 @@
  [versions]
  agp = "8.13.2"

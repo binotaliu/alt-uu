@@ -1,6 +1,6 @@
---- /Users/binota/Developer/alt-uu-internal/vendor/nativephp/mobile/resources/xcode/NativePHP/PHPSchemeHandler.swift
-+++ /Users/binota/Developer/alt-uu-internal/packages/altuu/plugin-nativephp-patch/resources/patches/ios/NativePHP/PHPSchemeHandler.swift
-@@ -188,6 +188,7 @@
+--- /Users/binota/Developer/alt-uu/vendor/nativephp/mobile/resources/xcode/NativePHP/PHPSchemeHandler.swift
++++ /Users/binota/Developer/alt-uu/packages/altuu/plugin-nativephp-patch/resources/patches/ios/NativePHP/PHPSchemeHandler.swift
+@@ -205,6 +205,7 @@
                      }
                  }
  
@@ -8,7 +8,7 @@
                  WebView.dataStore.httpCookieStore.getAllCookies { cookies in
                      guard self.isTaskActive(schemeTask) else { return }
  
-@@ -208,6 +209,9 @@
+@@ -225,6 +226,9 @@
  
                      request.headers["Cookie"] = cookieHeader
                      request.headers["X-XSRF-TOKEN"] = csrfToken
@@ -18,7 +18,7 @@
  
                      self.forwardToPHP(requestData: request, schemeTask: schemeTask, redirectCount: 0)
                  }
-@@ -225,6 +229,7 @@
+@@ -242,6 +246,7 @@
      func stopLoading(for schemeTask: WKURLSchemeTask) {
          // Cancel any ongoing operations for this task
          print("Canceling scheme task: \(schemeTask)")
@@ -26,23 +26,15 @@
      }
  
      private func isTaskActive(_ schemeTask: WKURLSchemeTask) -> Bool {
-@@ -461,6 +466,7 @@
+@@ -532,6 +537,7 @@
      }
  
      private func forwardToPHP(requestData: RequestData, schemeTask: WKURLSchemeTask, redirectCount: Int = 0) {
 +        print("PHPSchemeHandler: Handler -> PHP request \(requestData.method) \(requestData.uri) headers: \(requestData.headers)")
          getResponse(request: requestData) { result in
-             guard self.isTaskActive(schemeTask) else { return }
- 
-@@ -535,6 +541,7 @@
-                         headers[headerComponents[0].lowercased()] = headerComponents[1]
-                     }
-                 }
-+                print("PHPSchemeHandler: PHP -> Handler parsed headers: \(headers)")
- 
-                 // Legacy X-Native-UI header support (now using Edge.Set bridge function instead)
-                 // Note: This is kept for backward compatibility but the primary method is now
-@@ -613,8 +620,40 @@
+             guard self.isTaskActive(schemeTask) else {
+                 // WebKit cancels in-flight scheme tasks when the app
+@@ -668,8 +674,40 @@
                      return
                  }
  
@@ -60,7 +52,7 @@
 +                }
 +
                  print("Forwarding response to WebView")
- 
++
 +                // [binary-response-patch]
 +                // The PHP→Swift bridge transports the response as a UTF-8 String, so binary
 +                // payloads (images, audio, etc.) are base64-encoded on the PHP side and tagged
@@ -74,7 +66,7 @@
 +                } else {
 +                    finalBodyData = bodyString.data(using: .utf8) ?? Data()
 +                }
-+
+ 
 +                // Ensure Content-Length matches the actual body bytes in accelerated and
 +                // streaming contexts (especially for media playback). This is critical for
 +                // binary responses where body is decoded separately from the original text.
@@ -83,7 +75,7 @@
                  guard let httpResponse = HTTPURLResponse(url: (URL(string: requestData.uri) ?? URL(string: "/"))!,
                                                          statusCode: statusCode,
                                                          httpVersion: "HTTP/1.1",
-@@ -628,16 +667,11 @@
+@@ -683,16 +721,11 @@
  
                  // Send the response to the task
                  if self.isTaskActive(schemeTask) {
@@ -103,7 +95,7 @@
  
                      // Indicate that the task has finished
                      schemeTask.didFinish()
-@@ -679,9 +713,10 @@
+@@ -781,9 +814,10 @@
  
              // Extract cookie headers
              let components = response.components(separatedBy: "\r\n\r\n")
@@ -116,15 +108,10 @@
  
              let setCookieHeaders = headersList.filter { $0.hasPrefix("Set-Cookie:") || $0.hasPrefix("set-cookie:") }
  
-@@ -710,9 +745,158 @@
-                     let encodingError = self.error(code: 500, description: "Failed to encode PHP response")
-                     completion(.failure(encodingError))
-                 }
-+            }
-+        }
-+    }
-+}
-+
+@@ -919,6 +953,155 @@
+     }
+ }
+ 
 +// MARK: - [native-fetch-patch]
 +
 +/// Fetches an upstream resource on PHP's behalf and streams it into a WKURLSchemeTask.
@@ -190,9 +177,9 @@
 +            if isActive() {
 +                schemeTask.didFailWithError(NSError(domain: "NativeFetchStreamer", code: 500, userInfo: [NSLocalizedDescriptionKey: "Invalid native fetch handoff"]))
 +                onComplete()
-             }
++            }
 +            return
-         }
++        }
 +
 +        var request = URLRequest(url: url)
 +        request.httpMethod = "GET"
@@ -208,7 +195,7 @@
 +        dataTasks[ObjectIdentifier(schemeTask)] = dataTask
 +        print("NativeFetchStreamer: GET \(url.absoluteString) range: \(request.value(forHTTPHeaderField: "Range") ?? "-")")
 +        dataTask.resume()
-     }
++    }
 +
 +    /// Called from `webView(_:stop:)` (main queue) when WebKit no longer wants the data.
 +    func cancel(_ schemeTask: WKURLSchemeTask) {
@@ -272,6 +259,8 @@
 +        }
 +        entry.onComplete()
 +    }
- }
- 
++}
++
  struct RequestData {
+     var method: String
+     var uri: String
