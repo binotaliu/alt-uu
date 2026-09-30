@@ -18,7 +18,7 @@ final class MaterialSourceInspectionController
         InspectMaterialSource $inspect,
         SyncCurrentCourse $syncCourse,
     ): MaterialSourceInspectionViewModel {
-        $syncCourse($request, $cid);
+        $syncCourse($cid);
 
         $session = $request->hunguSession();
         $baseHost = parse_url((string) ($session['base_url'] ?? ''), PHP_URL_HOST);

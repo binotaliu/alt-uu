@@ -6,7 +6,6 @@ namespace AltUU\Domains\Course\Actions;
 
 use AltUU\Domains\Course\ViewModels\CourseLearningTimeItemViewModel;
 use App\Services\UUCourseClient;
-use Illuminate\Http\Request;
 use Spatie\LaravelData\DataCollection;
 use Symfony\Component\DomCrawler\Crawler;
 
@@ -20,9 +19,9 @@ final readonly class GetCourseLearningTimeItems
     /**
      * @return DataCollection<CourseLearningTimeItemViewModel>
      */
-    public function __invoke(Request $request, string $cid): DataCollection
+    public function __invoke(string $cid): DataCollection
     {
-        $pathData = ($this->getCoursePathInfo)($request, $cid);
+        $pathData = ($this->getCoursePathInfo)($cid);
         $learningTimePage = $this->courseClient->fetchLearningTimePage($cid);
         $status = (int) ($learningTimePage['status'] ?? 500);
 

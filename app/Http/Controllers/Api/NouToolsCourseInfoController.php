@@ -7,7 +7,6 @@ namespace App\Http\Controllers\Api;
 use AltUU\Domains\AppPreference\Actions\GetNouToolsIntegrationEnabled;
 use AltUU\Domains\Course\Actions\GetNouToolsCourseData;
 use AltUU\Domains\Course\Actions\ListCourses;
-use Illuminate\Http\Request;
 
 final class NouToolsCourseInfoController
 {
@@ -15,7 +14,6 @@ final class NouToolsCourseInfoController
      * @return array{course: array<string, mixed>|null}
      */
     public function __invoke(
-        Request $request,
         string $cid,
         GetNouToolsIntegrationEnabled $getEnabled,
         ListCourses $listCourses,
@@ -25,7 +23,7 @@ final class NouToolsCourseInfoController
             return ['course' => null];
         }
 
-        $courseData = $getNouToolsCourseData($listCourses($request));
+        $courseData = $getNouToolsCourseData($listCourses());
         $current = collect($courseData)->first(static fn (array $item) => ($item['courseId'] ?? null) === $cid);
 
         if (! is_array($current) || ! isset($current['detail']) || ! is_array($current['detail'])) {

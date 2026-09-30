@@ -8,19 +8,17 @@ use AltUU\Domains\Course\Actions\ListCourses;
 use AltUU\Domains\Course\ViewModels\CourseSchoolPortalInfoViewModel;
 use AltUU\Domains\SchoolPortal\Actions\GetCourseClassSessionInfo;
 use AltUU\Domains\SchoolPortal\Actions\GetCourseExamInfo;
-use Illuminate\Http\Request;
 use Throwable;
 
 final class CourseSchoolPortalInfoController
 {
     public function __invoke(
-        Request $request,
         string $cid,
         ListCourses $listCourses,
         GetCourseClassSessionInfo $getClassSessionInfo,
         GetCourseExamInfo $getExamInfo,
     ): CourseSchoolPortalInfoViewModel {
-        $course = collect($listCourses($request)->items())
+        $course = collect($listCourses()->items())
             ->first(static fn (mixed $item): bool => $item->courseId === $cid);
 
         if ($course === null) {
@@ -28,13 +26,13 @@ final class CourseSchoolPortalInfoController
         }
 
         try {
-            $classSessionInfo = $getClassSessionInfo($request, $course);
+            $classSessionInfo = $getClassSessionInfo($course);
         } catch (Throwable) {
             $classSessionInfo = null;
         }
 
         try {
-            $examInfo = $getExamInfo($request, $course);
+            $examInfo = $getExamInfo($course);
         } catch (Throwable) {
             $examInfo = null;
         }

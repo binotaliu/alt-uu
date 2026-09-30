@@ -36,7 +36,7 @@ final class NouToolsLiveSessionsController
             $accountId = $accountManager->activeId();
             $account = $accountId !== null ? $accounts->firstWhere('id', $accountId) : null;
 
-            return $this->fetchSessionsForAccount($request, $listCourses, $getNouToolsCourseData, $account, $accountId);
+            return $this->fetchSessionsForAccount($listCourses, $getNouToolsCourseData, $account, $accountId);
         }
 
         $sessions = [];
@@ -49,7 +49,7 @@ final class NouToolsLiveSessionsController
             try {
                 $sessions = [
                     ...$sessions,
-                    ...$this->fetchSessionsForAccount($request, $listCourses, $getNouToolsCourseData, $account, $account->id),
+                    ...$this->fetchSessionsForAccount($listCourses, $getNouToolsCourseData, $account, $account->id),
                 ];
             } catch (Throwable $e) {
                 report($e);
@@ -63,13 +63,12 @@ final class NouToolsLiveSessionsController
      * @return array<int, array<string, mixed>>
      */
     private function fetchSessionsForAccount(
-        Request $request,
         ListCourses $listCourses,
         GetNouToolsCourseData $getNouToolsCourseData,
         ?Account $account,
         ?int $accountId,
     ): array {
-        $courseData = $getNouToolsCourseData($listCourses($request, $accountId));
+        $courseData = $getNouToolsCourseData($listCourses($accountId));
         $accountLabel = $this->resolveAccountLabel($account);
         $sessions = [];
 

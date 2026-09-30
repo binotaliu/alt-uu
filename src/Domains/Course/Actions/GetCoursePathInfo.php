@@ -7,7 +7,6 @@ namespace AltUU\Domains\Course\Actions;
 use AltUU\Domains\Course\ViewModels\CourseMaterialNodeViewModel;
 use AltUU\Domains\Course\ViewModels\CoursePathInfoViewModel;
 use App\Services\UUCourseClient;
-use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
 use Spatie\LaravelData\DataCollection;
@@ -25,7 +24,7 @@ final readonly class GetCoursePathInfo
     /**
      * @return array{pathInfo: CoursePathInfoViewModel, materialNodes: DataCollection<CourseMaterialNodeViewModel>}
      */
-    public function __invoke(Request $request, string $cid): array
+    public function __invoke(string $cid): array
     {
         $accountId = $this->courseClient->currentAccountId() ?? 0;
         $pathInfoCacheKey = self::COURSE_PATH_INFO_CACHE_PREFIX.$accountId.':'.$cid;

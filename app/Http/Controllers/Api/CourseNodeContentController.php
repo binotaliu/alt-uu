@@ -18,7 +18,7 @@ final class CourseNodeContentController
         GetCoursePathInfo $getPath,
         ParseMaterialContent $parse,
     ): ParsedMaterialContentViewModel {
-        $pathData = $getPath($request, $cid);
+        $pathData = $getPath($cid);
         $activeNode = collect($pathData['materialNodes']->items())
             ->first(fn ($node) => $node->identifier === $scoid);
 

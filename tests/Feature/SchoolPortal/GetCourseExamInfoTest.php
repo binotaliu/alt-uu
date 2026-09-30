@@ -3,7 +3,6 @@
 use AltUU\Domains\Course\ViewModels\CourseItemViewModel;
 use AltUU\Domains\SchoolPortal\Actions\GetCourseExamInfo;
 use App\Services\SchoolPortalSessionStore;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Mockery as MockeryManager;
 
@@ -45,7 +44,7 @@ it('returns schedule and scope entries for a scheduled exam course', function ()
         name: '假課程甲',
     );
 
-    $info = $action(Request::create('/'), $course);
+    $info = $action($course);
 
     expect($info)->not->toBeNull();
     expect($info->semesterLabel)->toBe('115學年上學期');
@@ -70,7 +69,7 @@ it('returns a note instead of structured fields for a unified/non-scheduled exam
         name: '假課程乙',
     );
 
-    $info = $action(Request::create('/'), $course);
+    $info = $action($course);
 
     expect($info)->not->toBeNull();
     expect($info->schedules)->toHaveCount(1);
@@ -89,7 +88,7 @@ it('returns null when no course matches', function () {
         name: '不存在的課程',
     );
 
-    expect($action(Request::create('/'), $course))->toBeNull();
+    expect($action($course))->toBeNull();
 });
 
 it('returns null when the term does not match', function () {
@@ -102,5 +101,5 @@ it('returns null when the term does not match', function () {
         name: '假課程甲',
     );
 
-    expect($action(Request::create('/'), $course))->toBeNull();
+    expect($action($course))->toBeNull();
 });

@@ -8,16 +8,17 @@ use AltUU\Domains\AttachmentDownload\DataTransferObjects\QueueAttachmentDownload
 use AltUU\Domains\AttachmentDownload\ViewModels\AttachmentDownloadTaskViewModel;
 use App\Jobs\DownloadAttachmentJob;
 use App\Models\AttachmentDownload;
-use Illuminate\Http\Request;
+use App\Services\UUCourseClient;
 
 final class QueueAttachmentDownload
 {
+    public function __construct(private readonly UUCourseClient $courseClient) {}
+
     public function __invoke(
-        Request $request,
         QueueAttachmentDownloadInputData $input,
         CleanupAttachmentDownloads $cleanupAttachmentDownloads,
     ): AttachmentDownloadTaskViewModel {
-        $baseHost = parse_url($this->resolveAllowedBaseUrl($request, $input->source), PHP_URL_HOST);
+        $baseHost = parse_url($this->resolveAllowedBaseUrl($input->source), PHP_URL_HOST);
         $urlHost = parse_url($input->sourceUrl, PHP_URL_HOST);
 
         if (! is_string($baseHost) || ! is_string($urlHost) || $baseHost !== $urlHost) {
@@ -40,14 +41,12 @@ final class QueueAttachmentDownload
         return AttachmentDownloadTaskViewModel::fromModel($task);
     }
 
-    private function resolveAllowedBaseUrl(Request $request, string $source): string
+    private function resolveAllowedBaseUrl(string $source): string
     {
         if ($source === 'school_portal') {
             return (string) config('school_portal.base_url', '');
         }
 
-        $session = $request->hunguSession();
-
-        return (string) ($session['base_url'] ?? '');
+        return $this->courseClient->currentBaseUrl();
     }
 }

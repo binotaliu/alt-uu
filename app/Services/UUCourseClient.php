@@ -18,6 +18,11 @@ final class UUCourseClient
         return $this->activeProfile->get();
     }
 
+    public function currentBaseUrl(): string
+    {
+        return $this->proxyClient->currentBaseUrl();
+    }
+
     /**
      * @return array{payload: array<string, mixed>}
      */

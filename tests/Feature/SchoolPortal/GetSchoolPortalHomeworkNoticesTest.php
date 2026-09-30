@@ -3,7 +3,6 @@
 use AltUU\Domains\Course\ViewModels\CourseItemViewModel;
 use AltUU\Domains\SchoolPortal\Actions\GetSchoolPortalHomeworkNotices;
 use App\Services\SchoolPortalSessionStore;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Mockery as MockeryManager;
 
@@ -47,7 +46,7 @@ it('matches homework notices for the correct course and term', function () {
         name: '假課程乙',
     );
 
-    $items = $action(Request::create('/'), $course)->items();
+    $items = $action($course)->items();
 
     expect($items)->toHaveCount(2);
     expect($items[0]->title)->toBe('第1次作業');
@@ -69,7 +68,7 @@ it('returns no notices when the term does not match', function () {
         name: '假課程乙',
     );
 
-    expect($action(Request::create('/'), $course)->items())->toBeEmpty();
+    expect($action($course)->items())->toBeEmpty();
 });
 
 it('returns no notices when the course name does not match', function () {
@@ -82,7 +81,7 @@ it('returns no notices when the course name does not match', function () {
         name: '完全不相關的課程',
     );
 
-    expect($action(Request::create('/'), $course)->items())->toBeEmpty();
+    expect($action($course)->items())->toBeEmpty();
 });
 
 it('returns a notice for every course listed under the same assignment', function (string $name, string $filename, ?string $dueDate) {
@@ -95,7 +94,7 @@ it('returns a notice for every course listed under the same assignment', functio
         name: $name,
     );
 
-    $items = $action(Request::create('/'), $course)->items();
+    $items = $action($course)->items();
 
     expect($items[0]->title)->toBe('第1次作業');
     expect($items[0]->downloadUrl)->toContain("filename={$filename}&");
@@ -112,8 +111,8 @@ it('keeps notices from later assignments alongside multi-course ones', function 
 
     $action = app(GetSchoolPortalHomeworkNotices::class);
 
-    $first = $action(Request::create('/'), new CourseItemViewModel(courseId: '1', semester: '115上', name: '假課程甲'))->items();
-    $other = $action(Request::create('/'), new CourseItemViewModel(courseId: '2', semester: '115上', name: '假課程乙'))->items();
+    $first = $action(new CourseItemViewModel(courseId: '1', semester: '115上', name: '假課程甲'))->items();
+    $other = $action(new CourseItemViewModel(courseId: '2', semester: '115上', name: '假課程乙'))->items();
 
     expect(collect($first)->pluck('title')->all())->toBe(['第1次作業', '第2次作業']);
     expect($first[1]->downloadUrl)->toContain('filename=1151_000001_ZZZ001_2');

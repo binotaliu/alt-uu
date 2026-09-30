@@ -7,7 +7,6 @@ namespace App\Http\Controllers\Api;
 use AltUU\Domains\Course\Actions\ListCourses;
 use AltUU\Domains\SchoolPortal\Actions\GetCourseSemesterGrade;
 use AltUU\Domains\SchoolPortal\ViewModels\SchoolPortalGradeViewModel;
-use Illuminate\Http\Request;
 use Throwable;
 
 final class CourseGradeController
@@ -16,12 +15,11 @@ final class CourseGradeController
      * @return array{grade: SchoolPortalGradeViewModel|null}
      */
     public function __invoke(
-        Request $request,
         string $cid,
         ListCourses $listCourses,
         GetCourseSemesterGrade $getCourseSemesterGrade,
     ): array {
-        $course = collect($listCourses($request)->items())
+        $course = collect($listCourses()->items())
             ->first(static fn (mixed $item): bool => $item->courseId === $cid);
 
         if ($course === null) {
@@ -29,7 +27,7 @@ final class CourseGradeController
         }
 
         try {
-            return ['grade' => $getCourseSemesterGrade($request, $course)];
+            return ['grade' => $getCourseSemesterGrade($course)];
         } catch (Throwable) {
             return ['grade' => null];
         }

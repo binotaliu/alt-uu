@@ -6,7 +6,6 @@ namespace AltUU\Domains\SchoolPortal\Actions;
 
 use AltUU\Domains\SchoolPortal\Support\SchoolPortalGradeRepository;
 use AltUU\Domains\SchoolPortal\ViewModels\SchoolPortalGradeViewModel;
-use Illuminate\Http\Request;
 
 final readonly class GetAllCourseGrades
 {
@@ -15,12 +14,12 @@ final readonly class GetAllCourseGrades
     /**
      * @return array<int, SchoolPortalGradeViewModel>
      */
-    public function __invoke(Request $request): array
+    public function __invoke(): array
     {
         $rows = [];
         $seenKeys = [];
 
-        foreach ($this->gradeRepository->currentSemesterGrades($request) as $grade) {
+        foreach ($this->gradeRepository->currentSemesterGrades() as $grade) {
             $seenKeys[$grade['termCode'].'|'.$grade['normalizedCourseName']] = true;
             $rows[] = $grade;
         }
@@ -28,7 +27,7 @@ final readonly class GetAllCourseGrades
         // The historical page (qryscore2) tends to also list the current
         // semester, so skip anything already seen on the current-semester
         // page to avoid showing the same course twice.
-        foreach ($this->gradeRepository->historicalGrades($request) as $grade) {
+        foreach ($this->gradeRepository->historicalGrades() as $grade) {
             $key = $grade['termCode'].'|'.$grade['normalizedCourseName'];
 
             if (isset($seenKeys[$key])) {

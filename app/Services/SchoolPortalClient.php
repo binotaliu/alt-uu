@@ -4,9 +4,23 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use Illuminate\Contracts\Session\Session;
+
 final class SchoolPortalClient
 {
-    public function __construct(private readonly SchoolPortalProxyClient $proxyClient) {}
+    public function __construct(
+        private readonly SchoolPortalProxyClient $proxyClient,
+        private readonly Session $session,
+    ) {}
+
+    /**
+     * Username of the active profile, used to scope per-user caches. Empty
+     * when no profile has been primed on the session.
+     */
+    public function currentProfileUsername(): string
+    {
+        return trim((string) $this->session->get('hungu.profile.username', ''));
+    }
 
     /**
      * @return array{status: int, body: string}

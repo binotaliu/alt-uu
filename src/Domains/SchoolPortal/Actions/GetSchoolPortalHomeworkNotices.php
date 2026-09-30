@@ -8,7 +8,6 @@ use AltUU\Domains\Course\Support\CourseNameMatcher;
 use AltUU\Domains\Course\ViewModels\CourseItemViewModel;
 use AltUU\Domains\SchoolPortal\ViewModels\SchoolPortalHomeworkNoticeViewModel;
 use App\Services\SchoolPortalClient;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Spatie\LaravelData\DataCollection;
 use Symfony\Component\DomCrawler\Crawler;
@@ -26,7 +25,7 @@ final readonly class GetSchoolPortalHomeworkNotices
     /**
      * @return DataCollection<SchoolPortalHomeworkNoticeViewModel>
      */
-    public function __invoke(Request $request, CourseItemViewModel $course): DataCollection
+    public function __invoke(CourseItemViewModel $course): DataCollection
     {
         $targetName = CourseNameMatcher::normalizeName($course->name);
         $targetTerm = CourseNameMatcher::normalizeTermCode($course->semester);
@@ -35,7 +34,7 @@ final readonly class GetSchoolPortalHomeworkNotices
             return new DataCollection(SchoolPortalHomeworkNoticeViewModel::class, []);
         }
 
-        $notices = $this->allNotices($request);
+        $notices = $this->allNotices();
 
         $items = [];
         foreach ($notices as $notice) {
@@ -57,10 +56,10 @@ final readonly class GetSchoolPortalHomeworkNotices
     /**
      * @return array<int, array{title: string, normalizedCourseName: string, termCode: ?string, dueDate: ?string, submissionMethod: ?string, downloadUrl: ?string}>
      */
-    private function allNotices(Request $request): array
+    private function allNotices(): array
     {
         return Cache::remember(
-            $this->cacheKey($request),
+            $this->cacheKey(),
             now()->addMinutes(self::CACHE_TTL_MINUTES),
             function (): array {
                 $page = $this->schoolPortalClient->fetchHomeworkNoticesPage();
@@ -224,13 +223,9 @@ final readonly class GetSchoolPortalHomeworkNotices
         return [$label, $value];
     }
 
-    private function cacheKey(Request $request): string
+    private function cacheKey(): string
     {
-        $username = '';
-
-        if ($request->hasSession()) {
-            $username = trim((string) $request->session()->get('hungu.profile.username', ''));
-        }
+        $username = $this->schoolPortalClient->currentProfileUsername();
 
         return self::CACHE_KEY_PREFIX.($username !== '' ? $username : self::ANONYMOUS_CACHE_SEGMENT);
     }

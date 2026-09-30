@@ -9,7 +9,6 @@ use AltUU\Domains\Course\ViewModels\CourseItemViewModel;
 use AltUU\Domains\SchoolPortal\Support\ParsesSchoolPortalHtml;
 use AltUU\Domains\SchoolPortal\ViewModels\SchoolPortalClassSessionInfoViewModel;
 use App\Services\SchoolPortalClient;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Symfony\Component\DomCrawler\Crawler;
 
@@ -25,7 +24,7 @@ final readonly class GetCourseClassSessionInfo
 
     public function __construct(private SchoolPortalClient $schoolPortalClient) {}
 
-    public function __invoke(Request $request, CourseItemViewModel $course): ?SchoolPortalClassSessionInfoViewModel
+    public function __invoke(CourseItemViewModel $course): ?SchoolPortalClassSessionInfoViewModel
     {
         $targetName = CourseNameMatcher::normalizeName($course->name);
         $targetTerm = CourseNameMatcher::normalizeTermCode($course->semester);
@@ -34,7 +33,7 @@ final readonly class GetCourseClassSessionInfo
             return null;
         }
 
-        foreach ($this->allClassSessions($request) as $item) {
+        foreach ($this->allClassSessions() as $item) {
             if ($item['termCode'] === $targetTerm && $item['normalizedCourseName'] === $targetName) {
                 return new SchoolPortalClassSessionInfoViewModel(
                     courseName: $item['courseName'],
@@ -54,10 +53,10 @@ final readonly class GetCourseClassSessionInfo
     /**
      * @return array<int, array{courseName: string, normalizedCourseName: string, semesterLabel: string, termCode: ?string, fields: array<string, string>}>
      */
-    private function allClassSessions(Request $request): array
+    private function allClassSessions(): array
     {
         return Cache::remember(
-            $this->cacheKey($request),
+            $this->cacheKey(),
             now()->addMinutes(self::CACHE_TTL_MINUTES),
             function (): array {
                 $page = $this->schoolPortalClient->fetchClassSessionInfoPage();
@@ -158,13 +157,9 @@ final readonly class GetCourseClassSessionInfo
         return trim($stripped);
     }
 
-    private function cacheKey(Request $request): string
+    private function cacheKey(): string
     {
-        $username = '';
-
-        if ($request->hasSession()) {
-            $username = trim((string) $request->session()->get('hungu.profile.username', ''));
-        }
+        $username = $this->schoolPortalClient->currentProfileUsername();
 
         return self::CACHE_KEY_PREFIX.($username !== '' ? $username : self::ANONYMOUS_CACHE_SEGMENT);
     }

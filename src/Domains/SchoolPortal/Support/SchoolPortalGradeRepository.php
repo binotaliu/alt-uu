@@ -7,7 +7,6 @@ namespace AltUU\Domains\SchoolPortal\Support;
 use AltUU\Domains\Course\Support\CourseNameMatcher;
 use AltUU\Domains\SchoolPortal\ViewModels\SchoolPortalGradeViewModel;
 use App\Services\SchoolPortalClient;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Symfony\Component\DomCrawler\Crawler;
 
@@ -41,10 +40,10 @@ final readonly class SchoolPortalGradeRepository
     /**
      * @return array<int, array{courseName: string, normalizedCourseName: string, semesterLabel: string, termCode: ?string, fields: array<string, string>}>
      */
-    public function currentSemesterGrades(Request $request): array
+    public function currentSemesterGrades(): array
     {
         return Cache::remember(
-            $this->cacheKey($request, self::CACHE_KEY_PREFIX),
+            $this->cacheKey(self::CACHE_KEY_PREFIX),
             now()->addMinutes(self::CACHE_TTL_MINUTES),
             function (): array {
                 $page = $this->schoolPortalClient->fetchCurrentSemesterGradesPage();
@@ -62,10 +61,10 @@ final readonly class SchoolPortalGradeRepository
     /**
      * @return array<int, array{courseName: string, normalizedCourseName: string, semesterLabel: string, termCode: ?string, fields: array<string, string>}>
      */
-    public function historicalGrades(Request $request): array
+    public function historicalGrades(): array
     {
         return Cache::remember(
-            $this->cacheKey($request, self::HISTORICAL_CACHE_KEY_PREFIX),
+            $this->cacheKey(self::HISTORICAL_CACHE_KEY_PREFIX),
             now()->addMinutes(self::HISTORICAL_CACHE_TTL_MINUTES),
             function (): array {
                 $page = $this->schoolPortalClient->fetchHistoricalGradesPage();
@@ -274,13 +273,9 @@ final readonly class SchoolPortalGradeRepository
         return [$label, $value];
     }
 
-    private function cacheKey(Request $request, string $prefix): string
+    private function cacheKey(string $prefix): string
     {
-        $username = '';
-
-        if ($request->hasSession()) {
-            $username = trim((string) $request->session()->get('hungu.profile.username', ''));
-        }
+        $username = $this->schoolPortalClient->currentProfileUsername();
 
         return $prefix.($username !== '' ? $username : self::ANONYMOUS_CACHE_SEGMENT);
     }

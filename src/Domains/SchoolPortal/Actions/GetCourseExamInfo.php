@@ -10,13 +10,12 @@ use AltUU\Domains\SchoolPortal\Support\SchoolPortalExamInfoRepository;
 use AltUU\Domains\SchoolPortal\ViewModels\SchoolPortalExamInfoViewModel;
 use AltUU\Domains\SchoolPortal\ViewModels\SchoolPortalExamScheduleViewModel;
 use AltUU\Domains\SchoolPortal\ViewModels\SchoolPortalExamScopeViewModel;
-use Illuminate\Http\Request;
 
 final readonly class GetCourseExamInfo
 {
     public function __construct(private SchoolPortalExamInfoRepository $examInfoRepository) {}
 
-    public function __invoke(Request $request, CourseItemViewModel $course): ?SchoolPortalExamInfoViewModel
+    public function __invoke(CourseItemViewModel $course): ?SchoolPortalExamInfoViewModel
     {
         $targetName = CourseNameMatcher::normalizeName($course->name);
         $targetTerm = CourseNameMatcher::normalizeTermCode($course->semester);
@@ -25,7 +24,7 @@ final readonly class GetCourseExamInfo
             return null;
         }
 
-        $page = $this->examInfoRepository->currentSemesterExamInfo($request);
+        $page = $this->examInfoRepository->currentSemesterExamInfo();
 
         if ($page['termCode'] !== $targetTerm || ! isset($page['courses'][$targetName])) {
             return null;

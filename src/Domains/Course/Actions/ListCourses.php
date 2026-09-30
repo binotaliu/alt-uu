@@ -7,7 +7,7 @@ namespace AltUU\Domains\Course\Actions;
 use AltUU\Domains\Course\ViewModels\CourseItemViewModel;
 use App\Services\UUCourseClient;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
-use Illuminate\Http\Request;
+use Illuminate\Contracts\Session\Session;
 use Illuminate\Support\Arr;
 use Spatie\LaravelData\DataCollection;
 
@@ -23,14 +23,14 @@ final readonly class ListCourses
 
     private const TITLE_PATTERN = '/^\((?<semester>[^)]+)\)(?<name>.+?)(?:-(?<className>.+))?$/u';
 
-    public function __construct(private UUCourseClient $courseClient, private CacheRepository $cache) {}
+    public function __construct(private UUCourseClient $courseClient, private CacheRepository $cache, private Session $session) {}
 
     /**
      * @return DataCollection<CourseItemViewModel>
      */
-    public function __invoke(Request $request, ?int $accountId = null): DataCollection
+    public function __invoke(?int $accountId = null): DataCollection
     {
-        $cacheKey = $this->resolveCourseListCacheKey($request, $accountId);
+        $cacheKey = $this->resolveCourseListCacheKey($accountId);
         $courses = $this->cache->get($cacheKey, []);
 
         if (! is_array($courses)) {
@@ -203,17 +203,13 @@ final readonly class ListCourses
         return ($semester !== '' ? $semester : '').'|'.$name;
     }
 
-    private function resolveCourseListCacheKey(Request $request, ?int $accountId = null): string
+    private function resolveCourseListCacheKey(?int $accountId = null): string
     {
         if ($accountId !== null) {
             return self::COURSE_LIST_CACHE_KEY_PREFIX.'account:'.$accountId;
         }
 
-        $username = '';
-
-        if ($request->hasSession()) {
-            $username = trim((string) $request->session()->get('hungu.profile.username', ''));
-        }
+        $username = trim((string) $this->session->get('hungu.profile.username', ''));
 
         if ($username === '') {
             return self::COURSE_LIST_CACHE_KEY_PREFIX.self::ANONYMOUS_CACHE_SEGMENT;

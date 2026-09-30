@@ -6,7 +6,6 @@ namespace App\Http\Controllers\Api;
 
 use AltUU\Domains\Course\Actions\ListCourses;
 use AltUU\Domains\Course\ViewModels\CourseItemViewModel;
-use Illuminate\Http\Request;
 use Spatie\LaravelData\DataCollection;
 
 final class ListCoursesController
@@ -14,8 +13,8 @@ final class ListCoursesController
     /**
      * @return DataCollection<CourseItemViewModel>
      */
-    public function __invoke(Request $request, ListCourses $list): DataCollection
+    public function __invoke(ListCourses $list): DataCollection
     {
-        return $list($request);
+        return $list();
     }
 }

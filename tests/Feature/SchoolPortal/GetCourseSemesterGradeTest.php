@@ -3,7 +3,6 @@
 use AltUU\Domains\Course\ViewModels\CourseItemViewModel;
 use AltUU\Domains\SchoolPortal\Actions\GetCourseSemesterGrade;
 use App\Services\SchoolPortalSessionStore;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Mockery as MockeryManager;
 
@@ -53,7 +52,7 @@ it('returns the matching course grade', function () {
         name: '假課程甲',
     );
 
-    $grade = $action(Request::create('/'), $course);
+    $grade = $action($course);
 
     expect($grade)->not->toBeNull();
     expect($grade->semesterLabel)->toBe('114學年下學期');
@@ -74,7 +73,7 @@ it('matches a course name containing punctuation and a colon', function () {
         name: '假課程：附標點符號（其一～其二）',
     );
 
-    $grade = $action(Request::create('/'), $course);
+    $grade = $action($course);
 
     expect($grade)->not->toBeNull();
     expect($grade->credits)->toBe('2');
@@ -91,7 +90,7 @@ it('returns null when no course matches', function () {
         name: '不存在的課程',
     );
 
-    expect($action(Request::create('/'), $course))->toBeNull();
+    expect($action($course))->toBeNull();
 });
 
 it('returns null when the term does not match', function () {
@@ -104,7 +103,7 @@ it('returns null when the term does not match', function () {
         name: '假課程甲',
     );
 
-    expect($action(Request::create('/'), $course))->toBeNull();
+    expect($action($course))->toBeNull();
 });
 
 it('falls back to the historical grades page for a past semester not on the current-semester page', function () {
@@ -117,7 +116,7 @@ it('falls back to the historical grades page for a past semester not on the curr
         name: '假課程乙',
     );
 
-    $grade = $action(Request::create('/'), $course);
+    $grade = $action($course);
 
     expect($grade)->not->toBeNull();
     expect($grade->semesterLabel)->toBe('114下學期');
@@ -136,7 +135,7 @@ it('prefers the current-semester page over the historical page when both have a 
         name: '假課程甲',
     );
 
-    $grade = $action(Request::create('/'), $course);
+    $grade = $action($course);
 
     expect($grade)->not->toBeNull();
     expect($grade->semesterLabel)->toBe('114學年下學期');
@@ -153,7 +152,7 @@ it('returns null when the course is absent from both the current and historical 
         name: '不存在的課程',
     );
 
-    expect($action(Request::create('/'), $course))->toBeNull();
+    expect($action($course))->toBeNull();
 });
 
 it('splits a historical course line on the last colon when the course name itself contains one', function () {
@@ -166,7 +165,7 @@ it('splits a historical course line on the last colon when the course name itsel
         name: '假課程丙：附副標題（測試）',
     );
 
-    $grade = $action(Request::create('/'), $course);
+    $grade = $action($course);
 
     expect($grade)->not->toBeNull();
     expect($grade->courseName)->toBe('假課程丙：附副標題（測試）');

@@ -9,31 +9,29 @@ use AltUU\Domains\Course\Actions\ListCourses;
 use AltUU\Domains\Course\Actions\SyncCurrentCourse;
 use AltUU\Domains\Course\ViewModels\CourseHomeworkListViewModel;
 use AltUU\Domains\SchoolPortal\Actions\GetSchoolPortalHomeworkNotices;
-use Illuminate\Http\Request;
 use Throwable;
 
 final class CourseHomeworksController
 {
     public function __invoke(
-        Request $request,
         string $cid,
         GetCourseHomeworks $getHomeworks,
         SyncCurrentCourse $syncCourse,
         ListCourses $listCourses,
         GetSchoolPortalHomeworkNotices $getSchoolPortalHomeworkNotices,
     ): CourseHomeworkListViewModel {
-        $syncCourse($request, $cid, force: true);
+        $syncCourse($cid, force: true);
 
-        $homeworkItems = $getHomeworks($request)->items();
+        $homeworkItems = $getHomeworks()->items();
 
-        $course = collect($listCourses($request)->items())
+        $course = collect($listCourses()->items())
             ->first(static fn (mixed $item): bool => $item->courseId === $cid);
 
         $schoolPortalNotices = [];
 
         if ($course !== null) {
             try {
-                $schoolPortalNotices = $getSchoolPortalHomeworkNotices($request, $course)->items();
+                $schoolPortalNotices = $getSchoolPortalHomeworkNotices($course)->items();
             } catch (Throwable) {
                 // The school portal is a best-effort secondary source; Hongu's own
                 // homework listing above still returns normally on failure.

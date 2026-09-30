@@ -6,7 +6,7 @@ namespace AltUU\Domains\Course\Actions;
 
 use AltUU\Domains\Course\ViewModels\CourseMaterialResourceViewModel;
 use App\Services\UUCourseClient;
-use Illuminate\Http\Request;
+use Illuminate\Contracts\Session\Session;
 use Illuminate\Support\Arr;
 use Spatie\LaravelData\DataCollection;
 
@@ -14,16 +14,16 @@ final readonly class GetNodeResources
 {
     private const COURSE_NODE_RESOURCES_CACHE_PREFIX = 'alt-uu:courses:node-resources:';
 
-    public function __construct(private UUCourseClient $courseClient) {}
+    public function __construct(private UUCourseClient $courseClient, private Session $session) {}
 
     /**
      * @return DataCollection<CourseMaterialResourceViewModel>
      */
-    public function __invoke(Request $request, string $cid, string $scoid): DataCollection
+    public function __invoke(string $cid, string $scoid): DataCollection
     {
         $accountId = $this->courseClient->currentAccountId() ?? 0;
         $resourceCacheKey = self::COURSE_NODE_RESOURCES_CACHE_PREFIX.$accountId.'.'.$cid.'.'.$scoid;
-        $cachedResources = $request->session()->get($resourceCacheKey, ['loaded' => false, 'items' => []]);
+        $cachedResources = $this->session->get($resourceCacheKey, ['loaded' => false, 'items' => []]);
 
         if (! is_array($cachedResources)) {
             $cachedResources = ['loaded' => false, 'items' => []];
@@ -41,7 +41,7 @@ final readonly class GetNodeResources
                 $resources = [];
             }
 
-            $request->session()->put($resourceCacheKey, [
+            $this->session->put($resourceCacheKey, [
                 'loaded' => true,
                 'items' => $resources,
             ]);

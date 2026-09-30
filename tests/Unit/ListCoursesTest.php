@@ -7,7 +7,8 @@ use App\Services\UUCourseClient;
 use App\Services\UUProxyClient;
 use Illuminate\Cache\ArrayStore;
 use Illuminate\Cache\Repository as CacheRepository;
-use Illuminate\Http\Request;
+use Illuminate\Session\ArraySessionHandler;
+use Illuminate\Session\Store;
 use Mockery as MockeryManager;
 
 it('populates commonCourseId when courseType comes from an app course', function () {
@@ -29,12 +30,9 @@ it('populates commonCourseId when courseType comes from an app course', function
         ]);
 
     $courseClient = new UUCourseClient($proxyClient, new AccountActiveProfile);
-    $action = new ListCourses($courseClient, $cache);
+    $action = new ListCourses($courseClient, $cache, new Store('test', new ArraySessionHandler(10)));
 
-    $request = MockeryManager::mock(Request::class);
-    $request->shouldReceive('hasSession')->once()->andReturn(false);
-
-    $result = $action($request);
+    $result = $action();
 
     expect($cache->has('alt-uu:courses:list:anonymous'))->toBeTrue();
 
@@ -77,12 +75,9 @@ it('supports hyphenated class names when matching app course type', function () 
         ]);
 
     $courseClient = new UUCourseClient($proxyClient, new AccountActiveProfile);
-    $action = new ListCourses($courseClient, $cache);
+    $action = new ListCourses($courseClient, $cache, new Store('test', new ArraySessionHandler(10)));
 
-    $request = MockeryManager::mock(Request::class);
-    $request->shouldReceive('hasSession')->once()->andReturn(false);
-
-    $result = $action($request);
+    $result = $action();
 
     expect($cache->has('alt-uu:courses:list:anonymous'))->toBeTrue();
 

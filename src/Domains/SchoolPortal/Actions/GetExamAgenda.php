@@ -6,7 +6,6 @@ namespace AltUU\Domains\SchoolPortal\Actions;
 
 use AltUU\Domains\SchoolPortal\Support\SchoolPortalExamInfoRepository;
 use AltUU\Domains\SchoolPortal\ViewModels\SchoolPortalExamAgendaItemViewModel;
-use Illuminate\Http\Request;
 
 final readonly class GetExamAgenda
 {
@@ -22,9 +21,9 @@ final readonly class GetExamAgenda
     /**
      * @return array<int, SchoolPortalExamAgendaItemViewModel>
      */
-    public function __invoke(Request $request): array
+    public function __invoke(): array
     {
-        $page = $this->examInfoRepository->currentSemesterExamInfo($request);
+        $page = $this->examInfoRepository->currentSemesterExamInfo();
         $items = [];
 
         foreach ($page['courses'] as $course) {

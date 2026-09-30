@@ -25,6 +25,15 @@ class UUProxyClient
     ) {}
 
     /**
+     * Base URL stored on the active account's Hungu session, or an empty
+     * string when there is no session.
+     */
+    public function currentBaseUrl(?int $accountId = null): string
+    {
+        return (string) Arr::get($this->currentSession($accountId), 'base_url', '');
+    }
+
+    /**
      * @return array{payload: array<string, mixed>}
      */
     public function request(

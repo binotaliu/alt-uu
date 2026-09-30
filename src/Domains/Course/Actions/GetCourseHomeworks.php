@@ -6,7 +6,6 @@ namespace AltUU\Domains\Course\Actions;
 
 use AltUU\Domains\Course\ViewModels\CourseHomeworkItemViewModel;
 use App\Services\UUCourseClient;
-use Illuminate\Http\Request;
 use Spatie\LaravelData\DataCollection;
 use Symfony\Component\DomCrawler\Crawler;
 
@@ -17,14 +16,14 @@ final readonly class GetCourseHomeworks
     /**
      * @return DataCollection<CourseHomeworkItemViewModel>
      */
-    public function __invoke(Request $request): DataCollection
+    public function __invoke(): DataCollection
     {
         $homeworkPage = $this->courseClient->fetchHomeworkPage();
         $status = (int) ($homeworkPage['status'] ?? 500);
 
         abort_if($status >= 400, 502, '讀取作業列表失敗。');
 
-        $baseUrl = $this->resolveBaseUrl($request);
+        $baseUrl = $this->resolveBaseUrl();
         $items = $this->parseHomeworkItems(
             (string) ($homeworkPage['body'] ?? ''),
             $baseUrl,
@@ -196,10 +195,9 @@ final readonly class GetCourseHomeworks
         return null;
     }
 
-    private function resolveBaseUrl(Request $request): string
+    private function resolveBaseUrl(): string
     {
-        $session = $request->hunguSession();
-        $baseUrl = (string) ($session['base_url'] ?? '');
+        $baseUrl = $this->courseClient->currentBaseUrl();
 
         if ($baseUrl === '') {
             return 'https://uu.nou.edu.tw';

@@ -8,13 +8,12 @@ use AltUU\Domains\Course\Support\CourseNameMatcher;
 use AltUU\Domains\Course\ViewModels\CourseItemViewModel;
 use AltUU\Domains\SchoolPortal\Support\SchoolPortalGradeRepository;
 use AltUU\Domains\SchoolPortal\ViewModels\SchoolPortalGradeViewModel;
-use Illuminate\Http\Request;
 
 final readonly class GetCourseSemesterGrade
 {
     public function __construct(private SchoolPortalGradeRepository $gradeRepository) {}
 
-    public function __invoke(Request $request, CourseItemViewModel $course): ?SchoolPortalGradeViewModel
+    public function __invoke(CourseItemViewModel $course): ?SchoolPortalGradeViewModel
     {
         $targetName = CourseNameMatcher::normalizeName($course->name);
         $targetTerm = CourseNameMatcher::normalizeTermCode($course->semester);
@@ -23,7 +22,7 @@ final readonly class GetCourseSemesterGrade
             return null;
         }
 
-        foreach ($this->gradeRepository->currentSemesterGrades($request) as $grade) {
+        foreach ($this->gradeRepository->currentSemesterGrades() as $grade) {
             if ($grade['termCode'] === $targetTerm && $grade['normalizedCourseName'] === $targetName) {
                 return SchoolPortalGradeRepository::toViewModel($grade);
             }
@@ -34,7 +33,7 @@ final readonly class GetCourseSemesterGrade
         // is never found there — fall back to the historical grades page
         // (qryscore2), which lists every semester but with a coarser field
         // set (final grade + credits only, no per-component breakdown).
-        foreach ($this->gradeRepository->historicalGrades($request) as $grade) {
+        foreach ($this->gradeRepository->historicalGrades() as $grade) {
             if ($grade['termCode'] === $targetTerm && $grade['normalizedCourseName'] === $targetName) {
                 return SchoolPortalGradeRepository::toViewModel($grade);
             }
