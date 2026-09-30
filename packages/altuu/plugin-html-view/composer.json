@@ -1,0 +1,30 @@
+{
+    "name": "altuu/plugin-html-view",
+    "description": "NativePHP EDGE element that renders sanitized school-authored HTML in a sandboxed web view with content-height reporting, link-tap interception and a JS-to-PHP message bridge",
+    "type": "nativephp-plugin",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Binota Liu"
+        }
+    ],
+    "require": {
+        "php": "^8.2",
+        "nativephp/mobile": "^3.0|^4.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "AltUU\\HtmlView\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "AltUU\\HtmlView\\HtmlViewServiceProvider"
+            ]
+        },
+        "nativephp": {
+            "manifest": "nativephp.json"
+        }
+    }
+}

@@ -1,0 +1,36 @@
+{
+    "name": "altuu/plugin-html-view",
+    "version": "1.0.0",
+    "description": "EDGE element <native:html-view>: sandboxed web view for foreign HTML with auto height, link-tap interception and a JS message bridge",
+    "namespace": "HtmlView",
+    "category": "ui",
+    "license": "MIT",
+    "author": {
+        "name": "Binota Liu"
+    },
+    "platforms": ["ios", "android"],
+    "components": [
+        {
+            "type": "html_view",
+            "element": "AltUU\\HtmlView\\Elements\\HtmlView",
+            "blade": "AltUU\\HtmlView\\Components\\HtmlView",
+            "android_renderer": "com.altuu.plugins.html_view.HtmlViewRenderer",
+            "ios_renderer": "AltUUHtmlViewRenderer",
+            "self_closing": true
+        }
+    ],
+    "bridge_functions": [],
+    "events": [],
+    "ios": {
+        "min_version": "18.0",
+        "permissions": [],
+        "dependencies": {
+            "swift_packages": [],
+            "pods": []
+        }
+    },
+    "android": {
+        "min_version": 31
+    },
+    "service_provider": "AltUU\\HtmlView\\HtmlViewServiceProvider"
+}

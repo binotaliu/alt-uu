@@ -7,6 +7,7 @@ namespace App\Providers;
 use AltUU\AltUUPlus\AltUUPlus;
 use AltUU\AltUUPlus\AltUUPlusServiceProvider;
 use AltUU\AttachmentBridge\AttachmentBridgeServiceProvider;
+use AltUU\HtmlView\HtmlViewServiceProvider;
 use AltUU\MediaPlayer\MediaPlayerServiceProvider;
 use AltUU\NativePHPPatch\NativePHPPatchServiceProvider;
 use App\Services\LocalAltUUPlus;
@@ -65,6 +66,7 @@ final class NativeServiceProvider extends ServiceProvider
             AltUUPlusServiceProvider::class,
             NetworkServiceProvider::class,
             NativeUIServiceProvider::class,
+            HtmlViewServiceProvider::class,
         ];
     }
 }

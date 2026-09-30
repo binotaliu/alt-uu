@@ -9,6 +9,7 @@
         "php": "^8.4",
         "altuu/plugin-alt-uu-plus": "*@dev",
         "altuu/plugin-attachment-bridge": "*@dev",
+        "altuu/plugin-html-view": "*@dev",
         "altuu/plugin-media-player": "*@dev",
         "altuu/plugin-nativephp-patch": "*@dev",
         "ezyang/htmlpurifier": "^4.19",
@@ -145,6 +146,10 @@
         "altuu-plugin-attachment-bridge": {
             "type": "path",
             "url": "packages/altuu/plugin-attachment-bridge"
+        },
+        "altuu-plugin-html-view": {
+            "type": "path",
+            "url": "packages/altuu/plugin-html-view"
         },
         "altuu-plugin-media-player": {
             "type": "path",

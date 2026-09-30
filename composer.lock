@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "3fe2ea604f7710aa921e44ff9c1779d1",
+    "content-hash": "a793cdabef58e7133575a913716f0297",
     "packages": [
         {
             "name": "altuu/plugin-alt-uu-plus",
@@ -84,6 +84,47 @@
                 }
             ],
             "description": "NativePHP iOS attachment download bridge with confirm, preview, and save actions",
+            "transport-options": {
+                "relative": true
+            }
+        },
+        {
+            "name": "altuu/plugin-html-view",
+            "version": "dev-main",
+            "dist": {
+                "type": "path",
+                "url": "packages/altuu/plugin-html-view",
+                "reference": "77ab211ec18a39571d80b01f8d8f94bab0bb3731"
+            },
+            "require": {
+                "nativephp/mobile": "^3.0|^4.0",
+                "php": "^8.2"
+            },
+            "type": "nativephp-plugin",
+            "extra": {
+                "laravel": {
+                    "providers": [
+                        "AltUU\\HtmlView\\HtmlViewServiceProvider"
+                    ]
+                },
+                "nativephp": {
+                    "manifest": "nativephp.json"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "AltUU\\HtmlView\\": "src/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Binota Liu"
+                }
+            ],
+            "description": "NativePHP EDGE element that renders sanitized school-authored HTML in a sandboxed web view with content-height reporting, link-tap interception and a JS-to-PHP message bridge",
             "transport-options": {
                 "relative": true
             }
@@ -13326,6 +13367,7 @@
     "stability-flags": {
         "altuu/plugin-alt-uu-plus": 20,
         "altuu/plugin-attachment-bridge": 20,
+        "altuu/plugin-html-view": 20,
         "altuu/plugin-media-player": 20,
         "altuu/plugin-nativephp-patch": 20
     },
