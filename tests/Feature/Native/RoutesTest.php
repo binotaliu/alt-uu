@@ -68,18 +68,10 @@ it('resolves static segments before {param} siblings', function (): void {
     expect($resolved['class'])->toBe(Login::class);
 });
 
-it('resolves every native route except the ones whose screens are still pending', function (): void {
-    $pending = [
-        '/native/courses/{cid}/{scoid}',
-    ];
-
+it('resolves every native route to a screen class with a layout', function (): void {
     $sampleParams = ['accountId' => '1', 'cid' => '10', 'boardCid' => '20', 'bid' => '30', 'nid' => '40', 'scoid' => '50'];
 
     foreach (NativeRouter::registeredRoutes() as $pattern => $entry) {
-        if (in_array($pattern, $pending, true)) {
-            continue;
-        }
-
         $uri = (string) preg_replace_callback(
             '/\{(\w+)\}/',
             fn (array $match): string => $sampleParams[$match[1]],
@@ -95,13 +87,11 @@ it('resolves every native route except the ones whose screens are still pending'
     }
 });
 
-it('only leaves the two documented routes without a screen class', function (): void {
+it('has a screen class for every native route', function (): void {
     $missing = collect(NativeRouter::registeredRoutes())
         ->filter(fn (array $entry): bool => ! class_exists($entry['class'] ?? ''))
         ->keys()
         ->all();
 
-    expect($missing)->toEqualCanonicalizing([
-        '/native/courses/{cid}/{scoid}',
-    ]);
+    expect($missing)->toBe([]);
 });
