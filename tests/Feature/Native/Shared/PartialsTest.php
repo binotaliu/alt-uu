@@ -29,12 +29,23 @@ it('uses only TailwindParser-supported classes in shared views', function (): vo
     $dropped = [];
 
     foreach ($files as $file) {
-        preg_match_all('/\sclass="([^"]*)"/', (string) file_get_contents($file), $matches);
+        $source = preg_replace('/\{\{--.*?--\}\}/s', '', (string) file_get_contents($file)) ?? '';
+        $candidates = [];
 
-        foreach ($matches[1] as $classAttribute) {
-            $static = preg_replace('/\{\{.*?\}\}/s', ' ', $classAttribute) ?? '';
+        // Static and interpolated class attributes.
+        preg_match_all('/\sclass="([^"]*)"/', $source, $attributes);
 
-            foreach (preg_split('/\s+/', trim($static)) ?: [] as $token) {
+        foreach ($attributes[1] as $classAttribute) {
+            $joined = preg_replace('/(?<=\S)\{\{.*?\}\}(?=\S)/s', '1', $classAttribute) ?? '';
+            $candidates[] = preg_replace('/\{\{.*?\}\}/s', ' ', $joined) ?? '';
+        }
+
+        // Class strings chosen in PHP expressions, e.g. {{ $x ? 'bg-theme-a' : 'bg-theme-b' }}.
+        preg_match_all("/'([a-z0-9\/\[\]:. -]*-[a-z0-9\/\[\]:. -]*)'/", $source, $literals);
+        array_push($candidates, ...$literals[1]);
+
+        foreach ($candidates as $candidate) {
+            foreach (preg_split('/\s+/', trim($candidate)) ?: [] as $token) {
                 if ($token !== '' && TailwindParser::parse($token) === []) {
                     $dropped[basename($file)][] = $token;
                 }
