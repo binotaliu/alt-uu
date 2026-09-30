@@ -4,7 +4,7 @@
             <native:app-status-banners key="app-status" />
 
             @if ($loading)
-                @include ('native.partials.course-skeleton', ['groups' => 2, 'cards' => 5])
+                @include ('native.partials.course-skeleton', ['skeletonGroups' => 2, 'skeletonCards' => 5])
             @elseif ($error !== '')
                 <native:error-retry
                     key="courses-error"
