@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Date;
 use Illuminate\Testing\TestResponse;
 use Mockery as MockeryManager;
 
-use function Pest\Laravel\withCookie;
+use function Pest\Laravel\getJson;
 
 function mockHunguSession(): void
 {
@@ -27,8 +27,7 @@ function mockHunguSession(): void
 
 function fetchActivity(bool $allAccounts = false): TestResponse
 {
-    return withCookie(config('hungu.app_boot_cookie_name'), '1')
-        ->getJson('/api/accounts/activity?allAccounts='.($allAccounts ? '1' : '0'));
+    return getJson('/api/accounts/activity?allAccounts='.($allAccounts ? '1' : '0'));
 }
 
 it('computes current streak, longest streak, and longest study day from daily activity', function () {

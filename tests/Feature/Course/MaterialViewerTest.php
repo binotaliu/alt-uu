@@ -1,7 +1,6 @@
 <?php
 
 use AltUU\Domains\Course\Actions\ParseMaterialContent;
-use AltUU\Domains\Course\Support\MaterialProxyUrl;
 use App\Services\AccountActiveProfile;
 use App\Services\UUCourseClient;
 use App\Services\UUProxyClient;
@@ -31,10 +30,8 @@ it('parses html content and rewrites same-host resources into material proxy URL
     expect($parsed->downloadUrl)->toBeNull();
     expect($parsed->htmlContent)->toContain('第一章內容');
 
-    $expectedProxyUrl = route('material.content', [
-        'encodedUrl' => MaterialProxyUrl::encode('https://uu.nou.edu.tw/images/cover.jpg'),
-    ]);
-    expect($parsed->htmlContent)->toContain($expectedProxyUrl);
+    expect($parsed->htmlContent)->toContain('https://uu.nou.edu.tw/images/cover.jpg')
+        ->not->toContain('material-proxy');
 });
 
 it('extracts video and subtitle URLs when flowplayer payload exists', function () {
@@ -64,8 +61,5 @@ it('extracts video and subtitle URLs when flowplayer payload exists', function (
     expect($parsed->videoUrl)->toBe('https://media.example.com/videos/lesson-2.mp4');
     expect($parsed->downloadUrl)->toBeNull();
 
-    $expectedSubtitleProxy = route('material.content', [
-        'encodedUrl' => MaterialProxyUrl::encode('https://uu.nou.edu.tw/subs/lesson-2.vtt'),
-    ]);
-    expect($parsed->subtitleUrl)->toBe($expectedSubtitleProxy);
+    expect($parsed->subtitleUrl)->toBe('https://uu.nou.edu.tw/subs/lesson-2.vtt');
 });

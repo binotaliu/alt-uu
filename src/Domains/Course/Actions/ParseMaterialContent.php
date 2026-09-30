@@ -8,7 +8,6 @@ use AltUU\Domains\Course\Actions\Results\ParsedMaterialContentResult;
 use AltUU\Domains\Course\Enums\VideoProvider;
 use AltUU\Domains\Course\Support\DownloadClassification;
 use AltUU\Domains\Course\Support\MaterialDownloadClassifier;
-use AltUU\Domains\Course\Support\MaterialProxyUrl;
 use AltUU\Domains\Course\Support\VideoExtractors\ExtractedVideo;
 use AltUU\Domains\Course\Support\VideoExtractors\FlowplayerJsConfigVideoExtractor;
 use AltUU\Domains\Course\Support\VideoExtractors\Html5SourceVideoExtractor;
@@ -81,18 +80,17 @@ final readonly class ParseMaterialContent
                 $subtitleHost = parse_url($resolvedSubtitleUrl, PHP_URL_HOST);
 
                 if (is_string($subtitleHost) && $subtitleHost === $baseHost) {
-                    $subtitleUrl = route('material.content', ['encodedUrl' => MaterialProxyUrl::encode($resolvedSubtitleUrl)]);
+                    $subtitleUrl = $resolvedSubtitleUrl;
                 }
             }
         }
 
-        $htmlContent = $this->cleanHtml($html, $url, $baseHost);
+        $htmlContent = $this->cleanHtml($html, $url);
 
         return new ParsedMaterialContentResult(
             videoUrl: $videoUrl,
             subtitleUrl: $subtitleUrl,
             downloadUrl: null,
-            downloadProxyUrl: null,
             downloadFileName: null,
             downloadFileExtension: null,
             isPdf: false,
@@ -106,7 +104,6 @@ final readonly class ParseMaterialContent
             videoUrl: null,
             subtitleUrl: null,
             downloadUrl: null,
-            downloadProxyUrl: null,
             downloadFileName: null,
             downloadFileExtension: null,
             isPdf: false,
@@ -137,7 +134,6 @@ final readonly class ParseMaterialContent
             videoUrl: null,
             subtitleUrl: null,
             downloadUrl: $url,
-            downloadProxyUrl: route('material.content', ['encodedUrl' => MaterialProxyUrl::encode($url)]),
             downloadFileName: $this->buildDownloadFileName($url, $classification),
             downloadFileExtension: $classification->extension !== '' ? $classification->extension : null,
             isPdf: $classification->isPdf,
@@ -255,7 +251,7 @@ final readonly class ParseMaterialContent
         return "{$scheme}://{$host}{$port}{$path}{$query}{$fragment}";
     }
 
-    private function cleanHtml(string $html, string $baseUrl, string $baseHost): string
+    private function cleanHtml(string $html, string $baseUrl): string
     {
         $crawler = new Crawler($html);
 
@@ -300,7 +296,7 @@ final readonly class ParseMaterialContent
             ? trim($this->renderChildHtml($body))
             : trim($this->renderHtml($document ?? $domNode));
 
-        return $this->rewriteProxySrcs($this->purifyHtml($rawHtml), $baseHost);
+        return $this->purifyHtml($rawHtml);
     }
 
     private function renderChildHtml(\DOMNode $parent): string
@@ -413,23 +409,6 @@ final readonly class ParseMaterialContent
         }
 
         return '/'.implode('/', $normalized);
-    }
-
-    private function rewriteProxySrcs(string $html, string $baseHost): string
-    {
-        return preg_replace_callback(
-            '/\bsrc="(https?:\/\/[^"]+)"/i',
-            function (array $m) use ($baseHost): string {
-                $host = parse_url($m[1], PHP_URL_HOST);
-
-                if (is_string($host) && $host === $baseHost) {
-                    return 'src="'.route('material.content', ['encodedUrl' => MaterialProxyUrl::encode($m[1])]).'"';
-                }
-
-                return $m[0];
-            },
-            $html,
-        ) ?? $html;
     }
 
     private function removeEmptyElementsDom(\DOMDocument $document): void

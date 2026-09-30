@@ -4,57 +4,18 @@ declare(strict_types=1);
 
 namespace App\NativeComponents\Courses\Material;
 
-use AltUU\Domains\Course\Support\MaterialProxyUrl;
-
 /**
  * URL helpers of the Material screen.
  *
- * `ParseMaterialContent` was written for the WebView, so it rewrites
- * same-host `src` attributes, subtitle URLs and download URLs to the local
- * `material-proxy/{encoded}` route. The native html view and player load
- * URLs themselves and cannot reach that route, so they get the upstream URL
- * back (decoded from the proxy URL).
+ * `ParseMaterialContent` returns upstream URLs, which the native html view and
+ * player load themselves.
  */
 final class MaterialUrls
 {
-    private const string PROXY_PATTERN = '#https?://[^\s"\'<>]*?/material-proxy/([A-Za-z0-9_-]+)(?:\?[^\s"\'<>]*)?#';
-
     private const array TRONCLASS_PREFIXES = [
         'https://tronclass.nou.edu.tw/',
         'https://nou.tronclass.com.tw/',
     ];
-
-    /**
-     * Upstream URL behind a proxy URL; every other URL is returned as it is.
-     */
-    public static function direct(?string $url): ?string
-    {
-        if ($url === null || $url === '') {
-            return $url;
-        }
-
-        if (preg_match(self::PROXY_PATTERN, $url, $matches) !== 1) {
-            return $url;
-        }
-
-        return MaterialProxyUrl::decode($matches[1]) ?? $url;
-    }
-
-    /**
-     * Replaces every proxy URL inside an HTML fragment by its upstream URL.
-     */
-    public static function directHtml(?string $html): string
-    {
-        if ($html === null || $html === '') {
-            return '';
-        }
-
-        return preg_replace_callback(
-            self::PROXY_PATTERN,
-            static fn (array $matches): string => MaterialProxyUrl::decode($matches[1]) ?? $matches[0],
-            $html,
-        ) ?? $html;
-    }
 
     public static function isTronclass(string $url): bool
     {

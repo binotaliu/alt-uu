@@ -658,14 +658,14 @@ final class Material extends NativeComponent
     }
 
     /**
-     * Keeps the content and the values derived from it (proxy URLs replaced by
-     * upstream URLs; computed once, not on every 1 s render).
+     * Keeps the content and the values derived from it (computed once, not on
+     * every 1 s render).
      */
     private function applyContent(?ParsedMaterialContentViewModel $content): void
     {
         $this->content = $content;
-        $this->html = trim(MaterialUrls::directHtml($content?->htmlContent));
-        $this->subtitleUrl = MaterialUrls::direct($content?->subtitleUrl);
+        $this->html = trim((string) $content?->htmlContent);
+        $this->subtitleUrl = $content?->subtitleUrl;
         $this->downloadUrl = $content?->downloadUrl;
     }
 

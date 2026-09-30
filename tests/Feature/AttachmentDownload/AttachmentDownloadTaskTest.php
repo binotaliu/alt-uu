@@ -9,7 +9,8 @@ use Illuminate\Support\Facades\Storage;
 use Mockery as MockeryManager;
 
 use function Pest\Laravel\assertDatabaseHas;
-use function Pest\Laravel\withCookie;
+use function Pest\Laravel\getJson;
+use function Pest\Laravel\postJson;
 
 function fakeHunguSessionStore(): void
 {
@@ -41,12 +42,11 @@ it('queues an attachment download task', function () {
     $sessionStore->shouldReceive('put');
     app()->instance(UUSessionStore::class, $sessionStore);
 
-    $response = withCookie(config('hungu.app_boot_cookie_name'), '1')
-        ->postJson('/api/attachments/download-tasks', [
-            'cid' => '1001',
-            'sourceUrl' => 'https://uu.nou.edu.tw/learn/attachment/sample.pdf',
-            'filename' => 'sample.pdf',
-        ]);
+    $response = postJson('/api/attachments/download-tasks', [
+        'cid' => '1001',
+        'sourceUrl' => 'https://uu.nou.edu.tw/learn/attachment/sample.pdf',
+        'filename' => 'sample.pdf',
+    ]);
 
     $response->assertSuccessful();
     $response->assertJsonPath('status', AttachmentDownload::STATUS_QUEUED);
@@ -66,13 +66,12 @@ it('queues an attachment download task for the school portal source', function (
     Queue::fake();
     fakeHunguSessionStore();
 
-    $response = withCookie(config('hungu.app_boot_cookie_name'), '1')
-        ->postJson('/api/attachments/download-tasks', [
-            'cid' => '1001',
-            'sourceUrl' => 'https://nouapp.nou.edu.tw/device/compliant/qryass/download?type=homework&filename=1153_900001_1&extension=pdf',
-            'filename' => '1153_900001_1.pdf',
-            'source' => 'school_portal',
-        ]);
+    $response = postJson('/api/attachments/download-tasks', [
+        'cid' => '1001',
+        'sourceUrl' => 'https://nouapp.nou.edu.tw/device/compliant/qryass/download?type=homework&filename=1153_900001_1&extension=pdf',
+        'filename' => '1153_900001_1.pdf',
+        'source' => 'school_portal',
+    ]);
 
     $response->assertSuccessful();
     $response->assertJsonPath('status', AttachmentDownload::STATUS_QUEUED);
@@ -91,12 +90,11 @@ it('rejects a school portal download task pointing at a different host', functio
     Queue::fake();
     fakeHunguSessionStore();
 
-    $response = withCookie(config('hungu.app_boot_cookie_name'), '1')
-        ->postJson('/api/attachments/download-tasks', [
-            'cid' => '1001',
-            'sourceUrl' => 'https://uu.nou.edu.tw/learn/attachment/sample.pdf',
-            'source' => 'school_portal',
-        ]);
+    $response = postJson('/api/attachments/download-tasks', [
+        'cid' => '1001',
+        'sourceUrl' => 'https://uu.nou.edu.tw/learn/attachment/sample.pdf',
+        'source' => 'school_portal',
+    ]);
 
     $response->assertForbidden();
     Queue::assertNothingPushed();
@@ -117,11 +115,10 @@ it('rejects attachment download task for an external host', function () {
     $sessionStore->shouldReceive('put');
     app()->instance(UUSessionStore::class, $sessionStore);
 
-    $response = withCookie(config('hungu.app_boot_cookie_name'), '1')
-        ->postJson('/api/attachments/download-tasks', [
-            'cid' => '1001',
-            'sourceUrl' => 'https://example.com/evil.pdf',
-        ]);
+    $response = postJson('/api/attachments/download-tasks', [
+        'cid' => '1001',
+        'sourceUrl' => 'https://example.com/evil.pdf',
+    ]);
 
     $response->assertForbidden();
     Queue::assertNothingPushed();
@@ -140,8 +137,7 @@ it('returns attachment download task status', function () {
         'file_size' => 1024,
     ]);
 
-    $response = withCookie(config('hungu.app_boot_cookie_name'), '1')
-        ->getJson('/api/attachments/download-tasks/'.$task->id);
+    $response = getJson('/api/attachments/download-tasks/'.$task->id);
 
     $response->assertSuccessful();
     $response->assertJsonPath('taskId', $task->id);
@@ -178,8 +174,7 @@ it('clears downloaded attachments by endpoint', function () {
         'expires_at' => Date::now()->addDay(),
     ]);
 
-    $response = withCookie(config('hungu.app_boot_cookie_name'), '1')
-        ->postJson('/api/attachments/download-tasks/cleanup');
+    $response = postJson('/api/attachments/download-tasks/cleanup');
 
     $response->assertSuccessful();
     $response->assertJsonPath('ok', true);
@@ -211,12 +206,11 @@ it('prunes expired downloaded attachments before queueing a new task', function 
         'expires_at' => Date::now()->subHour(),
     ]);
 
-    $response = withCookie(config('hungu.app_boot_cookie_name'), '1')
-        ->postJson('/api/attachments/download-tasks', [
-            'cid' => '1001',
-            'sourceUrl' => 'https://uu.nou.edu.tw/learn/attachment/new.pdf',
-            'filename' => 'new.pdf',
-        ]);
+    $response = postJson('/api/attachments/download-tasks', [
+        'cid' => '1001',
+        'sourceUrl' => 'https://uu.nou.edu.tw/learn/attachment/new.pdf',
+        'filename' => 'new.pdf',
+    ]);
 
     $response->assertSuccessful();
 

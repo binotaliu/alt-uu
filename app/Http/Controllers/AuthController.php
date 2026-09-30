@@ -23,8 +23,6 @@ final class AuthController
             ], 422);
         }
 
-        $this->queueAppBootCookie();
-
         return response()->json(['ok' => true]);
     }
 
@@ -33,19 +31,5 @@ final class AuthController
         $logout();
 
         return response()->json(['ok' => true]);
-    }
-
-    private function queueAppBootCookie(): void
-    {
-        cookie()->queue(cookie(
-            $this->appBootCookieName(),
-            '1',
-            (int) config('hungu.cookie_minutes', 720),
-        ));
-    }
-
-    private function appBootCookieName(): string
-    {
-        return (string) config('hungu.app_boot_cookie_name', 'hungu_app_boot');
     }
 }

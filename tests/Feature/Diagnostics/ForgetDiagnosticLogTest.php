@@ -9,8 +9,8 @@ use App\Services\Diagnostics\DiagnosticRecorder;
 use App\Services\UUSessionStore;
 use Illuminate\Support\Facades\Http;
 
+use function Pest\Laravel\deleteJson;
 use function Pest\Laravel\post;
-use function Pest\Laravel\withCookie;
 
 function seedAccountForDiagnosticsCleanup(string $username = 's1234567'): Account
 {
@@ -38,8 +38,7 @@ function seedAccountForDiagnosticsCleanup(string $username = 's1234567'): Accoun
 
 function removeAccountForDiagnosticsCleanup(Account $account)
 {
-    return withCookie(config('hungu.app_boot_cookie_name'), '1')
-        ->deleteJson(route('api.accounts.destroy', ['account' => $account->id]));
+    return deleteJson(route('api.accounts.destroy', ['account' => $account->id]));
 }
 
 beforeEach(function () {

@@ -12,7 +12,6 @@ final readonly class ParsedMaterialContentResult
         public ?string $videoUrl,
         public ?string $subtitleUrl,
         public ?string $downloadUrl,
-        public ?string $downloadProxyUrl,
         public ?string $downloadFileName,
         public ?string $downloadFileExtension,
         public bool $isPdf,

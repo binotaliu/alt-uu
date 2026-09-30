@@ -16,10 +16,6 @@ use App\Http\Controllers\Api\ClearDiagnosticEventsController;
 use App\Http\Controllers\Api\CourseGradeController;
 use App\Http\Controllers\Api\CourseHomeworksController;
 use App\Http\Controllers\Api\CourseLastSeenMaterialController;
-use App\Http\Controllers\Api\CourseLearningTimesController;
-use App\Http\Controllers\Api\CourseNodeContentController;
-use App\Http\Controllers\Api\CourseNodeResourcesController;
-use App\Http\Controllers\Api\CoursePathController;
 use App\Http\Controllers\Api\CourseSchoolPortalInfoController;
 use App\Http\Controllers\Api\CourseSelfExamsController;
 use App\Http\Controllers\Api\CourseTasksCountController;
@@ -37,7 +33,6 @@ use App\Http\Controllers\Api\ListAccountsController;
 use App\Http\Controllers\Api\ListConnectivityServicesController;
 use App\Http\Controllers\Api\ListCoursesController;
 use App\Http\Controllers\Api\ListDiagnosticEventsController;
-use App\Http\Controllers\Api\MaterialContentProxyController;
 use App\Http\Controllers\Api\MaterialDirectoryInspectionController;
 use App\Http\Controllers\Api\MaterialPreferenceController;
 use App\Http\Controllers\Api\MaterialSourceInspectionController;
@@ -60,17 +55,13 @@ use App\Http\Controllers\Api\SwitchAccountController;
 use App\Http\Controllers\Api\SyncModerationController;
 use App\Http\Controllers\Api\UnlikeDiscussPostController;
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\BootstrapSessionController;
 use App\Http\Controllers\StudyTimeController;
 use App\Http\Middleware\EnsureHunguSession;
 use App\Http\Middleware\EnsureMaterialSourceViewerEnabled;
-use App\Services\UUSessionStore;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/login', [AuthController::class, 'store'])->name('login.store');
 Route::post('/logout', [AuthController::class, 'destroy'])->name('logout');
-Route::post('/api/auth/bootstrap-session', BootstrapSessionController::class)->name('api.auth.bootstrap-session');
 
 // Reachable without a live Hungu session: a device's local account list must
 // stay available so the frontend can offer an account picker / re-login flow
@@ -138,10 +129,6 @@ Route::middleware([EnsureHunguSession::class])->group(function (): void {
         Route::get('content/parsed', ParsedMaterialContentController::class);
     });
 
-    Route::get('material-proxy/{encodedUrl}', MaterialContentProxyController::class)
-        ->where('encodedUrl', '[A-Za-z0-9_-]+')
-        ->name('material.content');
-
     Route::prefix('api')->group(function (): void {
         Route::get('/auth/profile', SessionProfileController::class)->name('api.auth.profile');
 
@@ -149,8 +136,6 @@ Route::middleware([EnsureHunguSession::class])->group(function (): void {
         Route::get('/courses/tasks-count', CourseTasksCountController::class)->name('api.courses.tasks-count');
         Route::get('/grades', AllCourseGradesController::class)->name('api.grades.index');
         Route::get('/exam-agenda', ExamAgendaController::class)->name('api.exam-agenda.index');
-        Route::get('/courses/{cid}/path', CoursePathController::class)->name('api.courses.path');
-        Route::get('/courses/{cid}/learning-times', CourseLearningTimesController::class)->name('api.courses.learning-times');
         Route::get('/courses/{cid}/homeworks', CourseHomeworksController::class)->name('api.courses.homeworks');
         Route::get('/courses/{cid}/grades', CourseGradeController::class)->name('api.courses.grades');
         Route::get('/courses/{cid}/self-exams', CourseSelfExamsController::class)->name('api.courses.self-exams');
@@ -158,8 +143,6 @@ Route::middleware([EnsureHunguSession::class])->group(function (): void {
             ->name('api.courses.nou-tools-info');
         Route::get('/courses/{cid}/school-portal-info', CourseSchoolPortalInfoController::class)
             ->name('api.courses.school-portal-info');
-        Route::get('/courses/{cid}/nodes/{scoid}/resources', CourseNodeResourcesController::class)->name('api.courses.node.resources');
-        Route::get('/courses/{cid}/nodes/{scoid}/content', CourseNodeContentController::class)->name('api.courses.node.content');
 
         // Needs the live Hungu session, unlike the log: it fetches the school's
         // own pages to show what they actually contain.
@@ -227,28 +210,5 @@ Route::middleware([EnsureHunguSession::class])->group(function (): void {
             Route::post('/purchase', PurchaseSubscriptionController::class)->name('api.subscription.purchase');
             Route::post('/restore', RestoreSubscriptionController::class)->name('api.subscription.restore');
         });
-
-        Route::get('/hungu-cookies', static function (): JsonResponse {
-            $session = app(UUSessionStore::class)->get();
-
-            if (! is_array($session)) {
-                return response()->json(['cookies' => [], 'domain' => '']);
-            }
-
-            $cookies = $session['cookies'] ?? [];
-            $baseUrl = $session['base_url'] ?? '';
-            $domain = parse_url($baseUrl, PHP_URL_HOST) ?: '';
-
-            return response()->json([
-                'cookies' => collect($cookies)
-                    ->map(static fn (string $value, string $name): array => [
-                        'name' => $name,
-                        'value' => $value,
-                        'domain' => $domain,
-                    ])
-                    ->values(),
-                'domain' => $domain,
-            ]);
-        })->name('api.hungu-cookies');
     });
 });

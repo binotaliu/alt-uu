@@ -215,8 +215,7 @@ it('keeps the playback progress api response shape', function () {
         'hungu_upload_success' => true,
     ]);
 
-    $this->withCookie(config('hungu.app_boot_cookie_name'), '1')
-        ->getJson('/api/playback-progress/1001/N-1')
+    $this->getJson('/api/playback-progress/1001/N-1')
         ->assertSuccessful()
         ->assertJsonPath('progress.cid', '1001')
         ->assertJsonPath('progress.activityId', 'N-1')
@@ -226,8 +225,7 @@ it('keeps the playback progress api response shape', function () {
         ->assertJsonPath('progress.hunguUploadSuccess', true)
         ->assertJsonStructure(['progress' => ['updatedAt']]);
 
-    $this->withCookie(config('hungu.app_boot_cookie_name'), '1')
-        ->getJson('/api/playback-progress/1001/N-missing')
+    $this->getJson('/api/playback-progress/1001/N-missing')
         ->assertSuccessful()
         ->assertExactJson(['progress' => null]);
 });
@@ -243,13 +241,11 @@ it('keeps the last seen material api response shape', function () {
         'media_duration_seconds' => 300.0,
     ]);
 
-    $this->withCookie(config('hungu.app_boot_cookie_name'), '1')
-        ->getJson('/api/courses/1001/last-seen-material')
+    $this->getJson('/api/courses/1001/last-seen-material')
         ->assertSuccessful()
         ->assertExactJson(['activityId' => 'N-2', 'positionSeconds' => 12.5, 'mediaDurationSeconds' => 300.0]);
 
-    $this->withCookie(config('hungu.app_boot_cookie_name'), '1')
-        ->getJson('/api/courses/9999/last-seen-material')
+    $this->getJson('/api/courses/9999/last-seen-material')
         ->assertSuccessful()
         ->assertExactJson(['activityId' => null, 'positionSeconds' => null, 'mediaDurationSeconds' => null]);
 });

@@ -12,8 +12,8 @@ use Illuminate\Testing\Fluent\AssertableJson;
 use Mockery as MockeryManager;
 
 use function Pest\Laravel\assertDatabaseHas;
+use function Pest\Laravel\getJson;
 use function Pest\Laravel\postJson;
-use function Pest\Laravel\withCookie;
 
 it('uploads reading time through proxy endpoint and stores playback progress', function () {
     $account = Account::factory()->create();
@@ -298,8 +298,7 @@ it('returns playback progress via API endpoint', function () {
     $sessionStore->shouldReceive('put');
     app()->instance(UUSessionStore::class, $sessionStore);
 
-    $response = withCookie(config('hungu.app_boot_cookie_name'), '1')
-        ->getJson('/api/playback-progress/1001/N-1');
+    $response = getJson('/api/playback-progress/1001/N-1');
     $response->assertSuccessful();
     $response->assertJson(fn (AssertableJson $json) => $json
         ->where('progress.cid', '1001')
@@ -361,8 +360,7 @@ it('returns the most recently updated activity id as last seen material', functi
         'hungu_upload_success' => false,
     ]);
 
-    $response = withCookie(config('hungu.app_boot_cookie_name'), '1')
-        ->getJson('/api/courses/1001/last-seen-material');
+    $response = getJson('/api/courses/1001/last-seen-material');
 
     $response->assertSuccessful();
     $response->assertJsonPath('activityId', 'N-2');
@@ -386,8 +384,7 @@ it('returns null activity id when there is no playback progress for the course',
     $sessionStore->shouldReceive('put');
     app()->instance(UUSessionStore::class, $sessionStore);
 
-    $response = withCookie(config('hungu.app_boot_cookie_name'), '1')
-        ->getJson('/api/courses/1001/last-seen-material');
+    $response = getJson('/api/courses/1001/last-seen-material');
 
     $response->assertSuccessful();
     $response->assertJsonPath('activityId', null);

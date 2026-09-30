@@ -1,6 +1,5 @@
 <?php
 
-use AltUU\Domains\Course\Support\MaterialProxyUrl;
 use App\Services\AccountCredentialsStore;
 use App\Services\UUSessionStore;
 use Illuminate\Support\Facades\Http;
@@ -68,11 +67,10 @@ it('returns video url and cleaned html for video content', function () {
 
     $response->assertOk();
     $response->assertJsonPath('videoUrl', 'https://example.com/video/playlist.m3u8');
-    $response->assertJsonStructure(['videoUrl', 'subtitleUrl', 'downloadUrl', 'downloadProxyUrl', 'downloadFileName', 'downloadFileExtension', 'isPdf', 'htmlContent']);
+    $response->assertJsonStructure(['videoUrl', 'subtitleUrl', 'downloadUrl', 'downloadFileName', 'downloadFileExtension', 'isPdf', 'htmlContent']);
 
     $data = $response->json();
-    $expectedSubtitleUrl = route('material.content', ['encodedUrl' => MaterialProxyUrl::encode('https://example.com/01.vtt')]);
-    expect($data['subtitleUrl'])->toBe($expectedSubtitleUrl);
+    expect($data['subtitleUrl'])->toBe('https://example.com/01.vtt');
     expect($data['downloadUrl'])->toBeNull();
     expect($data['htmlContent'])->not->toContain('<script');
     expect($data['htmlContent'])->not->toContain('flowplayer');
@@ -169,12 +167,9 @@ it('returns a download result for pdf material links without fetching the body',
     $response->assertOk();
 
     $data = $response->json();
-    $expectedProxyUrl = route('material.content', ['encodedUrl' => MaterialProxyUrl::encode($url)]);
-
     expect($data['videoUrl'])->toBeNull();
     expect($data['subtitleUrl'])->toBeNull();
     expect($data['downloadUrl'])->toBe($url);
-    expect($data['downloadProxyUrl'])->toBe($expectedProxyUrl);
     expect($data['downloadFileExtension'])->toBe('pdf');
     expect($data['isPdf'])->toBeTrue();
     expect($data['htmlContent'])->toBe('');
@@ -191,10 +186,7 @@ it('returns a download result for zip material links without fetching the body',
     $response->assertOk();
 
     $data = $response->json();
-    $expectedProxyUrl = route('material.content', ['encodedUrl' => MaterialProxyUrl::encode($url)]);
-
     expect($data['downloadUrl'])->toBe($url);
-    expect($data['downloadProxyUrl'])->toBe($expectedProxyUrl);
     expect($data['downloadFileName'])->toBe('example.zip');
     expect($data['downloadFileExtension'])->toBe('zip');
     expect($data['isPdf'])->toBeFalse();
@@ -337,11 +329,9 @@ it('rewrites relative src and anchor href attributes in parsed html', function (
 
     $data = $response->json();
 
-    $expectedImageUrl = route('material.content', ['encodedUrl' => MaterialProxyUrl::encode('https://example.com/content/unit/images/cover.jpg')]);
-    $expectedPlayerUrl = route('material.content', ['encodedUrl' => MaterialProxyUrl::encode('https://example.com/media/embed/player.html')]);
-
-    expect($data['htmlContent'])->toContain($expectedImageUrl);
-    expect($data['htmlContent'])->toContain($expectedPlayerUrl);
+    expect($data['htmlContent'])->toContain('src="https://example.com/content/unit/images/cover.jpg"');
+    expect($data['htmlContent'])->toContain('src="https://example.com/media/embed/player.html"');
+    expect($data['htmlContent'])->not->toContain('material-proxy');
     expect($data['htmlContent'])->toContain('href="https://example.com/content/files/lesson.pdf"');
     expect($data['htmlContent'])->toContain('href="https://example.com/content/unit/page.html#section-2"');
     expect($data['htmlContent'])->toContain('target="_blank"');
@@ -392,34 +382,10 @@ it('converts big5 encoded html to utf-8', function () {
     expect(mb_check_encoding($data['htmlContent'], 'UTF-8'))->toBeTrue();
 });
 
-it('proxies material content through the application', function () {
-    Http::fake([
-        'https://example.com/file.png' => Http::response(
-            'PNGDATA',
-            200,
-            ['content-type' => 'image/png'],
-        ),
-    ]);
-
-    $encoded = MaterialProxyUrl::encode('https://example.com/file.png');
-    $response = get(route('material.content', ['encodedUrl' => $encoded]));
-
-    $response->assertOk();
-    $response->assertHeader('Content-Type', 'image/png');
-
-    if (str_contains($_ENV['PHP_SELF'] ?? '', 'native.php')) {
-        $response->assertHeader('X-Body-Encoding', 'base64');
-        expect($response->getContent())->toBe(base64_encode('PNGDATA'));
-    } else {
-        $response->assertHeaderMissing('X-Body-Encoding');
-        expect($response->getContent())->toBe('PNGDATA');
-    }
-});
-
-it('redirects guest to login when session is missing', function () {
+it('answers 401 session_invalid when the session is missing', function () {
     app(UUSessionStore::class)->forget();
 
     $response = get('/materials/content/parsed?url=https://uu.nou.edu.tw/page.html');
 
-    $response->assertRedirect('/login');
+    $response->assertUnauthorized()->assertJsonPath('code', 'session_invalid');
 });

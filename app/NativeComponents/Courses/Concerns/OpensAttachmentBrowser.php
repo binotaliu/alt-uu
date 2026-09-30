@@ -12,7 +12,7 @@ use Native\Mobile\Facades\Browser;
 /**
  * Opens a homework / self-exam page in the native in-app browser with the
  * Hungu session cookies and the mobile stylesheet injected (port of
- * `openAttachmentInBrowser` + `/api/hungu-cookies`). Falls back to a plain
+ * the SPA's `openAttachmentInBrowser` and its cookie endpoint). Falls back to a plain
  * in-app browser when the attachment bridge is unavailable.
  */
 trait OpensAttachmentBrowser

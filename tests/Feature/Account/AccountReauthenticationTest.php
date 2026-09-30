@@ -9,8 +9,6 @@ use Illuminate\Support\Facades\Http;
 use function Pest\Laravel\getJson;
 use function Pest\Laravel\postJson;
 
-// withBootCookie() is declared globally in AccountSwitchingTest.php.
-
 it('returns a session_invalid code and the failed account id when the active session and remembered login both fail', function () {
     app(AccountCredentialsStore::class)->put('s1234567', 'wrong-secret');
     $account = Account::query()->where('username', 's1234567')->firstOrFail();
@@ -23,7 +21,7 @@ it('returns a session_invalid code and the failed account id when the active ses
         ]),
     ]);
 
-    $response = withBootCookie()->getJson('/api/courses');
+    $response = getJson('/api/courses');
 
     $response->assertUnauthorized();
     $response->assertJson([
@@ -84,10 +82,10 @@ it('can still switch to a different account after the active one dies, without g
     // that left every /api/accounts/* route permanently 401ing since
     // EnsureHunguSession re-checked that (now dead) account's session on
     // every subsequent request.
-    withBootCookie()->getJson('/api/courses')->assertUnauthorized();
+    getJson('/api/courses')->assertUnauthorized();
     expect(app(AccountActiveProfile::class)->get())->toBe($first->id);
 
-    $response = withBootCookie()->postJson("/api/accounts/{$second->id}/switch");
+    $response = postJson("/api/accounts/{$second->id}/switch");
 
     $response->assertSuccessful();
     $response->assertJson(['ok' => true]);
@@ -136,7 +134,7 @@ it('reauthenticates a soft-deleted account by password and restores it as active
 
     // Trigger the middleware's remembered-login failure, which soft-deletes
     // the account but leaves it as the (now dead) active profile.
-    withBootCookie()->getJson('/api/courses')->assertUnauthorized();
+    getJson('/api/courses')->assertUnauthorized();
 
     expect(Account::query()->find($account->id))->toBeNull();
     expect(app(AccountActiveProfile::class)->get())->toBe($account->id);

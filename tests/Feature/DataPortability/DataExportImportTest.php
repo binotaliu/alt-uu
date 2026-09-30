@@ -9,7 +9,8 @@ use App\Services\AccountCredentialsStore;
 use App\Services\UUSessionStore;
 use Illuminate\Testing\TestResponse;
 
-use function Pest\Laravel\withCookie;
+use function Pest\Laravel\getJson;
+use function Pest\Laravel\postJson;
 
 function createDataPortabilityAccount(string $username): Account
 {
@@ -51,14 +52,9 @@ function activateDataPortabilitySubscription(): void
     );
 }
 
-function withDataPortabilityBootCookie()
-{
-    return withCookie(config('hungu.app_boot_cookie_name'), '1');
-}
-
 function exportDataPortability(): TestResponse
 {
-    return withDataPortabilityBootCookie()->getJson('/api/data-export');
+    return getJson('/api/data-export');
 }
 
 it('allows export without an active subscription', function () {
@@ -102,7 +98,7 @@ it('exports accounts, playback progress, and daily activity keyed by username', 
 it('rejects import without an active subscription', function () {
     createDataPortabilityAccount('s3333333');
 
-    $response = withDataPortabilityBootCookie()->postJson('/api/data-export/import', [
+    $response = postJson('/api/data-export/import', [
         'accounts' => ['s3333333' => 1],
         'playbackProgress' => [],
         'accountDailyActivities' => [],
@@ -144,7 +140,7 @@ it('imports matched accounts and skips usernames with no local account', functio
         ],
     ];
 
-    $response = withDataPortabilityBootCookie()->postJson('/api/data-export/import', $payload);
+    $response = postJson('/api/data-export/import', $payload);
 
     $response->assertSuccessful();
     $response->assertJsonPath('importedAccountsCount', 1);
@@ -182,8 +178,8 @@ it('does not duplicate rows when the same data is imported twice', function () {
         ],
     ];
 
-    withDataPortabilityBootCookie()->postJson('/api/data-export/import', $payload)->assertSuccessful();
-    withDataPortabilityBootCookie()->postJson('/api/data-export/import', $payload)->assertSuccessful();
+    postJson('/api/data-export/import', $payload)->assertSuccessful();
+    postJson('/api/data-export/import', $payload)->assertSuccessful();
 
     expect(PlaybackProgress::query()->where('account_id', $account->id)->where('cid', '1003')->count())->toBe(1)
         ->and(AccountDailyActivity::query()->where('account_id', $account->id)->where('activity_date', '2026-07-08')->count())->toBe(1);

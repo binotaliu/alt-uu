@@ -239,36 +239,6 @@ class UUProxyClient
     }
 
     /**
-     * Build the upstream request a native shell needs to fetch material content
-     * itself, so the bytes stream straight to the WebView instead of through PHP.
-     *
-     * @return array{url: string, headers: array<string, string>}
-     */
-    public function materialFetchHandoff(string $url): array
-    {
-        $session = $this->currentSession();
-        $baseUrl = $this->normalizeBaseUrl((string) Arr::get($session, 'base_url', ''));
-        $ua = (string) Arr::get($session, 'ua', config('hungu.user_agent'));
-        $cookies = Arr::get($session, 'cookies', []);
-
-        $headers = array_filter(
-            [
-                'User-Agent' => $ua,
-                'Origin' => $baseUrl,
-                'Referer' => $baseUrl.'/learn/index.php',
-                'Cookie' => $this->cookieHeader(is_array($cookies) ? $cookies : []),
-                'Accept' => '*/*',
-            ],
-            static fn (string $value): bool => $value !== '',
-        );
-
-        return [
-            'url' => $url,
-            'headers' => $headers,
-        ];
-    }
-
-    /**
      * @return array{status: int, body: string, headers: array<string, string>}
      */
     public function fetchCourseLearningTimePage(string $cid): array

@@ -169,13 +169,7 @@ it('renders an article through the html view with the font scale and dark prefer
         ->and($views[0]['props']['color_scheme'])->toBe('dark');
 });
 
-it('gives html-view and player upstream urls instead of proxy urls', function (): void {
-    $proxied = route('material.content', ['encodedUrl' => 'aHR0cHM6Ly91dS5ub3UuZWR1LnR3L21lZGlhL3BpYy5wbmc']);
-
-    expect(MaterialUrls::direct($proxied))->toBe('https://uu.nou.edu.tw/media/pic.png')
-        ->and(MaterialUrls::direct('https://x.test/a.vtt'))->toBe('https://x.test/a.vtt')
-        ->and(MaterialUrls::directHtml('<img src="'.$proxied.'">'))->toBe('<img src="https://uu.nou.edu.tw/media/pic.png">');
-
+it('gives html-view and player upstream urls', function (): void {
     $html = materialNodes(openMaterial('H1'), 'html_view')[0]['props']['html'];
 
     expect($html)->toContain('https://uu.nou.edu.tw/media/pic.png')->not->toContain('material-proxy');

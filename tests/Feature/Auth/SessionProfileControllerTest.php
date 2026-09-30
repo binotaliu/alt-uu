@@ -5,7 +5,6 @@ use App\Services\AccountCredentialsStore;
 use App\Services\UUSessionStore;
 
 use function Pest\Laravel\getJson;
-use function Pest\Laravel\withCookie;
 
 it('rejects an unauthenticated request', function () {
     getJson('/api/auth/profile')->assertUnauthorized();
@@ -29,7 +28,7 @@ it('returns the active session profile', function () {
 
     Account::query()->where('username', 's1234567')->update(['nickname' => '暱稱測試']);
 
-    $response = withCookie(config('hungu.app_boot_cookie_name'), '1')->getJson('/api/auth/profile');
+    $response = getJson('/api/auth/profile');
 
     $response->assertSuccessful();
     $response->assertExactJson([

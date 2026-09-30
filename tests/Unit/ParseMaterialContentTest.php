@@ -1,7 +1,6 @@
 <?php
 
 use AltUU\Domains\Course\Actions\ParseMaterialContent;
-use AltUU\Domains\Course\Support\MaterialProxyUrl;
 use App\Services\AccountActiveProfile;
 use App\Services\UUCourseClient;
 use App\Services\UUProxyClient;
@@ -99,14 +98,14 @@ HTML;
 
     expect($images->count())->toBeGreaterThan(0);
 
-    $expectedUrl = route('material.content', ['encodedUrl' => MaterialProxyUrl::encode('https://example.com/course/img.png')]);
+    $expectedUrl = 'https://example.com/course/img.png';
 
     expect($images->first()->attr('src'))->toBe($expectedUrl);
 });
 
-test('it preserves same-host src after purification in nativephp context', function () {
+test('it keeps same-host src as the upstream URL after purification', function () {
     // Upstream always sends https:// URLs; this test verifies Purifier does not strip them
-    // and they are correctly rewritten to the proxy route (which may become php:// in NativePHP).
+    // and they stay direct upstream URLs.
     $html = '<div><img src="https://example.com/710071.jpg" alt="封面圖片" width="900" height="600"></div>';
 
     $proxyClient = Mockery::mock(UUProxyClient::class);
@@ -118,6 +117,6 @@ test('it preserves same-host src after purification in nativephp context', funct
     $parser = new ParseMaterialContent($courseClient);
     $result = $parser('https://example.com/page.html', 'example.com');
 
-    $expectedSrc = route('material.content', ['encodedUrl' => MaterialProxyUrl::encode('https://example.com/710071.jpg')]);
+    $expectedSrc = 'https://example.com/710071.jpg';
     expect($result->htmlContent)->toContain('src="'.$expectedSrc.'"');
 });

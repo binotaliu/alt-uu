@@ -10,7 +10,10 @@ use App\Services\UUSessionStore;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
-use function Pest\Laravel\withCookie;
+use function Pest\Laravel\deleteJson;
+use function Pest\Laravel\getJson;
+use function Pest\Laravel\patchJson;
+use function Pest\Laravel\postJson;
 
 function seedAccountSession(string $username, string $suffix): Account
 {
@@ -50,16 +53,11 @@ function seedActiveSubscription(): void
     );
 }
 
-function withBootCookie()
-{
-    return withCookie(config('hungu.app_boot_cookie_name'), '1');
-}
-
 it('does not require a subscription to add a second account', function () {
     Http::fake();
     seedAccountSession('s1111111', 'a');
 
-    $response = withBootCookie()->postJson('/api/accounts', [
+    $response = postJson('/api/accounts', [
         'username' => 's2222222',
         'password' => 'secret',
     ]);
@@ -78,7 +76,7 @@ it('rejects adding a 6th account', function () {
 
     expect(Account::query()->count())->toBe(5);
 
-    $response = withBootCookie()->postJson('/api/accounts', [
+    $response = postJson('/api/accounts', [
         'username' => 's1000006',
         'password' => 'secret',
     ]);
@@ -92,7 +90,7 @@ it('switches the active account and refreshes the session profile without a subs
     $second = seedAccountSession('s6666666', 'b');
     app(AccountActiveProfile::class)->set($first->id);
 
-    $response = withBootCookie()->postJson("/api/accounts/{$second->id}/switch");
+    $response = postJson("/api/accounts/{$second->id}/switch");
 
     $response->assertSuccessful();
     $response->assertJson(['ok' => true]);
@@ -107,7 +105,7 @@ it('leaves the active profile untouched when removing a non-active account', fun
     $second = seedAccountSession('s8888888', 'b');
     app(AccountActiveProfile::class)->set($first->id);
 
-    $response = withBootCookie()->deleteJson("/api/accounts/{$second->id}");
+    $response = deleteJson("/api/accounts/{$second->id}");
 
     $response->assertSuccessful();
     expect(app(AccountActiveProfile::class)->get())->toBe($first->id)
@@ -119,7 +117,7 @@ it('auto-activates another saved account when the active account is removed', fu
     $second = seedAccountSession('s9999992', 'b');
     app(AccountActiveProfile::class)->set($first->id);
 
-    $response = withBootCookie()->deleteJson("/api/accounts/{$first->id}");
+    $response = deleteJson("/api/accounts/{$first->id}");
 
     $response->assertSuccessful();
     expect(app(AccountActiveProfile::class)->get())->toBe($second->id)
@@ -130,7 +128,7 @@ it('clears the active profile and session when the last account is removed', fun
     $first = seedAccountSession('s9999993', 'a');
     app(AccountActiveProfile::class)->set($first->id);
 
-    $response = withBootCookie()->deleteJson("/api/accounts/{$first->id}");
+    $response = deleteJson("/api/accounts/{$first->id}");
 
     $response->assertSuccessful();
     expect(app(AccountActiveProfile::class)->get())->toBeNull()
@@ -140,7 +138,7 @@ it('clears the active profile and session when the last account is removed', fun
 it('soft-deletes a removed account and clears its sensitive columns', function () {
     $account = seedAccountSession('s1122334', 'a');
 
-    $response = withBootCookie()->deleteJson("/api/accounts/{$account->id}");
+    $response = deleteJson("/api/accounts/{$account->id}");
 
     $response->assertSuccessful();
 
@@ -167,7 +165,7 @@ it('restores a soft-deleted account and keeps playback progress linked when the 
         'hungu_upload_success' => true,
     ]);
 
-    withBootCookie()->deleteJson("/api/accounts/{$account->id}")->assertSuccessful();
+    deleteJson("/api/accounts/{$account->id}")->assertSuccessful();
 
     app(AccountCredentialsStore::class)->put('s5544332', 'new-secret');
 
@@ -181,14 +179,14 @@ it('restores a soft-deleted account and keeps playback progress linked when the 
 it('sets a nickname for an account and reflects it in the account list', function () {
     $account = seedAccountSession('s6001001', 'a');
 
-    $response = withBootCookie()->patchJson("/api/accounts/{$account->id}/nickname", [
+    $response = patchJson("/api/accounts/{$account->id}/nickname", [
         'nickname' => '我的主帳號',
     ]);
 
     $response->assertSuccessful();
     expect($account->fresh()->nickname)->toBe('我的主帳號');
 
-    $listResponse = withBootCookie()->getJson('/api/accounts');
+    $listResponse = getJson('/api/accounts');
     $listResponse->assertSuccessful();
     expect(collect($listResponse->json())->firstWhere('id', $account->id)['nickname'])
         ->toBe('我的主帳號');
@@ -198,7 +196,7 @@ it('trims whitespace and clears the nickname when an empty value is submitted', 
     $account = seedAccountSession('s6001002', 'a');
     $account->update(['nickname' => '舊名稱']);
 
-    $response = withBootCookie()->patchJson("/api/accounts/{$account->id}/nickname", [
+    $response = patchJson("/api/accounts/{$account->id}/nickname", [
         'nickname' => '   ',
     ]);
 
@@ -209,7 +207,7 @@ it('trims whitespace and clears the nickname when an empty value is submitted', 
 it('rejects a nickname that exceeds the maximum length', function () {
     $account = seedAccountSession('s6001003', 'a');
 
-    $response = withBootCookie()->patchJson("/api/accounts/{$account->id}/nickname", [
+    $response = patchJson("/api/accounts/{$account->id}/nickname", [
         'nickname' => str_repeat('字', 31),
     ]);
 
@@ -224,9 +222,9 @@ it('shows the nickname of the active account in the session profile response', f
     seedActiveSubscription();
     $second->update(['nickname' => '暱稱測試']);
 
-    withBootCookie()->postJson("/api/accounts/{$second->id}/switch")->assertSuccessful();
+    postJson("/api/accounts/{$second->id}/switch")->assertSuccessful();
 
-    $response = withBootCookie()->getJson('/api/auth/profile');
+    $response = getJson('/api/auth/profile');
 
     $response->assertSuccessful();
     $response->assertJson(['nickname' => '暱稱測試']);
