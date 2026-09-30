@@ -9,7 +9,7 @@ Sources: `vendor/nativephp/mobile-ui` 0.6.0 (`src/`, `nativephp.json`, `resource
 | Screens and child components | `app/NativeComponents/**` (`App\NativeComponents\...`), scaffold with `php artisan native:make Courses/CourseList`                          |
 | Screen views                 | `resources/views/native/**` (kebab-cased, subfolders follow namespace: `native.courses.course-list`)                                        |
 | Shared partials              | `resources/views/native/partials/*.blade.php`, used with `@include('native.partials.x')`; the parent's public props propagate into includes |
-| Layouts                      | `app/NativeLayouts/*` (extend `Native\Mobile\Edge\Layouts\NativeLayout`), proposed namespace `App\NativeLayouts`                            |
+| Layouts                      | `app/NativeLayouts/*` (`App\NativeLayouts`, extend `Native\Mobile\Edge\Layouts\NativeLayout`, all `final`)                                  |
 | Routes                       | `routes/mobile.php` (auto-loaded, see gotcha 1)                                                                                             |
 | Theme, fonts                 | `config/native-ui.php` (`theme.light`, `theme.dark`, `fonts`)                                                                               |
 | Icon enums                   | `app/Icons/{Ios,Android,AndroidOutlined}.php` (generated, excluded from arch rules; regenerate with `php artisan native-ui:generate-icons`) |
@@ -98,7 +98,7 @@ $bridge = Native::fakeBridge()->respondTo('Network.Status', ['connected' => fals
 
 ## 8. Gotchas
 
-1. **Route collision with the Vue app.** `routes/mobile.php` is loaded (only on device, under Jump, in `native:*` commands and in tests) inside `Route::middleware('web')` AFTER `routes/web.php`; a later route with the same method and URI replaces an earlier one, and web.php has the SPA catch-all `/{any}` and `/login`. Preserving Vue URIs and route names in `mobile.php` (planned for Step 2) therefore shadows or collides with the SPA routes (`login`, `spa` names) and affects HTTP tests. Decide in Step 2 whether to use a temporary prefix or to keep names distinct until cutover.
+1. **Route collision with the Vue app (resolved in Step 2).** `routes/mobile.php` loads after `web.php` and would replace the SPA's `/login`, `/{any}` and same-named routes. All native routes are therefore registered inside `Route::prefix('native')->name('native.')` (see section 9). `route:list` from a plain CLI does not show them (mobile routes load only on device, under Jump, in `native:*` commands and in tests); assert them in tests.
 2. Empty `<native:column>` paints nothing (background and size discarded); use `<native:rect />` for solid fills or scrims.
 3. Absolute children are anchored at their own measured size; `inset-0` does not stretch. Use `absolute top-0 left-0 w-full h-full`. A zero inset means "no anchor": `bottom-0` pins to TOP, `right-0` to LEFT; use `bottom-px`.
 4. Aspect ratio goes on the stack, not on a remote image (`aspect-[3/4]` on the stack, image `w-full h-full`).
@@ -110,3 +110,44 @@ $bridge = Native::fakeBridge()->respondTo('Network.Status', ['connected' => fals
 10. On-device seeding only via migrations. Never run `native:run` or any build command; the user builds after choosing iOS or Android. Plugins (including mobile-ui, fonts, the Swift/Kotlin sources) compile in at build time.
 11. iOS deployment target is already 18.2 (Podfile and pbxproj in `vendor/nativephp/mobile/resources/xcode`), matching mobile-ui's `min_version`.
 12. Arch tests: `app/Icons` is excluded from the strict and laravel presets in `tests/Feature/ArchTest.php`; new `App\NativeComponents` and layout classes are not exempt, so keep `declare(strict_types=1);` and follow the strict preset (final classes where the preset requires it).
+
+## 9. Step 2 decisions (design system, layouts, routes)
+
+**Theme (`config/native-ui.php`).** Traced from `resources/css/app.css` and the Vue markup. Roles (all present in both `light` and `dark`; use as `bg-theme-*`, `text-theme-*`, `border-theme-*`, with `/NN` opacity):
+
+| Role                                                 | Light (warm)          | Dark                  | Vue equivalent                       |
+| ---------------------------------------------------- | --------------------- | --------------------- | ------------------------------------ |
+| `background` / `on-background`                       | theme-100 / theme-900 | zinc-950 / zinc-100   | body `bg-theme-100 dark:bg-zinc-950` |
+| `surface` / `on-surface`                             | white / theme-900     | zinc-900 / zinc-100   | cards                                |
+| `surface-variant` / `on-surface-variant`             | theme-50 / theme-700  | zinc-800 / zinc-400   | dashed boxes, muted text             |
+| `primary` / `on-primary`                             | theme-800 / white     | theme-800 / white     | `bg-theme-800 text-white` buttons    |
+| `primary-container` / `on-primary-container`         | theme-100 / theme-900 | theme-900 / theme-100 | tonal fills                          |
+| `accent` / `on-accent`                               | theme-700 / white     | theme-400 / zinc-950  | accent text, links, active tab icon  |
+| `secondary` / `on-secondary`                         | theme-700 / white     | zinc-400 / zinc-950   |                                      |
+| `outline`, `outline-variant`                         | theme-300, theme-200  | zinc-600, zinc-700    | borders, hairlines                   |
+| `destructive`, `on-`, `destructive-container`, `on-` | red-600 ...           | red-400 ...           | errors                               |
+| `success`, `on-`, `success-container`, `on-`         | emerald-700 ...       | emerald-300 ...       | emerald states                       |
+| `warning`, `on-`, `warning-container`, `on-`         | amber-700 ...         | amber-400 ...         | amber banners                        |
+
+Use `bg-theme-primary/15` rather than a container role when only a light tint is needed. Never write `bg-zinc-*`/`text-theme-700` style palette classes for these roles in native views (the Vue `theme-N` scale is NOT a token here; map to the roles above). Radii: sm 8, md 12 (Vue `rounded-xl`), lg 16.
+
+**Accents.** The seven accents (`warm` 暖橘 default, `ocean` 海藍, `forest` 森綠, `purple` 皇紫, `pink` 粉紅, `red` 緋紅, `grey` 銀灰) live in `config('native-ui.accents')` (label + `light`/`dark` overrides for the accent-following roles: primary, primary-container, on-primary-container, accent, background, surface-variant, on-surface, on-surface-variant, secondary, outline, outline-variant in light; primary, primary-container, on-primary-container, accent in dark). `App\Services\NativeAccent::apply($id)` implemented and tested: it `Theme::merge()`s the override (which also syncs config so `theme()` in layouts follows) and pushes to native; unknown ids fall back to `warm`. Wiring still to do (Settings/ThemeSettings step): read the stored accent preference and call `apply()` at app start (e.g. in the first screen's `mount()`, or a `booted` callback after `Theme::pushToNative()`), and again when the user picks one; already-mounted screens re-render on the next state change. The Vue high-contrast (`prefers-contrast`) remap and `--text-scale` font scaling are not ported (native Dynamic Type covers the latter).
+
+**Fonts.** The Vue app uses `font-sans: system-ui` and bundles no font, so `fonts.default = 'System'` and no aliases. `Theme::pushToNative()` is re-run in `NativeServiceProvider::boot()` via `$this->app->booted(...)`.
+
+**Layouts (`App\NativeLayouts`, all with native chrome except Guest; chrome colors via `theme()`; icons from `App\Icons` enums):**
+
+| Class             | Use                                                                                   | Chrome                                                                            |
+| ----------------- | ------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `MainTabsLayout`  | courses, live-sessions, school-calendar, account tabs                                 | tab bar 我的課程 / 視訊面授 / 學校行事曆 / 我的帳號; large-title nav bar fallback |
+| `StackLayout`     | course show, discuss board/thread, material, grades, exam-info, settings, diagnostics | back nav bar (inline title), no tab bar                                           |
+| `FormStackLayout` | accounts, subscription, data-export                                                   | like Stack on the `surface` color                                                 |
+| `GuestLayout`     | login, onboarding, reauth                                                             | none (screen may use `safe-area` classes)                                         |
+
+Layout nav bars read `$screen->navTitle()`; a screen normally overrides with an inline `<native:top-bar>`.
+
+**Routes (`routes/mobile.php`).** Every Vue route is mirrored 1:1 (20 routes) inside `Route::prefix('native')->name('native.')`, e.g. `/native/courses` = `native.courses.index`, `/native/courses/{cid}/{scoid}` = `native.courses.material.show`. Route params keep the Vue names (`cid`, `scoid`, `boardCid`, `bid`, `nid`, `accountId`). Static segments precede `{param}` siblings. Component classes registered: `App\NativeComponents\Auth\{Login,Onboarding,Reauthenticate}`, `Courses\{CourseList,LiveSessions,SchoolCalendar,CourseShow,DiscussBoard,DiscussThread,Material}`, `Account\{AccountPane,Accounts,Subscription,DataExport,Grades,ExamInfo}`, `Settings\{SettingsIndex,ConnectivityDiagnostics,DiagnosticLog,MaterialSource}`; only `Auth\Login` (placeholder shell) exists yet, so `NativeRouter::resolve()` on the others throws until their class exists (the reflection in `ComponentRouteBinder`). Screen authors create the class named here with `native:make`. Build navigation targets with `route('native.x', $params, absolute: false)` or `$this->route('native.x', ...)`, never literal `/native/...` strings, so cutover needs no view edits.
+
+**Cutover (Step 8).** Delete the `Route::prefix('native')->name('native.')->group(...)` wrapper (keep the inner `nativeGroup` blocks), delete `routes/web.php`'s SPA catch-all, `login` GET and the SPA `resources/js`, then either rename `native.*` route names via find/replace to the plain names (`route('native.` becomes `route('`) or keep the `native.` prefix (preferred: zero edits; only the URI prefix must go, which requires the `Route::name('native.')` wrapper to stay as `Route::name('native.')->group(...)` without `prefix`). Update `NATIVEPHP_START_URL` and `RoutesTest` (`/native/` assertions) at the same time.
+
+**Test paths.** `tests/Feature/Native/**` is inside the `Feature` suite, so `pest()->in('Feature')` (RefreshDatabase + TestCase) already applies; no Pest config change needed. Existing: `ThemeTest`, `LayoutsTest`, `RoutesTest`, `LoginTest`.
