@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\NativeComponents\Support;
 
 /**
- * Port of resources/js/lib/attachmentImage.ts: attachments carry no MIME type,
+ * Port of the former Vue lib/attachmentImage.ts: attachments carry no MIME type,
  * so image detection is by extension of the filename, then of the URL path.
  */
 final class AttachmentKind

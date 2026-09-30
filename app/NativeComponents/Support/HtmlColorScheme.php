@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\NativeComponents\Support;
 
 /**
- * Port of resources/js/lib/htmlColorScheme.ts.
+ * Port of the former Vue lib/htmlColorScheme.ts.
  *
  * Rich text sanitised upstream may carry inline `color`, `background-color`
  * and `border-color` values authored for a light page. In dark mode those

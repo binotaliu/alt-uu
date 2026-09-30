@@ -9,7 +9,7 @@ use App\Icons\Android;
 use App\Icons\Ios;
 
 /**
- * "What's new" content, ported from resources/js/lib/releaseNotes.ts.
+ * "What's new" content, ported from the former Vue lib/releaseNotes.ts.
  *
  * Newest first. The first launch of a version that has an entry here shows the
  * What's New sheet once; versions without an entry are skipped silently.

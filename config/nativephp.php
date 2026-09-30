@@ -153,6 +153,7 @@ return [
         'storage/framework/cache',
         'storage/framework/testing',
         'storage/logs/laravel.log',
+        'storage/logs/browser.log',
         'vendor/nativephp/mobile-browser/resources',
 
         '.npmrc',

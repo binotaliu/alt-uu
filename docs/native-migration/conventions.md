@@ -111,6 +111,7 @@ $bridge = Native::fakeBridge()->respondTo('Network.Status', ['connected' => fals
 10. On-device seeding only via migrations. Never run `native:run` or any build command; the user builds after choosing iOS or Android. Plugins (including mobile-ui, fonts, the Swift/Kotlin sources) compile in at build time.
 11. iOS deployment target is already 18.2 (Podfile and pbxproj in `vendor/nativephp/mobile/resources/xcode`), matching mobile-ui's `min_version`.
 12. Arch tests: `app/Icons` is excluded from the strict and laravel presets in `tests/Feature/ArchTest.php`; new `App\NativeComponents` and layout classes are not exempt, so keep `declare(strict_types=1);` and follow the strict preset (final classes where the preset requires it).
+13. `php artisan native:validate` reports false errors: it treats every file under `app/NativeComponents` as a component, so support helpers and traits (`Support/*`, `Concerns/*`, `Settings/ManagesDiagnosticRecording`, ...) fail with "Class does not extend NativeComponent" or "not found", and children show "not registered via Route::native()" warnings. `RoutesTest` (every route resolves to a screen class with a layout) is the real check; the 26 errors are expected.
 
 ## 9. Step 2 decisions (design system, layouts, routes)
 
