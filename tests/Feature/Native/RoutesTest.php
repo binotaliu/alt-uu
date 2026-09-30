@@ -70,7 +70,6 @@ it('resolves static segments before {param} siblings', function (): void {
 
 it('resolves every native route except the ones whose screens are still pending', function (): void {
     $pending = [
-        '/native/courses/{cid}/discuss/{boardCid}/{bid}/{nid}',
         '/native/courses/{cid}/{scoid}',
     ];
 
@@ -103,7 +102,6 @@ it('only leaves the two documented routes without a screen class', function (): 
         ->all();
 
     expect($missing)->toEqualCanonicalizing([
-        '/native/courses/{cid}/discuss/{boardCid}/{bid}/{nid}',
         '/native/courses/{cid}/{scoid}',
     ]);
 });
