@@ -16,6 +16,7 @@ use App\Services\UUSessionStore;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
+use Native\Mobile\Attributes\Lazy;
 use Native\Mobile\Testing\Native;
 use Native\Mobile\Testing\TestableComponent;
 use Tests\Feature\Native\Course\CourseUpstreamFake;
@@ -314,4 +315,9 @@ it('sends no request for tabs that were never opened', function (): void {
 
     Http::assertNotSent(fn (Request $request): bool => str_contains($request->url(), 'homework_list.php'));
     Http::assertNotSent(fn (Request $request): bool => str_contains($request->url(), 'get-board-list'));
+});
+
+it('paints a skeleton placeholder while the lazy screen mounts', function (): void {
+    expect((new CourseShow)->placeholder()->name())->toBe('native.courses.course-show-placeholder')
+        ->and((new ReflectionClass(CourseShow::class))->getAttributes(Lazy::class))->toHaveCount(1);
 });

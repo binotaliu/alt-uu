@@ -36,10 +36,10 @@ final class MainTabsLayout extends NativeLayout
     public function tabBar(NativeComponent $screen): ?TabBar
     {
         return TabBar::make()
-            ->add(Tab::link('我的課程', route('native.courses.index', absolute: false), 'school', Ios::BooksVertical, Android::School))
-            ->add(Tab::link('視訊面授', route('native.courses.live-sessions', absolute: false), 'videocam', Ios::VideoBubble, Android::Videocam))
-            ->add(Tab::link('學校行事曆', route('native.courses.school-calendar', absolute: false), 'event', Ios::Calendar, Android::Event))
-            ->add(Tab::link('我的帳號', route('native.courses.account', absolute: false), 'person', Ios::PersonCircle, Android::AccountCircle))
+            ->add(Tab::link('我的課程', route('native.courses.index', absolute: false), 'school', Ios::BooksVertical, Android::School)->id('courses'))
+            ->add(Tab::link('視訊面授', route('native.courses.live-sessions', absolute: false), 'videocam', Ios::VideoBubble, Android::Videocam)->id('live-sessions'))
+            ->add(Tab::link('學校行事曆', route('native.courses.school-calendar', absolute: false), 'event', Ios::Calendar, Android::Event)->id('school-calendar'))
+            ->add(Tab::link('我的帳號', route('native.courses.account', absolute: false), 'person', Ios::PersonCircle, Android::AccountCircle)->id('account'))
             ->activeColor(theme('accent'))
             ->backgroundColor(theme('surface'))
             ->textColor(theme('on-surface-variant'));

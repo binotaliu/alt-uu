@@ -7,6 +7,7 @@ use App\NativeLayouts\FormStackLayout;
 use App\NativeLayouts\GuestLayout;
 use App\NativeLayouts\MainTabsLayout;
 use App\NativeLayouts\StackLayout;
+use Native\Mobile\Edge\Layouts\Builders\Tab;
 use Native\Mobile\Testing\Native;
 
 it('gives the main tabs layout four tabs and native chrome', function (): void {
@@ -16,6 +17,16 @@ it('gives the main tabs layout four tabs and native chrome', function (): void {
     expect($layout->usesNativeChrome())->toBeTrue()
         ->and($layout->tabBar($screen)->getTabs())->toHaveCount(4)
         ->and($layout->navBar($screen))->not->toBeNull();
+});
+
+it('gives every main tab a distinct id', function (): void {
+    $screen = Native::test(Login::class)->instance();
+    $ids = array_map(
+        fn (Tab $tab): string => (new ReflectionProperty($tab, 'id'))->getValue($tab),
+        (new MainTabsLayout)->tabBar($screen)->getTabs(),
+    );
+
+    expect($ids)->toBe(['courses', 'live-sessions', 'school-calendar', 'account']);
 });
 
 it('gives pushed layouts a nav bar and no tab bar', function (string $layoutClass): void {

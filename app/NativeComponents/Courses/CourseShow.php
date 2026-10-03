@@ -29,6 +29,7 @@ use App\NativeComponents\Courses\Concerns\DescribesLoadFailures;
 use App\NativeComponents\Support\CourseListing;
 use Closure;
 use Illuminate\View\View;
+use Native\Mobile\Attributes\Lazy;
 use Native\Mobile\Edge\NativeComponent;
 use Throwable;
 
@@ -44,8 +45,10 @@ use Throwable;
  * Loading policy mirrors the Vue watchers: materials and the board list load
  * once when first shown, homework / self-exam / grades / course info reload
  * every time their tab is activated. All Actions run synchronously, so no
- * skeleton can paint while an upstream call is in flight.
+ * skeleton can paint while an upstream call is in flight; `#[Lazy]` paints
+ * `course-show-placeholder` instantly while `mount()` runs.
  */
+#[Lazy]
 final class CourseShow extends NativeComponent
 {
     use DescribesLoadFailures;
@@ -251,6 +254,11 @@ final class CourseShow extends NativeComponent
         }
 
         return $count > 99 ? '99+' : (string) $count;
+    }
+
+    public function placeholder(): View
+    {
+        return view('native.courses.course-show-placeholder');
     }
 
     public function render(): View
