@@ -1,5 +1,17 @@
 <h1 align="center">🎓 Alt UU</h1>
 
+<p align="center">
+  <a href="https://github.com/binotaliu/alt-uu/actions/workflows/tests.yml"><img src="https://github.com/binotaliu/alt-uu/actions/workflows/tests.yml/badge.svg" alt="Tests"></a>
+  <a href="https://github.com/binotaliu/alt-uu/actions/workflows/lint.yml"><img src="https://github.com/binotaliu/alt-uu/actions/workflows/lint.yml/badge.svg" alt="Lint"></a>
+  <a href="https://github.com/binotaliu/alt-uu/releases"><img src="https://img.shields.io/github/v/release/binotaliu/alt-uu" alt="Latest release"></a>
+  <br>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-AGPL--3.0--or--later-blue" alt="License: AGPL-3.0-or-later"></a>
+  <img src="https://img.shields.io/badge/PHP-8.4-777BB4?logo=php&logoColor=white" alt="PHP 8.4">
+  <img src="https://img.shields.io/badge/Laravel-12-FF2D20?logo=laravel&logoColor=white" alt="Laravel 12">
+  <img src="https://img.shields.io/badge/NativePHP-4-6C47FF" alt="NativePHP 4">
+  <img src="https://img.shields.io/badge/platform-iOS%20%7C%20Android-lightgrey" alt="Platforms: iOS, Android">
+</p>
+
 Alt UU 是一款由 NOU 學生為同學打造的非官方手機 App。使用 Alt UU，就可以輕鬆在行動裝置上隨時隨地觀看 NOU UU 平台上的數位教材。  
 此外，Alt UU 也整合了 [NOU 小幫手](https://nou-tools.binota.org/)，能讓你在 App 中輕鬆看到所有課程的視訊面授時間、學校行事曆、考古題等。
 
