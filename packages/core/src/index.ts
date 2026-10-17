@@ -7,3 +7,4 @@ export * from './accounts';
 export * from './hungu';
 export * from './school-portal';
 export * from './domains';
+export * from './legacy-migration';
