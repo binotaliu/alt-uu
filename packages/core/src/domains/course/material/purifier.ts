@@ -1,6 +1,7 @@
 import type { AnyNode } from 'domhandler';
 import { isComment, isTag, isText } from 'domhandler';
 import { phpBasename } from '../support/phpUrl';
+import { sanitizeCssDeclarations } from './purifierCss';
 
 /**
  * Port of the HTMLPurifier configuration the legacy ParseMaterialContent
@@ -38,15 +39,27 @@ export interface PurifierElement {
     children: PurifierNode[];
 }
 
-type AttributeKind =
-    'text' | 'uri' | 'iframe-uri' | 'length' | 'bool' | 'frameborder';
+export type AttributeKind =
+    'text' | 'uri' | 'iframe-uri' | 'length' | 'bool' | 'frameborder' | 'style';
+
+/**
+ * One HTMLPurifier configuration: the `HTML.Allowed` element / attribute
+ * map plus the options that differ between the legacy callers.
+ */
+export interface PurifierProfile {
+    allowed: Record<string, Record<string, AttributeKind>>;
+    /** HTML.TargetBlank (+ noreferrer / noopener) on external links. */
+    targetBlank: boolean;
+    /** CSS.AllowedProperties, used by `style` attributes. */
+    cssProperties: ReadonlySet<string>;
+}
 
 const CELL_ATTRIBUTES: Record<string, AttributeKind> = {
     rowspan: 'text',
     colspan: 'text',
 };
 
-const ALLOWED: Record<string, Record<string, AttributeKind>> = {
+const MATERIAL_ALLOWED: PurifierProfile['allowed'] = {
     div: {},
     b: {},
     strong: {},
@@ -79,6 +92,16 @@ const ALLOWED: Record<string, Record<string, AttributeKind>> = {
     thead: {},
     tfoot: {},
 };
+
+/** The material profile: no styles, tables and iframes, external links open in a new window. */
+export const MATERIAL_PROFILE: PurifierProfile = {
+    allowed: MATERIAL_ALLOWED,
+    targetBlank: true,
+    cssProperties: new Set(),
+};
+
+/** Attributes serialised as a bare name (HTML `Bool`). */
+const BOOLEAN_ATTRIBUTES = new Set(['controls', 'allowfullscreen']);
 
 /** Core.HiddenElements + HTML.ForbiddenElements: removed with contents. */
 const HIDDEN = new Set(['script', 'style', 'link']);
@@ -113,8 +136,11 @@ const BROWSABLE_SCHEMES = new Set(['http', 'https', 'ftp']);
 const SAFE_IFRAME = /^(https?:\/\/|\/)/;
 
 /** Sanitises a node list and returns the HTML (HTMLPurifier `clean`). */
-export function purifyNodes(nodes: AnyNode[]): string {
-    const filtered = fixContent('#root', filterNodes(nodes));
+export function purifyNodes(
+    nodes: AnyNode[],
+    profile: PurifierProfile = MATERIAL_PROFILE,
+): string {
+    const filtered = fixContent('#root', filterNodes(nodes, profile));
     const withoutEmpty = filtered.map((node) => {
         if (node.type === 'element') {
             removeEmptyWithin(node);
@@ -131,7 +157,10 @@ export function purifyNodes(nodes: AnyNode[]): string {
 // ---------------------------------------------------------------------------
 // RemoveForeignElements + attribute validation
 
-function filterNodes(nodes: AnyNode[]): PurifierNode[] {
+function filterNodes(
+    nodes: AnyNode[],
+    profile: PurifierProfile,
+): PurifierNode[] {
     const result: PurifierNode[] = [];
 
     for (const node of nodes) {
@@ -150,8 +179,8 @@ function filterNodes(nodes: AnyNode[]): PurifierNode[] {
             continue;
         }
 
-        const children = filterNodes(node.children);
-        const rules = ALLOWED[name];
+        const children = filterNodes(node.children, profile);
+        const rules = profile.allowed[name];
 
         if (rules === undefined) {
             for (const child of children) {
@@ -161,7 +190,13 @@ function filterNodes(nodes: AnyNode[]): PurifierNode[] {
             continue;
         }
 
-        const element = validateElement(name, node.attribs, rules, children);
+        const element = validateElement(
+            name,
+            node.attribs,
+            rules,
+            children,
+            profile,
+        );
 
         if (element !== null) {
             pushNode(result, element);
@@ -176,6 +211,7 @@ function validateElement(
     attribs: Record<string, string>,
     rules: Record<string, AttributeKind>,
     children: PurifierNode[],
+    profile: PurifierProfile,
 ): PurifierElement | null {
     const attributes: Array<[string, string]> = [];
 
@@ -187,7 +223,7 @@ function validateElement(
             continue;
         }
 
-        const value = validateAttribute(kind, rawValue);
+        const value = validateAttribute(kind, rawValue, profile);
 
         if (value !== null) {
             attributes.push([attributeName, value]);
@@ -213,7 +249,7 @@ function validateElement(
         }
     }
 
-    if (name === 'a') {
+    if (name === 'a' && profile.targetBlank) {
         applyTargetBlank(element);
     }
 
@@ -224,7 +260,11 @@ function validateElement(
     return element;
 }
 
-function validateAttribute(kind: AttributeKind, raw: string): string | null {
+function validateAttribute(
+    kind: AttributeKind,
+    raw: string,
+    profile: PurifierProfile,
+): string | null {
     const value = parseCdata(raw);
 
     switch (kind) {
@@ -232,6 +272,11 @@ function validateAttribute(kind: AttributeKind, raw: string): string | null {
             return value;
         case 'bool':
             return '';
+        case 'style': {
+            const css = sanitizeCssDeclarations(value, profile.cssProperties);
+
+            return css === '' ? null : css;
+        }
         case 'frameborder':
             return value === '0' || value === '1' ? value : null;
         case 'length':
@@ -554,7 +599,7 @@ function removeEmpty(
 type ParagraphToken =
     | { kind: 'text'; data: string }
     | { kind: 'node'; node: PurifierElement }
-    | { kind: 'start' }
+    | { kind: 'start'; attributes?: Array<[string, string]> }
     | { kind: 'end' };
 
 const P_START: ParagraphToken = { kind: 'start' };
@@ -668,7 +713,11 @@ function autoParagraph(
         }
 
         if (item.name === 'p') {
-            queue.unshift(P_START, ...item.children, P_END);
+            queue.unshift(
+                { kind: 'start', attributes: item.attributes },
+                ...item.children,
+                P_END,
+            );
             continue;
         }
 
@@ -786,7 +835,7 @@ function buildParagraphs(tokens: ParagraphToken[]): PurifierNode[] {
                 paragraph = {
                     type: 'element',
                     name: 'p',
-                    attributes: [],
+                    attributes: token.attributes ?? [],
                     children: [],
                 };
                 break;
@@ -821,7 +870,7 @@ function serializeNode(node: PurifierNode): string {
 
     const attributes = node.attributes
         .map(([name, value]) =>
-            ALLOWED[node.name]?.[name] === 'bool'
+            BOOLEAN_ATTRIBUTES.has(name)
                 ? ` ${name}`
                 : ` ${name}="${escapeAttribute(value)}"`,
         )

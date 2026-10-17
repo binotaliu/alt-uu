@@ -1,0 +1,250 @@
+{
+    "generatedBy": "discuss/__generators__/sanitize-discuss-html.php (real HTMLPurifier via Mews\\Purifier, config/purifier.php 'default' profile, legacy ListPosts::sanitizeContent)",
+    "cases": [
+        {
+            "name": "plain-text",
+            "html": "hello world",
+            "output": "<p>hello world</p>"
+        },
+        {
+            "name": "plain-newlines",
+            "html": "line one\nline two\n\nsecond paragraph",
+            "output": "<p>line one\nline two</p>\n\n<p>second paragraph</p>"
+        },
+        {
+            "name": "br-from-nl2br",
+            "html": "line one<br />\nline two<br />\nline three",
+            "output": "<p>line one<br>\nline two<br>\nline three</p>"
+        },
+        {
+            "name": "basic-inline",
+            "html": "<p>a <b>b</b> <strong>s</strong> <i>i</i> <em>e</em> <u>u</u></p>",
+            "output": "<p>a <b>b</b> <strong>s</strong> <i>i</i> <em>e</em> <u>u</u></p>"
+        },
+        {
+            "name": "div-blocks",
+            "html": "<div>a</div><div>b</div>",
+            "output": "<div>a</div>\n\n<div>b</div>"
+        },
+        {
+            "name": "p-style-allowed",
+            "html": "<p style=\"color:red;text-align:center\">x</p>",
+            "output": "<p style=\"color:#FF0000;text-align:center;\">x</p>"
+        },
+        {
+            "name": "p-style-mixed",
+            "html": "<p style=\"color: #ff0000; margin: 10px; font-size: 14px; position:absolute\">x</p>",
+            "output": "<p style=\"color:#ff0000;font-size:14px;\">x</p>"
+        },
+        {
+            "name": "span-style-fonts",
+            "html": "<span style=\"font-family: 'Microsoft JhengHei', Arial; font-weight: bold; font-style: italic; text-decoration: underline\">t</span>",
+            "output": "<p><span style=\"font-family:'Microsoft JhengHei', Arial;font-weight:bold;font-style:italic;text-decoration:underline;\">t</span></p>"
+        },
+        {
+            "name": "span-style-colors",
+            "html": "<span style=\"color:rgb(255, 0, 0);background-color:#00f\">c</span><span style=\"color:blue\">d</span><span style=\"color:notacolor\">e</span><span style=\"background-color:#abcdef\">f</span>",
+            "output": "<p><span style=\"color:rgb(255,0,0);background-color:#00f;\">c</span><span style=\"color:#0000FF;\">d</span><span>e</span><span style=\"background-color:#abcdef;\">f</span></p>"
+        },
+        {
+            "name": "padding-left",
+            "html": "<p style=\"padding-left:30px\">pl</p><p style=\"padding-left:2em\">pl2</p><p style=\"padding-left:-5px\">pl3</p>",
+            "output": "<p style=\"padding-left:30px;\">pl</p>\n\n<p style=\"padding-left:2em;\">pl2</p>\n\n<p>pl3</p>"
+        },
+        {
+            "name": "font-size-values",
+            "html": "<span style=\"font-size:12pt\">a</span><span style=\"font-size:large\">b</span><span style=\"font-size:150%\">c</span><span style=\"font-size:x\">d</span>",
+            "output": "<p><span style=\"font-size:12pt;\">a</span><span style=\"font-size:large;\">b</span><span style=\"font-size:150%;\">c</span><span>d</span></p>"
+        },
+        {
+            "name": "font-shorthand",
+            "html": "<span style=\"font: italic bold 12px Arial\">a</span>",
+            "output": "<p><span style=\"font:italic bold 12px Arial;\">a</span></p>"
+        },
+        {
+            "name": "style-on-b",
+            "html": "<b style=\"color:red\">no style on b</b><div style=\"color:red\">no style on div</div>",
+            "output": "<p><b>no style on b</b></p>\n\n<div>no style on div</div>"
+        },
+        {
+            "name": "style-url-and-expression",
+            "html": "<p style=\"color:red;background-color:url(javascript:alert(1));text-align:expression(x)\">x</p>",
+            "output": "<p style=\"color:#FF0000;\">x</p>"
+        },
+        {
+            "name": "text-align-values",
+            "html": "<p style=\"text-align:right\">r</p><p style=\"text-align:justify\">j</p><p style=\"text-align:middle\">m</p>",
+            "output": "<p style=\"text-align:right;\">r</p>\n\n<p style=\"text-align:justify;\">j</p>\n\n<p>m</p>"
+        },
+        {
+            "name": "text-decoration-values",
+            "html": "<span style=\"text-decoration:line-through underline\">a</span><span style=\"text-decoration:none\">b</span><span style=\"text-decoration:blink\">c</span>",
+            "output": "<p><span style=\"text-decoration:line-through underline;\">a</span><span style=\"text-decoration:none;\">b</span><span>c</span></p>"
+        },
+        {
+            "name": "important-and-case",
+            "html": "<p style=\"COLOR:RED !important;Text-Align:Center\">x</p>",
+            "output": "<p style=\"color:#FF0000;text-align:center;\">x</p>"
+        },
+        {
+            "name": "empty-style",
+            "html": "<p style=\"\">e</p><p style=\"margin:0\">m</p>",
+            "output": "<p>e</p>\n\n<p>m</p>"
+        },
+        {
+            "name": "a-variants",
+            "html": "<a href=\"https://example.com/x?a=1&b=2\" title=\"t\" target=\"_blank\" rel=\"nofollow\" onclick=\"x()\">ext</a> <a href=\"javascript:alert(1)\">js</a> <a href=\"mailto:a@b.c\">mail</a> <a href=\"/rel/path\">rel</a> <a name=\"n\">anchor</a>",
+            "output": "<p><a href=\"https://example.com/x?a=1&amp;b=2\" title=\"t\">ext</a> <a>js</a> <a href=\"mailto:a@b.c\">mail</a> <a href=\"/rel/path\">rel</a> <a>anchor</a></p>"
+        },
+        {
+            "name": "script-style-tags",
+            "html": "a<script>alert(1)</script>b<style>p{}</style>c",
+            "output": "<p>abc</p>"
+        },
+        {
+            "name": "img-variants",
+            "html": "<img src=\"https://cdn.example/a.png\"><img src=\"https://cdn.example/b.png\" alt=\"b\" width=\"50\" height=\"60\" class=\"x\"><img alt=\"nosrc\"><img src=\"data:image/png;base64,AAAA\" alt=\"d\"><img src=\"x.png\" width=\"100%\">",
+            "output": "<p><img src=\"https://cdn.example/a.png\" alt=\"a.png\"><img src=\"https://cdn.example/b.png\" alt=\"b\" width=\"50\" height=\"60\"><img src=\"x.png\" width=\"100%\" alt=\"x.png\"></p>"
+        },
+        {
+            "name": "media",
+            "html": "<video controls src=\"a.mp4\" width=\"320\" height=\"240\" poster=\"p.jpg\"></video><audio controls src=\"a.mp3\"></audio><video controls><source src=\"m.mp4\" type=\"video/mp4\"></video>",
+            "output": "<video controls><source src=\"m.mp4\" type=\"video/mp4\"></video>"
+        },
+        {
+            "name": "iframe-table",
+            "html": "<iframe src=\"https://www.youtube.com/embed/abc\"></iframe><table><tr><td>cell</td><td>two</td></tr></table>",
+            "output": "<p>celltwo</p>"
+        },
+        {
+            "name": "lists",
+            "html": "<ul><li>one</li><li>two</li></ul><ol><li>x</li></ol>",
+            "output": "<ul><li>one</li><li>two</li></ul>\n\n<ol><li>x</li></ol>"
+        },
+        {
+            "name": "headings-pre",
+            "html": "<h1>H</h1><pre>code\n  block</pre><blockquote>q</blockquote><hr>",
+            "output": "<p>Hcode\n  blockq</p>"
+        },
+        {
+            "name": "entities",
+            "html": "<p>a &amp; b &lt; c &gt; &quot;q&quot; &nbsp;x</p>",
+            "output": "<p>a &amp; b &lt; c &gt; \"q\"  x</p>"
+        },
+        {
+            "name": "escaped-user-text",
+            "html": "&lt;script&gt;alert(1)&lt;/script&gt;<br />\nsecond &amp; line",
+            "output": "<p>&lt;script&gt;alert(1)&lt;/script&gt;<br>\nsecond &amp; line</p>"
+        },
+        {
+            "name": "nonascii",
+            "html": "<p>你好，世界</p>\n\n<div>第二段</div>",
+            "output": "<p>你好，世界</p>\n\n<div>第二段</div>"
+        },
+        {
+            "name": "empty-elements",
+            "html": "<p></p><div> </div><span></span><b></b>text",
+            "output": "<p>text</p>"
+        },
+        {
+            "name": "nested-p",
+            "html": "<p>outer<p>inner</p>",
+            "output": "<p>outer</p>\n\n<p>inner</p>"
+        },
+        {
+            "name": "font-center",
+            "html": "<center><font color=\"red\">x</font></center>",
+            "output": "<p>x</p>"
+        },
+        {
+            "name": "comments",
+            "html": "a<!-- c -->b",
+            "output": "<p>ab</p>"
+        },
+        {
+            "name": "mixed-case",
+            "html": "<P STYLE=\"COLOR:RED\">Up</P><DIV>d</DIV>",
+            "output": "<p style=\"color:#FF0000;\">Up</p>\n\n<div>d</div>"
+        },
+        {
+            "name": "root-inline-then-block",
+            "html": "text <b>bold</b><div>block</div>tail",
+            "output": "<p>text <b>bold</b></p>\n\n<div>block</div><p>tail</p>"
+        },
+        {
+            "name": "unclosed",
+            "html": "<b>bold <i>both</b> italic</i>",
+            "output": "<p><b>bold <i>both</i></b> italic</p>"
+        },
+        {
+            "name": "css-font-family",
+            "html": "<span style=\"font-family:微軟正黑體\">a</span><span style=\"font-family:serif, 'Times New Roman',Georgia\">b</span><span style=\"font-family:&quot;Arial Black&quot;, sans-serif\">c</span><span style=\"font-family:a;b\">d</span>",
+            "output": "<p><span style=\"font-family:'微軟正黑體';\">a</span><span style=\"font-family:serif, 'Times New Roman', Georgia;\">b</span><span style=\"font-family:'Arial Black', sans-serif;\">c</span><span style=\"font-family:a;\">d</span></p>"
+        },
+        {
+            "name": "css-colors-extra",
+            "html": "<span style=\"color:RED\">a</span><span style=\"color:ff0000\">b</span><span style=\"color:#abc\">c</span><span style=\"color:#abcd\">d</span><span style=\"color:rgba(1,2,3,0.5)\">e</span><span style=\"color:rgb(300,-4,50%)\">f</span><span style=\"color:rgb(10%,20%,30%)\">g</span><span style=\"color:hsl(120,50%,50%)\">h</span><span style=\"background-color:transparent\">i</span><span style=\"color:transparent\">j</span><span style=\"color:inherit\">k</span>",
+            "output": "<p><span style=\"color:#FF0000;\">a</span><span style=\"color:#ff0000;\">b</span><span style=\"color:#abc;\">c</span><span>d</span><span style=\"color:rgba(1,2,3,0.5);\">e</span><span>f</span><span style=\"color:rgb(10%,20%,30%);\">g</span><span style=\"color:hsl(120,50%,50%);\">h</span><span style=\"background-color:transparent;\">i</span><span>j</span><span style=\"color:inherit;\">k</span></p>"
+        },
+        {
+            "name": "css-lengths",
+            "html": "<span style=\"font-size:14\">a</span><span style=\"font-size:1.50em\">b</span><span style=\"font-size:+12PX\">c</span><span style=\"font-size:0\">d</span><span style=\"font-size:1rem\">e</span><span style=\"font-size:calc(1px)\">f</span><span style=\"font-size:.5em\">g</span>",
+            "output": "<p><span>a</span><span style=\"font-size:1.5em;\">b</span><span style=\"font-size:12px;\">c</span><span style=\"font-size:0;\">d</span><span style=\"font-size:1rem;\">e</span><span>f</span><span style=\"font-size:0.5em;\">g</span></p>"
+        },
+        {
+            "name": "css-padding-percent",
+            "html": "<p style=\"padding-left:10%\">a</p><p style=\"padding-left:0\">b</p><p style=\"padding-left:-10%\">c</p>",
+            "output": "<p style=\"padding-left:10%;\">a</p>\n\n<p style=\"padding-left:0;\">b</p>\n\n<p>c</p>"
+        },
+        {
+            "name": "css-duplicates",
+            "html": "<p style=\"color:red;text-align:left;color:blue\">d</p>",
+            "output": "<p style=\"color:#0000FF;text-align:left;\">d</p>"
+        },
+        {
+            "name": "css-quoted-semicolon",
+            "html": "<span style=\"font-family:'a;b';color:red\">q</span>",
+            "output": "<p><span style=\"color:#FF0000;\">q</span></p>"
+        },
+        {
+            "name": "css-font-shorthand-more",
+            "html": "<span style=\"font: 12px/1.5 Arial, sans-serif\">a</span><span style=\"font: bold 14px serif\">b</span><span style=\"font: menu\">c</span><span style=\"font: 14px\">d</span>",
+            "output": "<p><span style=\"font:12px/1.5 Arial, sans-serif;\">a</span><span style=\"font:bold 14px serif;\">b</span><span style=\"font:menu;\">c</span><span>d</span></p>"
+        },
+        {
+            "name": "css-weight-numeric",
+            "html": "<span style=\"font-weight:700\">a</span><span style=\"font-weight:650\">b</span><span style=\"font-style:oblique\">c</span>",
+            "output": "<p><span style=\"font-weight:700;\">a</span><span>b</span><span style=\"font-style:oblique;\">c</span></p>"
+        },
+        {
+            "name": "css-universal",
+            "html": "<span style=\"color:initial;font-size:unset\">a</span>",
+            "output": "<p><span style=\"color:initial;font-size:unset;\">a</span></p>"
+        },
+        {
+            "name": "css-no-colon",
+            "html": "<p style=\"color\">a</p><p style=\":red\">b</p><p style=\"color:\">c</p>",
+            "output": "<p>a</p>\n\n<p>b</p>\n\n<p>c</p>"
+        },
+        {
+            "name": "css-newline",
+            "html": "<p style=\"color:red;\n text-align:center\">a</p>",
+            "output": "<p style=\"color:#FF0000;text-align:center;\">a</p>"
+        },
+        {
+            "name": "text-and-entities-in-style-html",
+            "html": "<p style=\"font-family:&quot;微軟正黑體&quot;\">z</p>",
+            "output": "<p style=\"font-family:'微軟正黑體';\">z</p>"
+        },
+        {
+            "name": "div-with-p",
+            "html": "<div><p>one</p><p>two</p></div>",
+            "output": "<div><p>one</p><p>two</p></div>"
+        },
+        {
+            "name": "li-text",
+            "html": "<ul><li>a\n\nb</li></ul>",
+            "output": "<ul><li><p>a</p>\n\n<p>b</p></li></ul>"
+        }
+    ]
+}

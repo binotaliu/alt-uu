@@ -24,6 +24,7 @@ import {
     createSubscriptionServices,
     defaultHunguConfig,
     defaultSchoolPortalConfig,
+    sanitizeDiscussHtml,
     type AppBuildConfig,
     type CourseServices,
     type NouToolsUserCourse,
@@ -273,10 +274,7 @@ async function build(): Promise<AppServices> {
     const discuss = createDiscussServices({
         client: hungu.discuss,
         db,
-        // TODO(course-sanitizer): replace with the course domain's Purifier
-        // port (config/purifier.php `default` profile). Identity is unsafe for
-        // untrusted post bodies, so discuss screens must not ship before this.
-        sanitizeHtml: (html) => html,
+        sanitizeHtml: sanitizeDiscussHtml,
     });
 
     // The subscription and the preference store depend on each other
