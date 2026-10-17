@@ -7,13 +7,11 @@ import type {
     KeyValueStoreRepository,
     Logger,
     SqlValue,
-} from '@altuu/core';
-import {
+
     resolveNativePhpLegacyLocation,
     runLegacyMigration,
     type LegacyDatabaseHandle,
-    type LegacyMigrationOutcome,
-} from '@altuu/core';
+    type LegacyMigrationOutcome} from '@altuu/core';
 
 /**
  * Native access to what the NativePHP app left on the device. The APP_KEY
