@@ -1,0 +1,2 @@
+# Intentionally minimal: identifiers are passed explicitly by the lanes so the
+# same Fastfile works for the store build and the sideload build.

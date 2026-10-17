@@ -1,0 +1,29 @@
+/*
+ * Gradle init script: signs the `release` build type with a keystore supplied
+ * through environment variables, because `expo prebuild` generates an Android
+ * project that signs release builds with the debug key.
+ *
+ * Usage: ./gradlew -I android-signing.init.gradle bundleRelease
+ *
+ * Required environment variables:
+ *   ALTUU_ANDROID_STORE_FILE, ALTUU_ANDROID_STORE_PASSWORD,
+ *   ALTUU_ANDROID_KEY_ALIAS, ALTUU_ANDROID_KEY_PASSWORD
+ */
+allprojects {
+    plugins.withId('com.android.application') {
+        def storeFile = System.getenv('ALTUU_ANDROID_STORE_FILE')
+        if (!storeFile) {
+            throw new GradleException('ALTUU_ANDROID_STORE_FILE is not set; refusing to build an unsigned/debug-signed release.')
+        }
+
+        extensions.getByName('androidComponents').finalizeDsl { dsl ->
+            def releaseSigning = dsl.signingConfigs.create('altuuRelease') { config ->
+                config.storeFile = new File(storeFile)
+                config.storePassword = System.getenv('ALTUU_ANDROID_STORE_PASSWORD')
+                config.keyAlias = System.getenv('ALTUU_ANDROID_KEY_ALIAS')
+                config.keyPassword = System.getenv('ALTUU_ANDROID_KEY_PASSWORD')
+            }
+            dsl.buildTypes.getByName('release').signingConfig = releaseSigning
+        }
+    }
+}
