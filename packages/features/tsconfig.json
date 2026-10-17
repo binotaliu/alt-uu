@@ -1,0 +1,5 @@
+{
+    "extends": "../../tsconfig.base.json",
+    "compilerOptions": { "types": ["jest"] },
+    "include": ["src", "nativewind-env.d.ts"]
+}

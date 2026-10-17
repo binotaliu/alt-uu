@@ -1,0 +1,20 @@
+# Generated native projects (use `expo prebuild` in CI / locally)
+/ios
+/android
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native secrets
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.keystore
+
+# Metro
+.metro-health-check*

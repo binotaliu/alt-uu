@@ -1,0 +1,44 @@
+{
+    "name": "@altuu/mobile",
+    "version": "1.1.0",
+    "private": true,
+    "main": "expo-router/entry",
+    "scripts": {
+        "start": "expo start",
+        "ios": "expo start --ios",
+        "android": "expo start --android",
+        "typecheck": "tsc --noEmit"
+    },
+    "dependencies": {
+        "@altuu/core": "*",
+        "@altuu/features": "*",
+        "@altuu/ui": "*",
+        "expo": "~58.0.14",
+        "expo-constants": "~58.0.12",
+        "expo-iap": "^6.1.0",
+        "expo-linking": "~58.0.13",
+        "expo-network": "~58.0.3",
+        "expo-router": "~58.0.23",
+        "expo-screen-orientation": "~58.0.3",
+        "expo-secure-store": "~58.0.2",
+        "expo-sharing": "~58.0.19",
+        "expo-splash-screen": "~58.0.10",
+        "expo-sqlite": "~58.0.13",
+        "expo-status-bar": "~58.0.3",
+        "expo-system-ui": "~58.0.6",
+        "expo-video": "~58.0.11",
+        "nativewind": "^4.2.7",
+        "react": "19.3.0",
+        "react-native": "0.88.0",
+        "react-native-gesture-handler": "~3.3.0",
+        "react-native-reanimated": "4.7.1",
+        "react-native-safe-area-context": "~5.10.1",
+        "react-native-screens": "~4.30.0",
+        "react-native-webview": "14.0.1",
+        "react-native-worklets": "0.13.0"
+    },
+    "devDependencies": {
+        "@types/react": "~19.3.0",
+        "tailwindcss": "^3.4.19"
+    }
+}
