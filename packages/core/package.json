@@ -7,9 +7,18 @@
     "types": "src/index.ts",
     "scripts": {
         "typecheck": "tsc --noEmit",
-        "test": "vitest run"
+        "test": "vitest run",
+        "db:generate": "drizzle-kit generate && node scripts/build-migrations.mjs"
     },
     "devDependencies": {
+        "@types/better-sqlite3": "^9.6.0",
+        "better-sqlite3": "^13.0.3",
+        "drizzle-kit": "^0.31.11",
         "vitest": "^5.0.5"
+    },
+    "dependencies": {
+        "@noble/ciphers": "^2.4.0",
+        "@noble/hashes": "^2.4.0",
+        "drizzle-orm": "^0.45.4"
     }
 }
