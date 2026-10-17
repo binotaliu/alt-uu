@@ -33,6 +33,7 @@ export default tseslint.config(
             'apps/mobile/android/**',
             'modules/*/ios/**',
             'modules/*/android/**',
+            'tools/legacy-fixtures-gen/**',
             'modules/*/build/**',
             'packages/core/test/fixtures/**',
         ],

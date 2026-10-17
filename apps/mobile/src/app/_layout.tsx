@@ -1,14 +1,25 @@
+import { AppRoot } from '@altuu/features';
 import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
-import { ThemeProvider } from '@altuu/ui';
+import * as SplashScreen from 'expo-splash-screen';
 
+import { createAppServices } from '../compositionRoot';
 import '../global.css';
+
+void SplashScreen.preventAutoHideAsync();
+
+const hideSplash = () => {
+    void SplashScreen.hideAsync();
+};
 
 export default function RootLayout() {
     return (
-        <ThemeProvider>
-            <StatusBar style="auto" />
-            <Stack screenOptions={{ headerShown: false }} />
-        </ThemeProvider>
+        <AppRoot createServices={createAppServices} onReady={hideSplash}>
+            <Stack screenOptions={{ headerShown: false }}>
+                <Stack.Screen
+                    name="browser"
+                    options={{ presentation: 'modal' }}
+                />
+            </Stack>
+        </AppRoot>
     );
 }

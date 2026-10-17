@@ -26,3 +26,6 @@ export async function createPlatform(): Promise<MobilePlatform> {
 }
 
 export { clock, random, secureStorage, openAppDatabase };
+export { fetch } from './fetch';
+export { getDeviceInfo } from './deviceInfo';
+export { nativePhpBridge, runLegacyMigrationIfNeeded } from './legacyDatabase';
