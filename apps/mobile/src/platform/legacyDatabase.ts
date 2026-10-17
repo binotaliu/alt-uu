@@ -1,17 +1,17 @@
 import { Platform } from 'react-native';
 import { defaultDatabaseDirectory, openDatabaseAsync } from 'expo-sqlite';
-import type {
-    AltUUDatabase,
-    Clock,
-    CredentialCipher,
-    KeyValueStoreRepository,
-    Logger,
-    SqlValue,
-
+import {
     resolveNativePhpLegacyLocation,
     runLegacyMigration,
+    type AltUUDatabase,
+    type Clock,
+    type CredentialCipher,
+    type KeyValueStoreRepository,
     type LegacyDatabaseHandle,
-    type LegacyMigrationOutcome} from '@altuu/core';
+    type LegacyMigrationOutcome,
+    type Logger,
+    type SqlValue,
+} from '@altuu/core';
 
 /**
  * Native access to what the NativePHP app left on the device. The APP_KEY
