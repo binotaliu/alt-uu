@@ -17,3 +17,4 @@ export * from './material-preference';
 export * from './app-config';
 export * from './app-status';
 export * from './nou-tools';
+export * from './course';
