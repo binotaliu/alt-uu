@@ -1,0 +1,32 @@
+{
+    "generatedBy": "real PHP legacy app (alt-uu-legacy worktree of main)",
+    "phpClass": "AltUU\\Domains\\Moderation\\Actions\\ReportContent",
+    "cases": [
+        {
+            "name": "report-content",
+            "input": {
+                "method": "POST",
+                "path": "/api/moderation/report",
+                "body": {
+                    "board_id": "board-1",
+                    "node_id": "node-1",
+                    "content": "offensive content",
+                    "type": "s"
+                }
+            },
+            "output": {
+                "status": 200,
+                "json": {
+                    "ok": true
+                }
+            },
+            "upstreamRequests": [
+                {
+                    "method": "POST",
+                    "url": "https://alt-uu.binota.org/api/moderation/reports",
+                    "body": "{\"client_hash\":\"b890c1e7b741b541816de82a370b6ea388413686916071acde22fbd863800b2c\",\"site_hash\":\"1b04f287644330e02cab8e616c5a657a24e0a759081235d2739612924eb73680\",\"board_hash\":\"83440fa4f3936f8a407c811ebbcaaeded2b9d1599c9463df3849748d744bbdef\",\"node_hash\":\"35971be6e9bb024a895582fe0e42e04848a86da550aaef0fccbfba86f99f617d\",\"content_hash\":\"eadbda2d36fcc1946e0085e370bd04288a58698110c2e2284ef43dc1996bc7f7\",\"type\":\"s\",\"content\":\"offensive content\"}"
+                }
+            ]
+        }
+    ]
+}

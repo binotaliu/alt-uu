@@ -1,0 +1,31 @@
+{
+    "generatedBy": "real PHP legacy app (alt-uu-legacy worktree of main)",
+    "phpClass": "AltUU\\Domains\\Course\\Actions\\ParseMaterialContent (via GET /materials/content/parsed)",
+    "cases": [
+        {
+            "name": "parse-material-same-host-img",
+            "input": {
+                "url": "https://example.com/page.html",
+                "sessionBaseUrl": "https://example.com"
+            },
+            "output": {
+                "status": 200,
+                "json": {
+                    "videoUrl": null,
+                    "subtitleUrl": null,
+                    "downloadUrl": null,
+                    "downloadProxyUrl": null,
+                    "downloadFileName": null,
+                    "downloadFileExtension": null,
+                    "isPdf": false,
+                    "htmlContent": "<div><img src=\"http://localhost/material-proxy/aHR0cHM6Ly9leGFtcGxlLmNvbS83MTAwNzEuanBn\" alt=\"封面圖片\" width=\"900\" height=\"600\"></div>",
+                    "videoProvider": "native",
+                    "embedVideoUrl": null
+                },
+                "upstreamRequests": [
+                    "GET https://example.com/page.html"
+                ]
+            }
+        }
+    ]
+}

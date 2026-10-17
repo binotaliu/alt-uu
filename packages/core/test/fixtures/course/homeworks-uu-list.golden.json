@@ -1,0 +1,45 @@
+{
+    "generatedBy": "real PHP legacy app (alt-uu-legacy worktree of main)",
+    "phpClass": "AltUU\\Domains\\Course\\Actions\\GetCourseHomeworks",
+    "cases": [
+        {
+            "name": "homeworks-uu-list",
+            "input": {
+                "method": "GET",
+                "path": "/api/courses/1001/homeworks"
+            },
+            "output": {
+                "status": 200,
+                "json": {
+                    "homeworkItems": [
+                        {
+                            "title": "假課程-作業 A",
+                            "percent": "100%",
+                            "type": "homework",
+                            "status": "進行作業",
+                            "window": "從 2026-01-01 00:00 到 2026-01-31 23:59",
+                            "actionUrl": "https://uu.nou.edu.tw/learn/homework/exam_pre_start.php?200001+1+tokenabc+0",
+                            "resultUrl": "https://uu.nou.edu.tw/learn/homework/view_exemplar.php?200001+1+tokenabc+s100001+personal",
+                            "source": "homework",
+                            "isSubmitted": false,
+                            "resultUnavailableReason": null
+                        },
+                        {
+                            "title": "假課程-作業 B",
+                            "percent": "100%",
+                            "type": "homework",
+                            "status": "已繳作業",
+                            "window": "從 2025-12-01 00:00 到 2025-12-10 23:59",
+                            "actionUrl": null,
+                            "resultUrl": null,
+                            "source": "homework",
+                            "isSubmitted": false,
+                            "resultUnavailableReason": null
+                        }
+                    ],
+                    "schoolPortalNotices": []
+                }
+            }
+        }
+    ]
+}

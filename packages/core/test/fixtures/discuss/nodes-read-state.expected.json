@@ -1,0 +1,21 @@
+{
+    "source": "Unit/ListNodesTest.php:13",
+    "phpClass": "AltUU\\Domains\\Discuss\\Actions\\ListNodes",
+    "note": "Action called as ($cid=\"1001\", $bid=\"B-1\", $keyword=\"\"); upstream get-board-node-list with offset=0,size=50,bid=B-1,keyword=.",
+    "cases": [
+        {
+            "name": "maps node read state from discuss API response",
+            "input": {
+                "cid": "1001",
+                "bid": "B-1",
+                "keyword": ""
+            },
+            "partial": true,
+            "expected": {
+                "nodesCount": 2,
+                "nodes[0].isRead": false,
+                "nodes[1].isRead": true
+            }
+        }
+    ]
+}

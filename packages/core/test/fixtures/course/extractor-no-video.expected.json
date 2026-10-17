@@ -1,0 +1,10 @@
+{
+    "source": "Unit/Html5SourceVideoExtractorTest.php:36 and Unit/FlowplayerJsConfigVideoExtractorTest.php:24",
+    "phpClass": "AltUU\\Domains\\Course\\Support\\VideoExtractors\\Html5SourceVideoExtractor and FlowplayerJsConfigVideoExtractor",
+    "cases": [
+        {
+            "name": "both extractors return null when there is no video",
+            "expected": null
+        }
+    ]
+}

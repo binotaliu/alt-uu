@@ -1,0 +1,108 @@
+{
+    "generatedBy": "real PHP legacy app (alt-uu-legacy worktree of main)",
+    "phpClass": "AltUU\\Domains\\SchoolPortal\\Actions\\GetSchoolPortalHomeworkNotices",
+    "cases": [
+        {
+            "name": "first course",
+            "input": {
+                "course": {
+                    "courseId": "9001",
+                    "semester": "115上",
+                    "name": "假課程甲"
+                }
+            },
+            "output": [
+                {
+                    "title": "第1次作業",
+                    "dueDate": "繳交日期：2026年10月01日",
+                    "submissionMethod": "依面授教師指定方式繳交",
+                    "downloadUrl": "https://nouapp.nou.edu.tw/device/compliant/qryass/download?type=homework&filename=1151_000001_1&extension=pdf&_b=%5B%5D"
+                },
+                {
+                    "title": "第2次作業",
+                    "dueDate": "繳交日期：依面授老師規定",
+                    "submissionMethod": "依面授教師指定方式繳交",
+                    "downloadUrl": "https://nouapp.nou.edu.tw/device/compliant/qryass/download?type=homework&filename=1151_000001_ZZZ001_2&extension=pdf&_b=%5B%5D"
+                }
+            ]
+        },
+        {
+            "name": "second course",
+            "input": {
+                "course": {
+                    "courseId": "9001",
+                    "semester": "115上",
+                    "name": "假課程乙"
+                }
+            },
+            "output": [
+                {
+                    "title": "第1次作業",
+                    "dueDate": "繳交日期：依面授老師規定",
+                    "submissionMethod": "依面授教師指定方式繳交",
+                    "downloadUrl": "https://nouapp.nou.edu.tw/device/compliant/qryass/download?type=homework&filename=1151_000002_1&extension=pdf&_b=%5B%5D"
+                }
+            ]
+        },
+        {
+            "name": "third course",
+            "input": {
+                "course": {
+                    "courseId": "9001",
+                    "semester": "115上",
+                    "name": "假課程丙"
+                }
+            },
+            "output": [
+                {
+                    "title": "第1次作業",
+                    "dueDate": "繳交日期：依面授老師規定",
+                    "submissionMethod": "依面授教師指定方式繳交",
+                    "downloadUrl": "https://nouapp.nou.edu.tw/device/compliant/qryass/download?type=homework&filename=1151_000003_1&extension=pdf&_b=%5B%5D"
+                }
+            ]
+        },
+        {
+            "name": "later assignments: first course (id 1)",
+            "input": {
+                "course": {
+                    "courseId": "1",
+                    "semester": "115上",
+                    "name": "假課程甲"
+                }
+            },
+            "output": [
+                {
+                    "title": "第1次作業",
+                    "dueDate": "繳交日期：2026年10月01日",
+                    "submissionMethod": "依面授教師指定方式繳交",
+                    "downloadUrl": "https://nouapp.nou.edu.tw/device/compliant/qryass/download?type=homework&filename=1151_000001_1&extension=pdf&_b=%5B%5D"
+                },
+                {
+                    "title": "第2次作業",
+                    "dueDate": "繳交日期：依面授老師規定",
+                    "submissionMethod": "依面授教師指定方式繳交",
+                    "downloadUrl": "https://nouapp.nou.edu.tw/device/compliant/qryass/download?type=homework&filename=1151_000001_ZZZ001_2&extension=pdf&_b=%5B%5D"
+                }
+            ]
+        },
+        {
+            "name": "later assignments: other course (id 2)",
+            "input": {
+                "course": {
+                    "courseId": "2",
+                    "semester": "115上",
+                    "name": "假課程乙"
+                }
+            },
+            "output": [
+                {
+                    "title": "第1次作業",
+                    "dueDate": "繳交日期：依面授老師規定",
+                    "submissionMethod": "依面授教師指定方式繳交",
+                    "downloadUrl": "https://nouapp.nou.edu.tw/device/compliant/qryass/download?type=homework&filename=1151_000002_1&extension=pdf&_b=%5B%5D"
+                }
+            ]
+        }
+    ]
+}

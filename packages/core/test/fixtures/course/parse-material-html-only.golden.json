@@ -1,0 +1,31 @@
+{
+    "generatedBy": "real PHP legacy app (alt-uu-legacy worktree of main)",
+    "phpClass": "AltUU\\Domains\\Course\\Actions\\ParseMaterialContent (via GET /materials/content/parsed)",
+    "cases": [
+        {
+            "name": "parse-material-html-only",
+            "input": {
+                "url": "https://example.com/content/overview.html",
+                "sessionBaseUrl": "https://example.com"
+            },
+            "output": {
+                "status": 200,
+                "json": {
+                    "videoUrl": null,
+                    "subtitleUrl": null,
+                    "downloadUrl": null,
+                    "downloadProxyUrl": null,
+                    "downloadFileName": null,
+                    "downloadFileExtension": null,
+                    "isPdf": false,
+                    "htmlContent": "<div>\n    課程概覽\n    <table><tbody><tr><td>主題</td><td>範例課程</td></tr></tbody></table>\n    </div>",
+                    "videoProvider": "native",
+                    "embedVideoUrl": null
+                },
+                "upstreamRequests": [
+                    "GET https://example.com/content/overview.html"
+                ]
+            }
+        }
+    ]
+}

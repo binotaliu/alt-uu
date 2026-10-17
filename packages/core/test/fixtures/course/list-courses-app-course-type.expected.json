@@ -1,0 +1,20 @@
+{
+    "source": "Unit/ListCoursesTest.php:13",
+    "phpClass": "AltUU\\Domains\\Course\\Actions\\ListCourses",
+    "note": "Input is the my-course-list upstream payload (test wraps it as [\"payload\" => ...]). Legacy asserts only the first item of ListCourses::items().",
+    "cases": [
+        {
+            "name": "populates commonCourseId when courseType comes from an app course",
+            "partial": true,
+            "expected": {
+                "itemCount": 1,
+                "items[0]": {
+                    "courseId": "1001",
+                    "commonCourseId": "1002",
+                    "courseType": "語音"
+                },
+                "cacheKeyWritten": "alt-uu:courses:list:anonymous"
+            }
+        }
+    ]
+}

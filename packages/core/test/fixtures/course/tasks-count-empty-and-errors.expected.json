@@ -1,0 +1,29 @@
+{
+    "source": "Feature/Course/CourseTasksCountApiTest.php:96,165,193",
+    "phpClass": "AltUU\\Domains\\Course\\Actions\\GetCourseTasksCount",
+    "note": "Input is the empty page served for both pages in the first case. Other cases: both pages HTTP 502 \"Server Error\"; missing hungu session.",
+    "cases": [
+        {
+            "name": "returns empty array when no pending homeworks or unread articles",
+            "expected": []
+        },
+        {
+            "name": "handles server errors gracefully",
+            "input": {
+                "homeworkStatus": 502,
+                "forumStatus": 502,
+                "body": "Server Error"
+            },
+            "expected": []
+        },
+        {
+            "name": "requires hungu session",
+            "input": {
+                "session": null
+            },
+            "expected": {
+                "httpStatus": 401
+            }
+        }
+    ]
+}

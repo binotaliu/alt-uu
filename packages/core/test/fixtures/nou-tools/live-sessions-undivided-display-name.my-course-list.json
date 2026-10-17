@@ -1,0 +1,12 @@
+{
+    "code": 0,
+    "message": "success",
+    "data": {
+        "list": [
+            {
+                "course_id": "2003",
+                "title": "(115暑)通識課程-ZZZ999班"
+            }
+        ]
+    }
+}

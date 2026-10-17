@@ -1,0 +1,24 @@
+    <!DOCTYPE html>
+    <html>
+    <head>
+    <meta charset="utf-8" />
+    <title>01</title>
+    <link rel="stylesheet" href="https://cdn.flowplayer.com/flowplayer.css" />
+    </head>
+    <body>
+    <div class="container">
+      <div id="player"></div>
+    </div>
+    <script src="https://cdn.flowplayer.com/flowplayer.min.js"></script>
+    <script>
+    window.player = flowplayer("#player", {
+        token: "fake-token",
+        src: "https://example.com/video/playlist.m3u8",
+        subtitles: { tracks: [{ src: "01.vtt", label: "CJK", default: true }] },
+    });
+    </script>
+    <div id="wrapper">
+    <h2>測試影片內容</h2>
+    </div>
+    </body>
+    </html>

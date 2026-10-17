@@ -1,0 +1,80 @@
+{
+    "source": "Feature/ModerationTest.php:123",
+    "phpClass": "AltUU\\Domains\\Moderation\\Actions\\ReportContent",
+    "note": "Request body of POST /api/moderation/report. Upstream POST https://alt-uu.binota.org/api/moderation/reports must carry board_hash=sha256(board_id), node_hash=sha256(node_id), content_hash=sha256(content), type, non-empty client_hash and site_hash. Golden records the exact upstream body the PHP produced (client_hash/site_hash depend on the PHP test environment).",
+    "cases": [
+        {
+            "name": "reports content to remote API",
+            "input": {
+                "body": {
+                    "board_id": "board-1",
+                    "node_id": "node-1",
+                    "content": "offensive content",
+                    "type": "s"
+                }
+            },
+            "partial": true,
+            "expected": {
+                "upstreamUrl": "https://alt-uu.binota.org/api/moderation/reports",
+                "upstreamBody": {
+                    "board_hash": "83440fa4f3936f8a407c811ebbcaaeded2b9d1599c9463df3849748d744bbdef",
+                    "node_hash": "35971be6e9bb024a895582fe0e42e04848a86da550aaef0fccbfba86f99f617d",
+                    "content_hash": "eadbda2d36fcc1946e0085e370bd04288a58698110c2e2284ef43dc1996bc7f7",
+                    "type": "s",
+                    "client_hash": {
+                        "nonEmpty": true
+                    },
+                    "site_hash": {
+                        "nonEmpty": true
+                    }
+                }
+            }
+        },
+        {
+            "name": "validates report type is valid",
+            "input": {
+                "body": {
+                    "board_id": "board-1",
+                    "node_id": "node-1",
+                    "content": "test",
+                    "type": "x"
+                }
+            },
+            "expected": {
+                "httpStatus": 422
+            }
+        },
+        {
+            "name": "validates required report fields",
+            "input": {
+                "body": {}
+            },
+            "expected": {
+                "httpStatus": 422
+            }
+        },
+        {
+            "name": "generates consistent client hash",
+            "input": {
+                "bodies": [
+                    {
+                        "board_id": "b1",
+                        "node_id": "n1",
+                        "content": "c1",
+                        "type": "o"
+                    },
+                    {
+                        "board_id": "b2",
+                        "node_id": "n2",
+                        "content": "c2",
+                        "type": "i"
+                    }
+                ]
+            },
+            "expected": {
+                "recordedRequests": 2,
+                "sameClientHash": true
+            }
+        }
+    ]
+}

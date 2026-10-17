@@ -1,0 +1,30 @@
+{
+    "request": {
+        "cid": "1001",
+        "activityId": "N-1",
+        "url": "https://uu.nou.edu.tw/material/lesson-1.html",
+        "seconds": 120
+    },
+    "upstream": {
+        "get-server-time": {
+            "code": 0,
+            "message": "success",
+            "data": {
+                "server_time": "2026-03-14 10:00:00"
+            }
+        },
+        "set-read-node-history": [
+            {
+                "code": 500,
+                "message": "failed"
+            },
+            {
+                "code": 0,
+                "message": "success",
+                "data": {
+                    "seconds": 120
+                }
+            }
+        ]
+    }
+}

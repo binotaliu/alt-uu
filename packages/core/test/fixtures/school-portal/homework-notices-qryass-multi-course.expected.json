@@ -1,0 +1,105 @@
+{
+    "source": "Feature/SchoolPortal/GetSchoolPortalHomeworkNoticesTest.php:20",
+    "phpClass": "AltUU\\Domains\\SchoolPortal\\Actions\\GetSchoolPortalHomeworkNotices",
+    "cases": [
+        {
+            "name": "returns a notice for every course listed under the same assignment: first course",
+            "input": {
+                "course": {
+                    "courseId": "9001",
+                    "semester": "115上",
+                    "name": "假課程甲"
+                }
+            },
+            "partial": true,
+            "expected": {
+                "0": {
+                    "title": "第1次作業",
+                    "downloadUrl": {
+                        "contains": "filename=1151_000001_1&"
+                    },
+                    "dueDate": "繳交日期：2026年10月01日",
+                    "submissionMethod": "依面授教師指定方式繳交"
+                }
+            }
+        },
+        {
+            "name": "returns a notice for every course listed under the same assignment: second course",
+            "input": {
+                "course": {
+                    "courseId": "9001",
+                    "semester": "115上",
+                    "name": "假課程乙"
+                }
+            },
+            "partial": true,
+            "expected": {
+                "0": {
+                    "title": "第1次作業",
+                    "downloadUrl": {
+                        "contains": "filename=1151_000002_1&"
+                    },
+                    "dueDate": "繳交日期：依面授老師規定",
+                    "submissionMethod": "依面授教師指定方式繳交"
+                }
+            }
+        },
+        {
+            "name": "returns a notice for every course listed under the same assignment: third course",
+            "input": {
+                "course": {
+                    "courseId": "9001",
+                    "semester": "115上",
+                    "name": "假課程丙"
+                }
+            },
+            "partial": true,
+            "expected": {
+                "0": {
+                    "title": "第1次作業",
+                    "downloadUrl": {
+                        "contains": "filename=1151_000003_1&"
+                    },
+                    "dueDate": "繳交日期：依面授老師規定",
+                    "submissionMethod": "依面授教師指定方式繳交"
+                }
+            }
+        },
+        {
+            "name": "keeps notices from later assignments alongside multi-course ones (course 假課程甲, id 1)",
+            "input": {
+                "course": {
+                    "courseId": "1",
+                    "semester": "115上",
+                    "name": "假課程甲"
+                }
+            },
+            "partial": true,
+            "expected": {
+                "titles": [
+                    "第1次作業",
+                    "第2次作業"
+                ],
+                "1.downloadUrl": {
+                    "contains": "filename=1151_000001_ZZZ001_2"
+                }
+            }
+        },
+        {
+            "name": "keeps notices from later assignments alongside multi-course ones (course 假課程乙, id 2)",
+            "input": {
+                "course": {
+                    "courseId": "2",
+                    "semester": "115上",
+                    "name": "假課程乙"
+                }
+            },
+            "partial": true,
+            "expected": {
+                "titles": [
+                    "第1次作業"
+                ]
+            }
+        }
+    ]
+}

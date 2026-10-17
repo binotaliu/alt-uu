@@ -1,0 +1,13 @@
+{
+    "source": "Unit/Html5SourceVideoExtractorTest.php:5",
+    "phpClass": "AltUU\\Domains\\Course\\Support\\VideoExtractors\\Html5SourceVideoExtractor",
+    "cases": [
+        {
+            "name": "it extracts an m3u8 src from a declarative flowplayer video source",
+            "expected": {
+                "videoUrl": "https://media.example.com/vod/_definst_/900001/01/01.mp4/playlist.m3u8",
+                "subtitleUrl": null
+            }
+        }
+    ]
+}

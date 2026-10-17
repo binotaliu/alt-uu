@@ -1,0 +1,33 @@
+{
+    "source": "Feature/Course/NouToolsIntegrationTest.php:43",
+    "phpClass": "AltUU\\Domains\\Course\\Actions\\GetNouToolsCourseData (+ NouTools live sessions/calendar actions)",
+    "note": "Upstream: UU my-course-list, nou-tools GET /courses/1234, /courses?term=2025A, /school-calendar. Requires preference nou-tools-integration enabled.",
+    "cases": [
+        {
+            "name": "returns mapped nou tools live sessions, school calendar, and course info",
+            "partial": true,
+            "expected": {
+                "GET /api/nou-tools/live-sessions": {
+                    "0": {
+                        "courseId": "1001",
+                        "classCode": "ZZZ001",
+                        "sessions[0].date": "2025-10-12"
+                    },
+                    "count": 1
+                },
+                "GET /api/nou-tools/school-calendar": {
+                    "count": 1,
+                    "0.name": "期中考"
+                },
+                "GET /api/courses/1001/nou-tools-info": {
+                    "course.nouToolsCourseId": 1234,
+                    "course.department": "假學系",
+                    "course.previousExams[0].term": "2024B"
+                },
+                "requests": {
+                    "someUrlContains": "term=2025A"
+                }
+            }
+        }
+    ]
+}

@@ -1,0 +1,11 @@
+{
+    "source": "Feature/Course/CourseTasksCountApiTest.php:124",
+    "phpClass": "AltUU\\Domains\\Course\\Actions\\GetCourseTasksCount",
+    "note": "Row without data-bid / enough columns must be skipped.",
+    "cases": [
+        {
+            "name": "handles malformed HTML gracefully",
+            "expected": []
+        }
+    ]
+}

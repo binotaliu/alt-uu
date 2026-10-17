@@ -1,0 +1,31 @@
+{
+    "source": "Feature/StudyTime/StudyTimeTest.php:317",
+    "phpClass": "AltUU\\Domains\\StudyTime (POST /study-time, playback progress)",
+    "cases": [
+        {
+            "name": "returns the most recently updated activity id as last seen material",
+            "input": {
+                "request": "GET /api/courses/1001/last-seen-material"
+            },
+            "partial": true,
+            "expected": {
+                "activityId": "N-2",
+                "positionSeconds": 5,
+                "mediaDurationSeconds": 755
+            }
+        },
+        {
+            "name": "returns null activity id when there is no playback progress for the course",
+            "input": {
+                "playbackProgressRows": [],
+                "request": "GET /api/courses/1001/last-seen-material"
+            },
+            "partial": true,
+            "expected": {
+                "activityId": null,
+                "positionSeconds": null,
+                "mediaDurationSeconds": null
+            }
+        }
+    ]
+}

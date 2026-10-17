@@ -1,0 +1,17 @@
+{
+    "generatedBy": "real PHP legacy app (alt-uu-legacy worktree of main)",
+    "phpClass": "AltUU\\Domains\\Course\\Actions\\GetCourseTasksCount",
+    "cases": [
+        {
+            "name": "tasks-count-empty-and-errors",
+            "input": {
+                "method": "GET",
+                "path": "/api/courses/tasks-count"
+            },
+            "output": {
+                "status": 200,
+                "json": []
+            }
+        }
+    ]
+}

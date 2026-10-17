@@ -1,0 +1,39 @@
+{
+    "generatedBy": "real PHP legacy app (alt-uu-legacy worktree of main)",
+    "phpClass": "AltUU\\Domains\\DataPortability\\Actions\\ExportAccountData / ImportAccountData / MergeAccountData",
+    "cases": [
+        {
+            "name": "exports accounts, playback progress, and daily activity keyed by username",
+            "input": {
+                "account": "s2222222"
+            },
+            "output": {
+                "status": 200,
+                "json": {
+                    "exportedAt": "2026-07-10T12:00:00+00:00",
+                    "accounts": {
+                        "s2222222": 1
+                    },
+                    "playbackProgress": [
+                        {
+                            "username": "s2222222",
+                            "cid": "1001",
+                            "activityId": "N-1",
+                            "durationSeconds": 120,
+                            "positionSeconds": 42.5,
+                            "hunguUploadSuccess": true
+                        }
+                    ],
+                    "accountDailyActivities": [
+                        {
+                            "username": "s2222222",
+                            "activityDate": "2026-07-10",
+                            "totalSeconds": 900
+                        }
+                    ]
+                },
+                "contentDispositionHeader": true
+            }
+        }
+    ]
+}

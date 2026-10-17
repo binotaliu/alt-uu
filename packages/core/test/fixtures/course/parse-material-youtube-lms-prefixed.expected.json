@@ -1,0 +1,22 @@
+{
+    "source": "Feature/Course/ParseMaterialContentTest.php:294",
+    "phpClass": "AltUU\\Domains\\Course\\Actions\\ParseMaterialContent (via GET /materials/content/parsed)",
+    "note": "Input file holds the material URL passed as ?url= (no upstream body unless noted).",
+    "cases": [
+        {
+            "name": "returns a youtube embed result for an lms-prefixed youtube url",
+            "input": {
+                "url": "https://example.com/base/100001/content/999999/https://youtu.be/dQw4w9WgXcQ?si=xxxxxx",
+                "upstream": "no HTTP request must be sent"
+            },
+            "partial": true,
+            "expected": {
+                "videoProvider": "youtube",
+                "embedVideoUrl": {
+                    "staticsBaseUrlConfig": "/youtube-embed.html?v=dQw4w9WgXcQ"
+                },
+                "noHttpRequestSent": true
+            }
+        }
+    ]
+}

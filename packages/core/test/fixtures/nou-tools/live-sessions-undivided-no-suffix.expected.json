@@ -1,0 +1,21 @@
+{
+    "source": "Feature/Course/NouToolsIntegrationTest.php:254",
+    "phpClass": "AltUU\\Domains\\Course\\Actions\\GetNouToolsCourseData (+ NouTools live sessions/calendar actions)",
+    "cases": [
+        {
+            "name": "falls back to the undivided 不分班 class when no class code matches and the course title has no class suffix",
+            "partial": true,
+            "expected": {
+                "0": {
+                    "courseId": "2002",
+                    "className": "不分班",
+                    "classCode": "不分班",
+                    "link": "https://meet.example.com/undivided-room",
+                    "backupClassroomUrl": "https://meet.example.com/backup-room",
+                    "sessions[0].date": "2026-07-20"
+                },
+                "count": 1
+            }
+        }
+    ]
+}

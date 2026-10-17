@@ -1,0 +1,16 @@
+{
+    "generatedBy": "real PHP legacy app (alt-uu-legacy worktree of main)",
+    "phpClass": "AltUU\\Domains\\Course\\Support\\VideoExtractors\\Html5SourceVideoExtractor and FlowplayerJsConfigVideoExtractor",
+    "cases": [
+        {
+            "name": "extractor-no-video",
+            "input": {
+                "file": "extractor-no-video.html"
+            },
+            "output": {
+                "html5": null,
+                "flowplayerJs": null
+            }
+        }
+    ]
+}

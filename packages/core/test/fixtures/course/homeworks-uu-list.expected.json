@@ -1,0 +1,38 @@
+{
+    "source": "Feature/Course/CourseHomeworksApiTest.php:10",
+    "phpClass": "AltUU\\Domains\\Course\\Actions\\GetCourseHomeworks",
+    "note": "Legacy test interpolates random $studentId/$type; this fixture pins studentId=s100001 type=personal. Upstream GET /learn/homework/homework_list.php (after go-course).",
+    "cases": [
+        {
+            "name": "maps course homeworks with action and result urls",
+            "input": {
+                "cid": "1001"
+            },
+            "partial": true,
+            "expected": {
+                "homeworkItemsCount": 2,
+                "schoolPortalNoticesCount": 0,
+                "homeworkItems[0]": {
+                    "title": "假課程-作業 A",
+                    "percent": "100%",
+                    "type": "homework",
+                    "status": "進行作業",
+                    "window": "從 2026-01-01 00:00 到 2026-01-31 23:59",
+                    "actionUrl": "https://uu.nou.edu.tw/learn/homework/exam_pre_start.php?200001+1+tokenabc+0",
+                    "resultUrl": "https://uu.nou.edu.tw/learn/homework/view_exemplar.php?200001+1+tokenabc+s100001+personal"
+                },
+                "homeworkItems[1]": {
+                    "title": "假課程-作業 B",
+                    "percent": "100%",
+                    "status": "已繳作業",
+                    "actionUrl": null,
+                    "resultUrl": null
+                },
+                "requests": [
+                    "go-course with cid=1001",
+                    "GET https://uu.nou.edu.tw/learn/homework/homework_list.php"
+                ]
+            }
+        }
+    ]
+}

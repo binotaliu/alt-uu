@@ -1,0 +1,55 @@
+{
+    "generatedBy": "real PHP legacy app (alt-uu-legacy worktree of main)",
+    "phpClass": "AltUU\\Domains\\Discuss\\Actions\\ListPosts (via GET /api/discuss/posts)",
+    "cases": [
+        {
+            "name": "posts-blocked",
+            "input": {
+                "method": "GET",
+                "path": "/api/discuss/posts?cid=1001&bid=B-1&nid=N-99"
+            },
+            "output": {
+                "status": 200,
+                "json": {
+                    "courseId": "1001",
+                    "boardId": "B-1",
+                    "nodeId": "N-99",
+                    "posts": [
+                        {
+                            "floor": 1,
+                            "node": "P-1",
+                            "subject": null,
+                            "content": "<p>hello</p>",
+                            "poster": null,
+                            "realname": null,
+                            "postDate": "2024-01-01",
+                            "push": 0,
+                            "liked": false,
+                            "whisperCount": 0,
+                            "whispers": [],
+                            "attachments": [],
+                            "isBlocked": false,
+                            "blockedReason": null
+                        },
+                        {
+                            "floor": 2,
+                            "node": "P-2",
+                            "subject": null,
+                            "content": "<p>world</p>",
+                            "poster": null,
+                            "realname": null,
+                            "postDate": "2024-01-02",
+                            "push": 0,
+                            "liked": false,
+                            "whisperCount": 0,
+                            "whispers": [],
+                            "attachments": [],
+                            "isBlocked": true,
+                            "blockedReason": "i"
+                        }
+                    ]
+                }
+            }
+        }
+    ]
+}

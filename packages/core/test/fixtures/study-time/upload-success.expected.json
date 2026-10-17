@@ -1,0 +1,35 @@
+{
+    "source": "Feature/StudyTime/StudyTimeTest.php:18",
+    "phpClass": "AltUU\\Domains\\StudyTime (POST /study-time, playback progress)",
+    "cases": [
+        {
+            "name": "uploads reading time through proxy endpoint and stores playback progress",
+            "expected": {
+                "response": {
+                    "ok": true,
+                    "seconds": 120
+                },
+                "pathInfoCacheForCourseCleared": true,
+                "playbackProgressRow": {
+                    "cid": "1001",
+                    "activity_id": "N-1",
+                    "duration_seconds": 120,
+                    "position_seconds": 42.5,
+                    "media_duration_seconds": 755.4,
+                    "hungu_upload_success": true
+                },
+                "upstreamUpload": {
+                    "action": "set-read-node-history",
+                    "contentType": "application/x-www-form-urlencoded",
+                    "form": {
+                        "cid": "1001",
+                        "url": "https://uu.nou.edu.tw/material/lesson-1.html",
+                        "st": "2026-03-14 09:58:00",
+                        "activity_id": "N-1"
+                    },
+                    "note": "st = server_time minus seconds"
+                }
+            }
+        }
+    ]
+}

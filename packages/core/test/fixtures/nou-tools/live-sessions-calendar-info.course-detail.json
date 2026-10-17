@@ -1,0 +1,48 @@
+{
+    "id": 1234,
+    "name": "管理學導論",
+    "term": "2025A",
+    "descriptionUrl": "https://example.com/course/1234",
+    "creditType": "必修",
+    "credits": 3,
+    "department": "假學系",
+    "nature": "專業科目",
+    "midtermDate": "2025-11-15",
+    "finalDate": "2026-01-10",
+    "examTimeStart": "09:00:00+08:00",
+    "examTimeEnd": "10:30:00+08:00",
+    "textbook": {
+        "bookTitle": "管理學概論",
+        "edition": "第三版",
+        "priceInfo": "NT$450",
+        "referenceUrl": "https://example.com/book/123"
+    },
+    "previousExams": [
+        {
+            "term": "2024B",
+            "midtermReferencePrimary": "https://example.com/exams/midterm-a.pdf",
+            "midtermReferenceSecondary": null,
+            "finalReferencePrimary": "https://example.com/exams/final-a.pdf",
+            "finalReferenceSecondary": null
+        }
+    ],
+    "classes": [
+        {
+            "id": 5566,
+            "code": "ZZZ001",
+            "type": "morning",
+            "typeLabel": "上午班",
+            "startTime": "09:00:00+08:00",
+            "endTime": "10:50:00+08:00",
+            "teacherName": "測試教師甲",
+            "link": "https://meet.example.com/abc-defg-hij",
+            "sessions": [
+                {
+                    "date": "2025-10-12",
+                    "startTime": "09:00:00+08:00",
+                    "endTime": "10:50:00+08:00"
+                }
+            ]
+        }
+    ]
+}

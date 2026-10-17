@@ -1,0 +1,331 @@
+{
+    "source": "Feature/AppStatus/AppStatusControllerTest.php:72-268",
+    "phpClass": "AltUU\\Domains\\AppStatus\\Actions\\GetAppStatus, DismissAppStatusItem (GET/POST /api/app-status*)",
+    "note": "Each entry = statics feed (https://statics.test/status.json; feed null means HTTP 500 \"boom\") + context (appVersion=nativephp.version, platform, now, dismissals = dismissKeys POSTed beforehand). Config: services.statics.base_url=https://statics.test.",
+    "cases": [
+        {
+            "name": "returns nothing when the feed has nothing to show",
+            "input": {
+                "scenarioIndexOrName": "returns nothing when the feed has nothing to show",
+                "context": {
+                    "appVersion": "1.0.0",
+                    "platform": "ios",
+                    "now": null,
+                    "dismissals": []
+                }
+            },
+            "expected": {
+                "update": null,
+                "announcements": []
+            }
+        },
+        {
+            "name": "returns nothing when the feed is unreachable",
+            "input": {
+                "scenarioIndexOrName": "returns nothing when the feed is unreachable",
+                "context": {
+                    "appVersion": "1.0.0",
+                    "platform": "ios",
+                    "now": null,
+                    "dismissals": []
+                }
+            },
+            "expected": {
+                "update": null,
+                "announcements": []
+            }
+        },
+        {
+            "name": "offers an update when a newer version is out",
+            "input": {
+                "scenarioIndexOrName": "offers an update when a newer version is out",
+                "context": {
+                    "appVersion": "1.0.0",
+                    "platform": "ios",
+                    "now": null,
+                    "dismissals": []
+                }
+            },
+            "partial": true,
+            "expected": {
+                "update": {
+                    "dismissKey": "update:1.2.0",
+                    "latestVersion": "1.2.0",
+                    "storeUrl": "https://apps.apple.com/app/alt-uu",
+                    "required": false
+                }
+            }
+        },
+        {
+            "name": "uses the android entries on android",
+            "input": {
+                "scenarioIndexOrName": "uses the android entries on android",
+                "context": {
+                    "appVersion": "1.0.0",
+                    "platform": "android",
+                    "now": null,
+                    "dismissals": []
+                }
+            },
+            "partial": true,
+            "expected": {
+                "update.latestVersion": "1.3.0",
+                "update.storeUrl": "https://play.google.com/store/apps/details?id=alt.uu"
+            }
+        },
+        {
+            "name": "does not offer an update when already on the latest version (1.2.0)",
+            "input": {
+                "scenarioIndexOrName": "does not offer an update when already on the latest version (1.2.0)",
+                "context": {
+                    "appVersion": "1.2.0",
+                    "platform": "ios",
+                    "now": null,
+                    "dismissals": []
+                }
+            },
+            "partial": true,
+            "expected": {
+                "update": null
+            }
+        },
+        {
+            "name": "does not offer an update when newer than the latest version (1.3.0)",
+            "input": {
+                "scenarioIndexOrName": "does not offer an update when newer than the latest version (1.3.0)",
+                "context": {
+                    "appVersion": "1.3.0",
+                    "platform": "ios",
+                    "now": null,
+                    "dismissals": []
+                }
+            },
+            "partial": true,
+            "expected": {
+                "update": null
+            }
+        },
+        {
+            "name": "never offers an update to builds without a release number",
+            "input": {
+                "scenarioIndexOrName": "never offers an update to builds without a release number",
+                "context": {
+                    "appVersion": "DEBUG",
+                    "platform": "ios",
+                    "now": null,
+                    "dismissals": []
+                }
+            },
+            "partial": true,
+            "expected": {
+                "update": null
+            }
+        },
+        {
+            "name": "drops a store url that is not https",
+            "input": {
+                "scenarioIndexOrName": "drops a store url that is not https",
+                "context": {
+                    "appVersion": "1.0.0",
+                    "platform": "ios",
+                    "now": null,
+                    "dismissals": []
+                }
+            },
+            "partial": true,
+            "expected": {
+                "update.storeUrl": null
+            }
+        },
+        {
+            "name": "marks an update required below the minimum supported version",
+            "input": {
+                "scenarioIndexOrName": "marks an update required below the minimum supported version",
+                "context": {
+                    "appVersion": "1.0.0",
+                    "platform": "ios",
+                    "now": null,
+                    "dismissals": []
+                }
+            },
+            "partial": true,
+            "expected": {
+                "update.required": true
+            }
+        },
+        {
+            "name": "remembers a dismissed update only until the next release (dismissed 1.2.0 -> hidden)",
+            "input": {
+                "scenarioIndexOrName": "remembers a dismissed update only until the next release (dismissed 1.2.0 -> hidden)",
+                "context": {
+                    "appVersion": "1.0.0",
+                    "platform": "ios",
+                    "now": null,
+                    "dismissals": [
+                        "update:1.2.0"
+                    ]
+                },
+                "note": "POST /api/app-status/dismissals {dismissKey:\"update:1.2.0\"} -> 201 and update null; later GET still null"
+            },
+            "partial": true,
+            "expected": {
+                "update": null
+            }
+        },
+        {
+            "name": "remembers a dismissed update only until the next release (new release 1.3.0 shows again)",
+            "input": {
+                "scenarioIndexOrName": "remembers a dismissed update only until the next release (new release 1.3.0 shows again)",
+                "context": {
+                    "appVersion": "1.0.0",
+                    "platform": "ios",
+                    "now": null,
+                    "dismissals": [
+                        "update:1.2.0"
+                    ],
+                    "cacheFlushedBeforeFeed": true
+                }
+            },
+            "partial": true,
+            "expected": {
+                "update.latestVersion": "1.3.0"
+            }
+        },
+        {
+            "name": "keeps showing a required update after it was dismissed",
+            "input": {
+                "scenarioIndexOrName": "keeps showing a required update after it was dismissed",
+                "context": {
+                    "appVersion": "1.0.0",
+                    "platform": "ios",
+                    "now": null,
+                    "dismissals": [
+                        "update:1.2.0"
+                    ]
+                }
+            },
+            "partial": true,
+            "expected": {
+                "update.required": true
+            }
+        },
+        {
+            "name": "lists announcements with sensible defaults",
+            "input": {
+                "scenarioIndexOrName": "lists announcements with sensible defaults",
+                "context": {
+                    "appVersion": "1.0.0",
+                    "platform": "ios",
+                    "now": null,
+                    "dismissals": []
+                }
+            },
+            "partial": true,
+            "expected": {
+                "announcementsCount": 2,
+                "announcements[0]": {
+                    "dismissKey": "announcement:video-stall",
+                    "severity": "warning",
+                    "title": "部分影片無法播放",
+                    "body": "我們正在處理中",
+                    "url": "https://alt-uu-statics.pages.dev/changelog.html#video",
+                    "dismissible": true
+                },
+                "announcements[1].severity": "info",
+                "announcements[1].body": "",
+                "announcements[1].url": null
+            }
+        },
+        {
+            "name": "skips malformed announcements without failing the rest",
+            "input": {
+                "scenarioIndexOrName": "skips malformed announcements without failing the rest",
+                "context": {
+                    "appVersion": "1.0.0",
+                    "platform": "ios",
+                    "now": null,
+                    "dismissals": []
+                }
+            },
+            "partial": true,
+            "expected": {
+                "announcementsCount": 1,
+                "announcements[0].dismissKey": "announcement:good"
+            }
+        },
+        {
+            "name": "filters announcements by platform",
+            "input": {
+                "scenarioIndexOrName": "filters announcements by platform",
+                "context": {
+                    "appVersion": "1.0.0",
+                    "platform": "ios",
+                    "now": null,
+                    "dismissals": []
+                }
+            },
+            "partial": true,
+            "expected": {
+                "announcementsCount": 2,
+                "announcements[0].dismissKey": "announcement:ios-only",
+                "announcements[1].dismissKey": "announcement:everyone"
+            }
+        },
+        {
+            "name": "filters announcements by version range",
+            "input": {
+                "scenarioIndexOrName": "filters announcements by version range",
+                "context": {
+                    "appVersion": "1.1.0",
+                    "platform": "ios",
+                    "now": null,
+                    "dismissals": []
+                }
+            },
+            "partial": true,
+            "expected": {
+                "announcementsCount": 1,
+                "announcements[0].dismissKey": "announcement:in-range"
+            }
+        },
+        {
+            "name": "hides expired announcements and those with an unreadable expiry",
+            "input": {
+                "scenarioIndexOrName": "hides expired announcements and those with an unreadable expiry",
+                "context": {
+                    "appVersion": "1.0.0",
+                    "platform": "ios",
+                    "now": "2026-10-01T00:00:00+08:00",
+                    "dismissals": []
+                }
+            },
+            "partial": true,
+            "expected": {
+                "announcementsCount": 2,
+                "announcements[0].dismissKey": "announcement:live",
+                "announcements[1].dismissKey": "announcement:no-expiry"
+            }
+        },
+        {
+            "name": "hides a dismissed announcement but not one marked non-dismissible",
+            "input": {
+                "scenarioIndexOrName": "hides a dismissed announcement but not one marked non-dismissible",
+                "context": {
+                    "appVersion": "1.0.0",
+                    "platform": "ios",
+                    "now": null,
+                    "dismissals": [
+                        "announcement:closable",
+                        "announcement:sticky"
+                    ]
+                }
+            },
+            "partial": true,
+            "expected": {
+                "announcementsCount": 1,
+                "announcements[0].dismissKey": "announcement:sticky",
+                "announcements[0].dismissible": false
+            }
+        }
+    ]
+}

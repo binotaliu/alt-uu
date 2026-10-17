@@ -1,0 +1,50 @@
+{
+    "generatedBy": "real PHP legacy app (alt-uu-legacy worktree of main)",
+    "phpClass": "AltUU\\Domains\\Course\\Actions\\GetCourseLearningTimeItems",
+    "cases": [
+        {
+            "name": "learning-times-last10",
+            "input": {
+                "method": "GET",
+                "path": "/api/courses/9001/learning-times"
+            },
+            "output": {
+                "status": 200,
+                "json": [
+                    {
+                        "identifier": "A1",
+                        "href": null,
+                        "text": "第一章",
+                        "level": 0,
+                        "itemDisabled": true,
+                        "duration": "00:09"
+                    },
+                    {
+                        "identifier": "A2",
+                        "href": "https://uu.nou.edu.tw/material/lesson-1.html?ticket=abc123&x=1",
+                        "text": "1-1 課程簡介",
+                        "level": 1,
+                        "itemDisabled": false,
+                        "duration": "12:34"
+                    },
+                    {
+                        "identifier": "A3",
+                        "href": "https://example.com/elsewhere.html",
+                        "text": "1-2 外部連結",
+                        "level": 1,
+                        "itemDisabled": false,
+                        "duration": null
+                    },
+                    {
+                        "identifier": "B1",
+                        "href": "https://uu.nou.edu.tw/material/handout.pdf",
+                        "text": "講義",
+                        "level": 0,
+                        "itemDisabled": false,
+                        "duration": "1:05:00"
+                    }
+                ]
+            }
+        }
+    ]
+}

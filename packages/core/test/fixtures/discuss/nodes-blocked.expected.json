@@ -1,0 +1,33 @@
+{
+    "source": "Feature/Discuss/DiscussApiTest.php:226",
+    "phpClass": "AltUU\\Domains\\Discuss\\Actions\\ListNodes (via GET /api/discuss/nodes)",
+    "note": "Local blocked_contents row: board_hash=sha256('B-1')=068205def3d5f3c2dd586e0c984396b222d604f1528d06b0b92fd34150e86ae0, node_hash=sha256('N-1')=a5b94796d549d06b1bc9f0126a05bcabd2bbf0be5a997f761cb2196a3d390053, reason 'c'.",
+    "cases": [
+        {
+            "name": "includes isBlocked and blockedReason in node list response",
+            "input": {
+                "query": "cid=1001&bid=B-1",
+                "blockedContents": [
+                    {
+                        "boardId": "B-1",
+                        "nodeId": "N-1",
+                        "reason": "c"
+                    }
+                ]
+            },
+            "partial": true,
+            "expected": {
+                "nodes[0]": {
+                    "node": "N-1",
+                    "isBlocked": true,
+                    "blockedReason": "c"
+                },
+                "nodes[1]": {
+                    "node": "N-2",
+                    "isBlocked": false,
+                    "blockedReason": null
+                }
+            }
+        }
+    ]
+}

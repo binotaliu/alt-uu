@@ -1,0 +1,64 @@
+{
+    "generatedBy": "real PHP legacy app (alt-uu-legacy worktree of main)",
+    "phpClass": "App\\Services\\UUProxyClient::login + UUSessionAuthenticator (POST /login)",
+    "cases": [
+        {
+            "name": "login",
+            "input": {
+                "baseUrl": "https://uu.nou.edu.tw",
+                "ua": "test-agent",
+                "username": "s1234567",
+                "password": "secret"
+            },
+            "output": {
+                "result": {
+                    "payload": {
+                        "code": 0,
+                        "message": "success",
+                        "data": {
+                            "session_data": {
+                                "ticket": "ticket-1"
+                            },
+                            "idx_data": {
+                                "session_idx": "idx-1"
+                            },
+                            "login_data": {
+                                "realname": "測試學生"
+                            },
+                            "cookie_data": {
+                                "WM": "cookie-from-payload"
+                            }
+                        }
+                    },
+                    "cookies": {
+                        "PHPSESSID": "home",
+                        "WMSESSID": "learn",
+                        "APPCOOKIE": "app",
+                        "WM": "cookie-from-payload"
+                    }
+                },
+                "upstreamRequests": [
+                    {
+                        "method": "GET",
+                        "url": "https://uu.nou.edu.tw/",
+                        "body": null
+                    },
+                    {
+                        "method": "GET",
+                        "url": "https://uu.nou.edu.tw/learn/index.php",
+                        "body": null
+                    },
+                    {
+                        "method": "POST",
+                        "url": "https://uu.nou.edu.tw/xmlapi/index.php?action=login&ua=test-agent",
+                        "body": {
+                            "username": "<encrypted (non-deterministic): 64 chars>",
+                            "password": "<encrypted (non-deterministic): 64 chars>",
+                            "kickOff": true
+                        }
+                    }
+                ]
+            }
+        }
+    ]
+}

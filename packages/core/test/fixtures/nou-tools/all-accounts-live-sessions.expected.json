@@ -1,0 +1,27 @@
+{
+    "source": "Feature/Course/NouToolsIntegrationTest.php:156",
+    "phpClass": "AltUU\\Domains\\Course\\Actions\\GetNouToolsCourseData (+ NouTools live sessions/calendar actions)",
+    "note": "Two accounts: s1111111 (base https://uu-a.nou.edu.tw, label 主帳號) and s2222222 (base https://uu-b.nou.edu.tw, nickname 副帳號). Course list for account-a/b is served from each base URL. No golden: needs multi-account setup.",
+    "cases": [
+        {
+            "name": "merges live sessions from every account when allAccounts is requested",
+            "partial": true,
+            "expected": {
+                "GET live-sessions (active account a)": {
+                    "count": 1,
+                    "0.courseId": "1001",
+                    "0.accountId": "<account a id>"
+                },
+                "GET live-sessions?allAccounts=1": {
+                    "count": 2,
+                    "courseId=1001": {
+                        "accountLabel": "主帳號"
+                    },
+                    "courseId=2001": {
+                        "accountLabel": "副帳號"
+                    }
+                }
+            }
+        }
+    ]
+}

@@ -1,0 +1,51 @@
+{
+    "source": "Feature/DataPortability/DataExportImportTest.php:64-100",
+    "phpClass": "AltUU\\Domains\\DataPortability\\Actions\\ExportAccountData / ImportAccountData / MergeAccountData",
+    "note": "Golden (export-sample.golden.json) = full real export JSON from the PHP action for the second case (account s2222222, ids/timestamps are whatever the in-memory DB produced).",
+    "cases": [
+        {
+            "name": "allows export without an active subscription",
+            "input": {
+                "accounts": [
+                    "s1111111"
+                ]
+            },
+            "expected": {
+                "httpOk": true
+            }
+        },
+        {
+            "name": "exports accounts, playback progress, and daily activity keyed by username",
+            "input": {
+                "accounts": [
+                    "s2222222"
+                ],
+                "subscription": "active",
+                "playbackProgress": {
+                    "cid": "1001",
+                    "activity_id": "N-1",
+                    "duration_seconds": 120,
+                    "position_seconds": 42.5,
+                    "hungu_upload_success": true
+                },
+                "dailyActivity": {
+                    "activity_date": "2026-07-10",
+                    "total_seconds": 900
+                }
+            },
+            "partial": true,
+            "expected": {
+                "header": "Content-Disposition present",
+                "accounts.s2222222": "<local account id>",
+                "playbackProgress[0]": {
+                    "username": "s2222222",
+                    "cid": "1001"
+                },
+                "accountDailyActivities[0]": {
+                    "username": "s2222222",
+                    "totalSeconds": 900
+                }
+            }
+        }
+    ]
+}

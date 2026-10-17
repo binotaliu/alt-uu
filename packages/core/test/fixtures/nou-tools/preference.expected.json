@@ -1,0 +1,22 @@
+{
+    "source": "Feature/Course/NouToolsIntegrationTest.php:24",
+    "phpClass": "AltUU\\Domains\\AppPreference (GET/PATCH /api/preferences)",
+    "cases": [
+        {
+            "name": "stores nou tools integration preference",
+            "partial": true,
+            "expected": {
+                "initial": {
+                    "nouToolsIntegrationEnabled": false
+                },
+                "afterPatchTrue": {
+                    "nouToolsIntegrationEnabled": true
+                },
+                "keyValueRow": {
+                    "key": "preference:nou-tools-integration",
+                    "value": "{\"enabled\":true}"
+                }
+            }
+        }
+    ]
+}

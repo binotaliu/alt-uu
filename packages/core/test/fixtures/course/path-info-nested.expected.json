@@ -1,0 +1,28 @@
+{
+    "source": "Feature/Diagnostics/MaterialSourceInspectionTest.php:39",
+    "phpClass": "AltUU\\Domains\\Course\\Actions\\GetCoursePathInfo",
+    "note": "Upstream my-course-path-info payload. Expected values come from the diagnostics material-directory endpoint test (flattened node count/levels); golden is the course /api/courses/{cid}/path output.",
+    "cases": [
+        {
+            "name": "lists every directory node with the url the school sent",
+            "input": {
+                "cid": "9001"
+            },
+            "partial": true,
+            "expected": {
+                "nodeCount": 4,
+                "apiCode": 0,
+                "nodes[0]": {
+                    "identifier": "A1",
+                    "level": 0,
+                    "href": "about:blank",
+                    "isInspectable": false
+                },
+                "nodes[1]": {
+                    "level": 1,
+                    "isInspectable": true
+                }
+            }
+        }
+    ]
+}

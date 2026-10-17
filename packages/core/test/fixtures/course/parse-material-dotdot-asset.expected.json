@@ -1,0 +1,19 @@
+{
+    "source": "Unit/ParseMaterialContentTest.php:80",
+    "phpClass": "AltUU\\Domains\\Course\\Actions\\ParseMaterialContent (via GET /materials/content/parsed)",
+    "cases": [
+        {
+            "name": "it resolves dot dot relative asset urls",
+            "input": {
+                "url": "https://example.com/course/unit/page.html",
+                "host": "example.com"
+            },
+            "partial": true,
+            "expected": {
+                "firstImgSrc": {
+                    "proxyOf": "https://example.com/course/img.png"
+                }
+            }
+        }
+    ]
+}

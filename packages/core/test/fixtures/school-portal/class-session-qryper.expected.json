@@ -1,0 +1,48 @@
+{
+    "source": "Feature/SchoolPortal/GetCourseClassSessionInfoTest.php:16",
+    "phpClass": "AltUU\\Domains\\SchoolPortal\\Actions\\GetCourseClassSessionInfo",
+    "note": "Upstream GET /device/compliant/qryper/index. Action input: CourseItemViewModel(courseId, semester, name).",
+    "cases": [
+        {
+            "name": "returns the matching course class session info, stripping the session-type suffix",
+            "input": {
+                "course": {
+                    "courseId": "9001",
+                    "semester": "115上",
+                    "name": "假課程甲"
+                }
+            },
+            "expected": {
+                "semesterLabel": "115學年上學期",
+                "classDates": "第1次 2026/09/22 第2次 2026/10/20",
+                "classType": "網路面授",
+                "classCode": "ZZZ001",
+                "teacher": "假老師",
+                "classTime": "1900~2050"
+            },
+            "partial": false
+        },
+        {
+            "name": "returns null when no course matches",
+            "input": {
+                "course": {
+                    "courseId": "9002",
+                    "semester": "115上",
+                    "name": "不存在的課程"
+                }
+            },
+            "expected": null
+        },
+        {
+            "name": "returns null when the term does not match",
+            "input": {
+                "course": {
+                    "courseId": "9001",
+                    "semester": "114下",
+                    "name": "假課程甲"
+                }
+            },
+            "expected": null
+        }
+    ]
+}

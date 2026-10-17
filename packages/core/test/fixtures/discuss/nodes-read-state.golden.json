@@ -1,0 +1,42 @@
+{
+    "generatedBy": "real PHP legacy app (alt-uu-legacy worktree of main)",
+    "phpClass": "AltUU\\Domains\\Discuss\\Actions\\ListNodes",
+    "cases": [
+        {
+            "name": "nodes-read-state",
+            "input": {
+                "method": "GET",
+                "path": "/api/discuss/nodes?cid=1001&bid=B-1"
+            },
+            "output": {
+                "status": 200,
+                "json": {
+                    "courseId": "1001",
+                    "boardId": "B-1",
+                    "nodes": [
+                        {
+                            "node": "N-1",
+                            "subject": "Test 1",
+                            "isRead": false,
+                            "poster": "Tester",
+                            "repliesCount": 3,
+                            "likesCount": 10,
+                            "isBlocked": false,
+                            "blockedReason": null
+                        },
+                        {
+                            "node": "N-2",
+                            "subject": "Test 2",
+                            "isRead": true,
+                            "poster": "Tester",
+                            "repliesCount": 1,
+                            "likesCount": 0,
+                            "isBlocked": false,
+                            "blockedReason": null
+                        }
+                    ]
+                }
+            }
+        }
+    ]
+}

@@ -1,0 +1,14 @@
+{
+    "source": "Feature/Auth/AuthFlowTest.php:69",
+    "phpClass": "App\\Services\\UUProfileSession",
+    "cases": [
+        {
+            "name": "my-profile response shape",
+            "expected": {
+                "username": "s1234567",
+                "displayName": "測試學生",
+                "picture": "https://uu.nou.edu.tw/avatar.jpg"
+            }
+        }
+    ]
+}

@@ -1,0 +1,19 @@
+{
+    "source": "Unit/ListCoursesTest.php:61",
+    "phpClass": "AltUU\\Domains\\Course\\Actions\\ListCourses",
+    "cases": [
+        {
+            "name": "supports hyphenated class names when matching app course type",
+            "partial": true,
+            "expected": {
+                "itemCount": 1,
+                "items[0]": {
+                    "courseId": "2001",
+                    "commonCourseId": "2002",
+                    "courseType": "語音"
+                },
+                "cacheKeyWritten": "alt-uu:courses:list:anonymous"
+            }
+        }
+    ]
+}

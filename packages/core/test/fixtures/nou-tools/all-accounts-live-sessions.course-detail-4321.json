@@ -1,0 +1,25 @@
+{
+    "id": 4321,
+    "name": "會計學入門",
+    "term": "2025A",
+    "previousExams": [],
+    "classes": [
+        {
+            "id": 6677,
+            "code": "YYY001",
+            "type": "evening",
+            "typeLabel": "晚間班",
+            "startTime": "19:00:00+08:00",
+            "endTime": "20:50:00+08:00",
+            "teacherName": "測試教師乙",
+            "link": "https://meet.example.com/xyz-uvwt-rst",
+            "sessions": [
+                {
+                    "date": "2025-10-13",
+                    "startTime": "19:00:00+08:00",
+                    "endTime": "20:50:00+08:00"
+                }
+            ]
+        }
+    ]
+}

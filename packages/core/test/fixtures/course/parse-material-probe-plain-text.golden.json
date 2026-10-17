@@ -1,0 +1,32 @@
+{
+    "generatedBy": "real PHP legacy app (alt-uu-legacy worktree of main)",
+    "phpClass": "AltUU\\Domains\\Course\\Actions\\ParseMaterialContent (via GET /materials/content/parsed)",
+    "cases": [
+        {
+            "name": "parse-material-probe-plain-text",
+            "input": {
+                "url": "https://example.com/notes/summary?id=1",
+                "sessionBaseUrl": "https://example.com"
+            },
+            "output": {
+                "status": 200,
+                "json": {
+                    "videoUrl": null,
+                    "subtitleUrl": null,
+                    "downloadUrl": null,
+                    "downloadProxyUrl": null,
+                    "downloadFileName": null,
+                    "downloadFileExtension": null,
+                    "isPdf": false,
+                    "htmlContent": "<p>plain text body</p>",
+                    "videoProvider": "native",
+                    "embedVideoUrl": null
+                },
+                "upstreamRequests": [
+                    "HEAD https://example.com/notes/summary?id=1",
+                    "GET https://example.com/notes/summary?id=1"
+                ]
+            }
+        }
+    ]
+}

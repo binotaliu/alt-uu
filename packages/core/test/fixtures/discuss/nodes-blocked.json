@@ -1,0 +1,20 @@
+{
+    "code": 0,
+    "message": "success",
+    "data": {
+        "list": [
+            {
+                "node": "N-1",
+                "subject": "文章一",
+                "read": false,
+                "reply": 2
+            },
+            {
+                "node": "N-2",
+                "subject": "文章二",
+                "read": true,
+                "reply": 0
+            }
+        ]
+    }
+}

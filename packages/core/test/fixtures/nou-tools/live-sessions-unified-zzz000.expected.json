@@ -1,0 +1,19 @@
+{
+    "source": "Feature/Course/NouToolsIntegrationTest.php:397",
+    "phpClass": "AltUU\\Domains\\Course\\Actions\\GetNouToolsCourseData (+ NouTools live sessions/calendar actions)",
+    "cases": [
+        {
+            "name": "uses the sole ZZZ000 class for 統一面授 courses regardless of the student's own class",
+            "partial": true,
+            "expected": {
+                "0": {
+                    "courseId": "3001",
+                    "classCode": "ZZZ000",
+                    "link": "https://meet.example.com/unified-room",
+                    "sessions[0].date": "2025-10-05"
+                },
+                "count": 1
+            }
+        }
+    ]
+}

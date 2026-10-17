@@ -1,0 +1,78 @@
+[
+    {
+        "name": "embed redirector",
+        "url": "https://uu.nou.edu.tw/learn/path/youtubeEmbed.php?v=dQw4w9WgXcQ"
+    },
+    {
+        "name": "short link",
+        "url": "https://youtu.be/dQw4w9WgXcQ?si=xxxxxx"
+    },
+    {
+        "name": "watch",
+        "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=10s"
+    },
+    {
+        "name": "mobile watch",
+        "url": "https://m.youtube.com/watch?feature=share&v=dQw4w9WgXcQ"
+    },
+    {
+        "name": "embed",
+        "url": "https://www.youtube.com/embed/dQw4w9WgXcQ"
+    },
+    {
+        "name": "shorts",
+        "url": "https://youtube.com/shorts/dQw4w9WgXcQ"
+    },
+    {
+        "name": "live",
+        "url": "https://www.youtube.com/live/dQw4w9WgXcQ?si=abc"
+    },
+    {
+        "name": "nocookie embed",
+        "url": "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ"
+    },
+    {
+        "name": "lms prefixed short link",
+        "url": "https://uu.nou.edu.tw/base/100001/content/999999/https://youtu.be/dQw4w9WgXcQ?si=xxxxxx"
+    },
+    {
+        "name": "lms prefixed watch",
+        "url": "https://uu.nou.edu.tw/base/100001/content/999999/https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+    },
+    {
+        "name": "lms prefixed with collapsed slashes",
+        "url": "https://uu.nou.edu.tw/base/100001/content/999999/https:/youtu.be/dQw4w9WgXcQ"
+    },
+    {
+        "name": "non-embed uu url",
+        "url": "https://uu.nou.edu.tw/base/10001/content/101279/introduce.htm"
+    },
+    {
+        "name": "redirector without v",
+        "url": "https://uu.nou.edu.tw/learn/path/youtubeEmbed.php"
+    },
+    {
+        "name": "redirector with invalid v",
+        "url": "https://uu.nou.edu.tw/learn/path/youtubeEmbed.php?v=%3Cscript%3E"
+    },
+    {
+        "name": "channel page",
+        "url": "https://www.youtube.com/@someone"
+    },
+    {
+        "name": "watch without id",
+        "url": "https://www.youtube.com/watch"
+    },
+    {
+        "name": "lookalike host",
+        "url": "https://youtube.com.evil.example/watch?v=dQw4w9WgXcQ"
+    },
+    {
+        "name": "lms prefixed non-youtube",
+        "url": "https://uu.nou.edu.tw/base/100001/content/999999/https://example.com/watch?v=dQw4w9WgXcQ"
+    },
+    {
+        "name": "invalid id",
+        "url": "https://youtu.be/%3Cscript%3E"
+    }
+]

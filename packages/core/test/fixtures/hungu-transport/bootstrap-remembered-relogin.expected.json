@@ -1,0 +1,46 @@
+{
+    "source": "Feature/Auth/AuthFlowTest.php:298",
+    "phpClass": "App\\Services\\UUSessionAuthenticator::attemptRememberedLogin (POST /api/auth/bootstrap-session)",
+    "note": "Stored session is expired: first my-profile returns code 503, remembered credentials (s1234567 / remembered-secret) re-login, second my-profile succeeds.",
+    "cases": [
+        {
+            "name": "tries remembered credentials when bootstrap api cannot validate current session",
+            "partial": true,
+            "expected": {
+                "response": {
+                    "ok": true,
+                    "redirect": "/courses"
+                },
+                "appBootCookieSet": true,
+                "hungu.profile.username": "s1234567",
+                "storedSessionProfileUsername": "s1234567"
+            }
+        },
+        {
+            "name": "returns unauthorized when bootstrap api validation and remembered login both fail",
+            "input": {
+                "myProfile": {
+                    "code": 503,
+                    "message": "Auth fail",
+                    "data": []
+                },
+                "login": {
+                    "code": 403,
+                    "message": "invalid account",
+                    "data": []
+                }
+            },
+            "partial": true,
+            "expected": {
+                "response": {
+                    "ok": true,
+                    "redirect": "/login",
+                    "nouToolsIntegrationEnabled": false
+                },
+                "sessionMissing": "hungu.profile",
+                "storedSessionCleared": true,
+                "rememberedCredentialsCleared": true
+            }
+        }
+    ]
+}

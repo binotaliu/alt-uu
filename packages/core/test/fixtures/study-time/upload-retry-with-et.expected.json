@@ -1,0 +1,30 @@
+{
+    "source": "Feature/StudyTime/StudyTimeTest.php:145",
+    "phpClass": "AltUU\\Domains\\StudyTime (POST /study-time, playback progress)",
+    "note": "set-read-node-history replies with the array in order (sequence).",
+    "cases": [
+        {
+            "name": "retries study time upload with et when first attempt fails",
+            "expected": {
+                "response": {
+                    "ok": true,
+                    "seconds": 120
+                },
+                "uploadRequestCount": 2,
+                "firstUploadForm": {
+                    "cid": "1001",
+                    "url": "https://uu.nou.edu.tw/material/lesson-1.html",
+                    "st": "2026-03-14 09:58:00",
+                    "activity_id": "N-1"
+                },
+                "secondUploadFormHasKeys": [
+                    "cid",
+                    "url",
+                    "st",
+                    "activity_id",
+                    "et"
+                ]
+            }
+        }
+    ]
+}

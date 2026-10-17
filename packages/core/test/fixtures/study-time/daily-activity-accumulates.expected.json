@@ -1,0 +1,15 @@
+{
+    "source": "Feature/StudyTime/StudyTimeTest.php:95",
+    "phpClass": "AltUU\\Domains\\StudyTime (POST /study-time, playback progress)",
+    "cases": [
+        {
+            "name": "accumulates seconds into the daily activity log across multiple sessions",
+            "expected": {
+                "accountDailyActivity": {
+                    "activity_date": "today in Asia/Taipei (YYYY-MM-DD)",
+                    "total_seconds": 210
+                }
+            }
+        }
+    ]
+}

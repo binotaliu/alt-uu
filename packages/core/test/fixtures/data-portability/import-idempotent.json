@@ -1,0 +1,22 @@
+{
+    "accounts": {
+        "s5555555": 1
+    },
+    "playbackProgress": [
+        {
+            "username": "s5555555",
+            "cid": "1003",
+            "activityId": "N-3",
+            "durationSeconds": 50,
+            "positionSeconds": 5,
+            "hunguUploadSuccess": true
+        }
+    ],
+    "accountDailyActivities": [
+        {
+            "username": "s5555555",
+            "activityDate": "2026-07-08",
+            "totalSeconds": 200
+        }
+    ]
+}

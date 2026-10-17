@@ -1,0 +1,25 @@
+{
+    "source": "Feature/Discuss/DiscussApiTest.php:145",
+    "phpClass": "AltUU\\Domains\\Discuss\\Actions\\* (create/update/delete post, like/unlike, whisper CRUD, set read)",
+    "note": "Request sequence + faked upstream replies. Golden also records the upstream requests (method/url/body) the PHP made, which is the parity target for the TS port.",
+    "cases": [
+        {
+            "name": "can create/update/delete/like discuss posts and manage whispers",
+            "partial": true,
+            "expected": {
+                "everyCallSucceeds": true,
+                "create post.json": {
+                    "data.post_id": "P-1"
+                },
+                "upstreamActionsHit": [
+                    "add-course-post",
+                    "mod-course-post",
+                    "del-course-post",
+                    "/mooc/controllers/forum_ajax.php",
+                    "board-whisper-handler",
+                    "set-forum-read"
+                ]
+            }
+        }
+    ]
+}

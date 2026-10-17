@@ -1,0 +1,41 @@
+{
+    "generatedBy": "real PHP legacy app (alt-uu-legacy worktree of main)",
+    "phpClass": "AltUU\\Domains\\SchoolPortal\\Actions\\GetCourseClassSessionInfo + GetCourseExamInfo (via GET /api/courses/{cid}/school-portal-info)",
+    "cases": [
+        {
+            "name": "school-portal-info",
+            "input": {
+                "method": "GET",
+                "path": "/api/courses/9001/school-portal-info"
+            },
+            "output": {
+                "status": 200,
+                "json": {
+                    "classSessionInfo": {
+                        "courseName": "假課程甲",
+                        "semesterLabel": "115學年上學期",
+                        "classDates": null,
+                        "classType": "網路面授",
+                        "classCode": null,
+                        "teacher": "假老師",
+                        "classTime": "1900~2050"
+                    },
+                    "examInfo": {
+                        "courseName": "假課程甲",
+                        "semesterLabel": "115學年上學期",
+                        "schedules": [
+                            {
+                                "category": "期中考(正考)",
+                                "date": "2026年11月07日(星期六)",
+                                "time": null,
+                                "room": null,
+                                "note": null
+                            }
+                        ],
+                        "scopes": []
+                    }
+                }
+            }
+        }
+    ]
+}

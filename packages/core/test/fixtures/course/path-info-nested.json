@@ -1,0 +1,35 @@
+{
+    "code": 0,
+    "message": "success",
+    "data": {
+        "path": {
+            "item": [
+                {
+                    "identifier": "A1",
+                    "text": "第一章",
+                    "href": "about:blank",
+                    "item": [
+                        {
+                            "identifier": "A2",
+                            "text": "1-1 課程簡介",
+                            "href": "https://uu.nou.edu.tw/material/lesson-1.html?ticket=abc123&x=1",
+                            "leaf": true
+                        },
+                        {
+                            "identifier": "A3",
+                            "text": "1-2 外部連結",
+                            "href": "https://example.com/elsewhere.html",
+                            "leaf": true
+                        }
+                    ]
+                },
+                {
+                    "identifier": "B1",
+                    "text": "講義",
+                    "href": "https://uu.nou.edu.tw/material/handout.pdf",
+                    "leaf": true
+                }
+            ]
+        }
+    }
+}

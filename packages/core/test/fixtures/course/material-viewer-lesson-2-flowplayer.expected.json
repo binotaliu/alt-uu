@@ -1,0 +1,21 @@
+{
+    "source": "Feature/Course/MaterialViewerTest.php:40",
+    "phpClass": "AltUU\\Domains\\Course\\Actions\\ParseMaterialContent",
+    "cases": [
+        {
+            "name": "extracts video and subtitle URLs when flowplayer payload exists",
+            "input": {
+                "url": "https://uu.nou.edu.tw/material/lesson-2.html",
+                "host": "uu.nou.edu.tw"
+            },
+            "partial": true,
+            "expected": {
+                "videoUrl": "https://media.example.com/videos/lesson-2.mp4",
+                "downloadUrl": null,
+                "subtitleUrl": {
+                    "proxyOf": "https://uu.nou.edu.tw/subs/lesson-2.vtt"
+                }
+            }
+        }
+    ]
+}

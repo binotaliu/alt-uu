@@ -1,0 +1,66 @@
+{
+    "source": "Feature/SchoolPortal/GetCourseSemesterGradeTest.php:25",
+    "phpClass": "AltUU\\Domains\\SchoolPortal\\Actions\\GetCourseSemesterGrade",
+    "note": "Historical grades page (GET /device/compliant/qryscore2/index); used together with semester-grade-qryscore.html as the qryscore page.",
+    "cases": [
+        {
+            "name": "falls back to the historical grades page for a past semester not on the current-semester page",
+            "input": {
+                "course": {
+                    "courseId": "9004",
+                    "semester": "114下",
+                    "name": "假課程乙"
+                }
+            },
+            "partial": true,
+            "expected": {
+                "semesterLabel": "114下學期",
+                "credits": "5",
+                "semesterGrade": "85",
+                "midtermScore": null
+            }
+        },
+        {
+            "name": "prefers the current-semester page over the historical page when both have a match",
+            "input": {
+                "course": {
+                    "courseId": "9001",
+                    "semester": "114下",
+                    "name": "假課程甲"
+                }
+            },
+            "partial": true,
+            "expected": {
+                "semesterLabel": "114學年下學期",
+                "firstRegularScore": "缺"
+            }
+        },
+        {
+            "name": "returns null when the course is absent from both the current and historical pages",
+            "input": {
+                "course": {
+                    "courseId": "9005",
+                    "semester": "114上",
+                    "name": "不存在的課程"
+                }
+            },
+            "expected": null
+        },
+        {
+            "name": "splits a historical course line on the last colon when the course name itself contains one",
+            "input": {
+                "course": {
+                    "courseId": "9006",
+                    "semester": "114下",
+                    "name": "假課程丙：附副標題（測試）"
+                }
+            },
+            "partial": true,
+            "expected": {
+                "courseName": "假課程丙：附副標題（測試）",
+                "semesterGrade": "73",
+                "credits": "2"
+            }
+        }
+    ]
+}

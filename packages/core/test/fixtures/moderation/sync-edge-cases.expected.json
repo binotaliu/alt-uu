@@ -1,0 +1,58 @@
+{
+    "source": "Feature/ModerationTest.php:43-117",
+    "phpClass": "AltUU\\Domains\\Moderation\\Actions\\SyncBlockedContents",
+    "note": "Remote response bodies for the edge-case sync tests (keys: upsert, delete, emptyWithSince).",
+    "cases": [
+        {
+            "name": "skips sync gracefully when API returns error",
+            "input": {
+                "upstream": "HTTP 500, null body"
+            },
+            "expected": {
+                "httpOk": true,
+                "blockedContentsCount": 0
+            }
+        },
+        {
+            "name": "sends since parameter on subsequent syncs",
+            "input": {
+                "localKeyValue": {
+                    "moderation:blocked_contents_synced_at": "2026-01-01T00:00:00+00:00"
+                },
+                "upstream": "emptyWithSince"
+            },
+            "expected": {
+                "requestUrlContains": "since="
+            }
+        },
+        {
+            "name": "upserts existing blocked content on re-sync",
+            "input": {
+                "existingRow": {
+                    "board": "board-1",
+                    "node": "node-1",
+                    "reason": "s"
+                },
+                "upstream": "upsert"
+            },
+            "expected": {
+                "blockedContentsCount": 1,
+                "firstRow.reason": "c"
+            }
+        },
+        {
+            "name": "deletes blocked content when remote reason is null",
+            "input": {
+                "existingRow": {
+                    "board": "board-1",
+                    "node": "node-1",
+                    "reason": "s"
+                },
+                "upstream": "delete"
+            },
+            "expected": {
+                "blockedContentsCount": 0
+            }
+        }
+    ]
+}

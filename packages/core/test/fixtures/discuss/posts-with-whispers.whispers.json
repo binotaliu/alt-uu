@@ -1,0 +1,14 @@
+{
+    "code": 0,
+    "message": "success",
+    "data": {
+        "list": [
+            {
+                "wid": "w-1",
+                "realname": "小明",
+                "content": "<script>alert(1)</script>hi",
+                "create_time_description": "1 分鐘前"
+            }
+        ]
+    }
+}

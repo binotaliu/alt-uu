@@ -1,0 +1,18 @@
+{
+    "source": "Feature/DataPortability/DataExportImportTest.php:102",
+    "phpClass": "AltUU\\Domains\\DataPortability\\Actions\\ExportAccountData / ImportAccountData / MergeAccountData",
+    "cases": [
+        {
+            "name": "rejects import without an active subscription",
+            "input": {
+                "localAccounts": [
+                    "s3333333"
+                ],
+                "subscription": "none"
+            },
+            "expected": {
+                "httpStatus": 402
+            }
+        }
+    ]
+}

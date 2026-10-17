@@ -1,0 +1,50 @@
+{
+    "generatedBy": "real PHP legacy app (alt-uu-legacy worktree of main)",
+    "phpClass": "AltUU\\Domains\\Discuss\\Actions\\ListPosts (via GET /api/discuss/posts)",
+    "cases": [
+        {
+            "name": "posts-with-whispers",
+            "input": {
+                "method": "GET",
+                "path": "/api/discuss/posts?cid=1001&bid=B-1&nid=N-99"
+            },
+            "output": {
+                "status": 200,
+                "json": {
+                    "courseId": "1001",
+                    "boardId": "B-1",
+                    "nodeId": "N-99",
+                    "posts": [
+                        {
+                            "floor": 1,
+                            "node": "N-POST-1",
+                            "subject": null,
+                            "content": "<p>hello</p>",
+                            "poster": null,
+                            "realname": "測試",
+                            "postDate": "2024-01-01",
+                            "push": 3,
+                            "liked": true,
+                            "whisperCount": 1,
+                            "whispers": [
+                                {
+                                    "wid": "w-1",
+                                    "sid": null,
+                                    "creator": null,
+                                    "realname": "小明",
+                                    "content": "<script>alert(1)</script>hi",
+                                    "createTime": null,
+                                    "createTimeDescription": "1 分鐘前",
+                                    "canDelete": null
+                                }
+                            ],
+                            "attachments": [],
+                            "isBlocked": false,
+                            "blockedReason": null
+                        }
+                    ]
+                }
+            }
+        }
+    ]
+}

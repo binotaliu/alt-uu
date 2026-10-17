@@ -1,0 +1,28 @@
+{
+    "source": "Feature/Discuss/DiscussApiTest.php:13",
+    "phpClass": "AltUU\\Domains\\Discuss\\Actions\\ListBoards (via GET /api/discuss/boards?cid=1001)",
+    "note": "Upstream action get-board-list. Legacy also asserts my-course-list is NOT requested.",
+    "cases": [
+        {
+            "name": "can load discuss boards from dedicated endpoint",
+            "input": {
+                "cid": "1001"
+            },
+            "partial": true,
+            "expected": {
+                "courseId": "1001",
+                "boards[0]": {
+                    "boardId": "B-1",
+                    "boardName": "課程討論",
+                    "subjectCount": 3,
+                    "allowPost": true,
+                    "hasNewPost": true
+                },
+                "requests": {
+                    "notSent": "action=my-course-list",
+                    "sent": "action=get-board-list"
+                }
+            }
+        }
+    ]
+}

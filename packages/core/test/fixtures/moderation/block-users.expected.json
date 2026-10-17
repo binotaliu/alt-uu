@@ -1,0 +1,81 @@
+{
+    "source": "Feature/ModerationTest.php:188-242",
+    "phpClass": "AltUU\\Domains\\Moderation\\Actions\\BlockUser, UnblockUser, GetBlockedUsers",
+    "note": "Body for POST/DELETE /api/moderation/block-user. GET /api/moderation/blocked-users returns [{poster, realname}, ...].",
+    "cases": [
+        {
+            "name": "blocks a user",
+            "input": {
+                "method": "POST"
+            },
+            "expected": {
+                "blockedUsers": [
+                    {
+                        "poster": "user123",
+                        "realname": "王小明"
+                    }
+                ]
+            }
+        },
+        {
+            "name": "does not duplicate blocked user",
+            "input": {
+                "method": "POST",
+                "existing": [
+                    {
+                        "poster": "user123",
+                        "realname": "王小明"
+                    }
+                ]
+            },
+            "expected": {
+                "blockedUsersCount": 1
+            }
+        },
+        {
+            "name": "unblocks a user",
+            "input": {
+                "method": "DELETE",
+                "existing": [
+                    {
+                        "poster": "user123",
+                        "realname": "王小明"
+                    }
+                ]
+            },
+            "expected": {
+                "blockedUsersCount": 0
+            }
+        },
+        {
+            "name": "lists blocked users",
+            "input": {
+                "existing": [
+                    {
+                        "poster": "user1",
+                        "realname": "張三"
+                    },
+                    {
+                        "poster": "user2",
+                        "realname": "李四"
+                    }
+                ]
+            },
+            "partial": true,
+            "expected": {
+                "count": 2,
+                "posters": [
+                    "user1",
+                    "user2"
+                ]
+            }
+        },
+        {
+            "name": "returns empty when no users blocked",
+            "input": {
+                "existing": []
+            },
+            "expected": []
+        }
+    ]
+}

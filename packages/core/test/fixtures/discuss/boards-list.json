@@ -1,0 +1,15 @@
+{
+    "code": 0,
+    "message": "success",
+    "data": {
+        "list": [
+            {
+                "board_id": "B-1",
+                "board_name": "課程討論",
+                "subject_cnt": 3,
+                "is_bulletin": 0,
+                "read_flag": 0
+            }
+        ]
+    }
+}

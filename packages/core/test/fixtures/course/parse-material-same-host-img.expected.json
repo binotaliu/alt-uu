@@ -1,0 +1,23 @@
+{
+    "source": "Unit/ParseMaterialContentTest.php:107",
+    "phpClass": "AltUU\\Domains\\Course\\Actions\\ParseMaterialContent (via GET /materials/content/parsed)",
+    "cases": [
+        {
+            "name": "it preserves same-host src after purification in nativephp context",
+            "input": {
+                "url": "https://example.com/page.html",
+                "host": "example.com"
+            },
+            "partial": true,
+            "expected": {
+                "htmlContent": {
+                    "contains": [
+                        {
+                            "srcAttrProxyOf": "https://example.com/710071.jpg"
+                        }
+                    ]
+                }
+            }
+        }
+    ]
+}

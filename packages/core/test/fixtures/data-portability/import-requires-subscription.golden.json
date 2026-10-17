@@ -1,0 +1,23 @@
+{
+    "generatedBy": "real PHP legacy app (alt-uu-legacy worktree of main)",
+    "phpClass": "AltUU\\Domains\\DataPortability\\Actions\\ExportAccountData / ImportAccountData / MergeAccountData",
+    "cases": [
+        {
+            "name": "import-requires-subscription",
+            "input": {
+                "payloadFile": "import-requires-subscription.json",
+                "times": 1,
+                "localAccount": "s3333333"
+            },
+            "output": {
+                "status": 402,
+                "json": {
+                    "ok": false,
+                    "message": "此功能需要有效的 Alt UU+ 訂閱。"
+                },
+                "playbackProgressRows": [],
+                "accountDailyActivityRows": []
+            }
+        }
+    ]
+}

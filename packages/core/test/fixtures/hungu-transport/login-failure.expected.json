@@ -1,0 +1,26 @@
+{
+    "source": "Feature/Auth/AuthFlowTest.php:23",
+    "phpClass": "App\\Services\\UUSessionAuthenticator (POST /login)",
+    "note": "Upstream login response body for wrong credentials.",
+    "cases": [
+        {
+            "name": "returns error json on invalid login",
+            "input": {
+                "username": "s1234567",
+                "password": "wrong-password"
+            },
+            "expected": {
+                "httpStatus": 422,
+                "body": {
+                    "ok": false,
+                    "message": "登入失敗，請確認帳號密碼。",
+                    "raw": {
+                        "code": 503,
+                        "message": "Auth fail",
+                        "data": []
+                    }
+                }
+            }
+        }
+    ]
+}

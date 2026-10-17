@@ -9,3 +9,4 @@ packages/core/test/fixtures
 .claude
 .github/actions
 .github/workflows/mobile-release.yml
+tools/legacy-fixtures-gen

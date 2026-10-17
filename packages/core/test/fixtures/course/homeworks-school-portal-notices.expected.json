@@ -1,0 +1,33 @@
+{
+    "source": "Feature/Course/CourseHomeworksApiTest.php:117",
+    "phpClass": "AltUU\\Domains\\Course\\Actions\\GetCourseHomeworks",
+    "note": "qryass portal page (GET /device/compliant/qryass/index). Course list payload: course 9001 \"(115暑)假課程乙\". Hongu homework_list is empty (<html><body></body></html>).",
+    "cases": [
+        {
+            "name": "returns school portal homework notices alongside the hongu homework list",
+            "input": {
+                "cid": "9001",
+                "courseListPayload": {
+                    "code": 0,
+                    "data": {
+                        "list": [
+                            {
+                                "course_id": "9001",
+                                "title": "(115暑)假課程乙"
+                            }
+                        ]
+                    }
+                }
+            },
+            "partial": true,
+            "expected": {
+                "homeworkItemsCount": 0,
+                "schoolPortalNoticesCount": 1,
+                "schoolPortalNotices[0]": {
+                    "title": "第1次作業",
+                    "downloadUrl": "https://nouapp.nou.edu.tw/device/compliant/qryass/download?type=homework&filename=1153_900001_1&extension=pdf&_b=%5B%5D"
+                }
+            }
+        }
+    ]
+}

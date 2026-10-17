@@ -1,0 +1,18 @@
+{
+    "source": "Feature/ModerationTest.php:12",
+    "phpClass": "AltUU\\Domains\\Moderation\\Actions\\SyncBlockedContents",
+    "note": "Remote GET https://alt-uu.binota.org/api/moderation/blocked-contents?since=... response. b=board_hash, n=node_hash, r=reason code (c|s|i|o) or null to delete, t=unix timestamp. sha256('board-1')=83440fa4f3936f8a407c811ebbcaaeded2b9d1599c9463df3849748d744bbdef.",
+    "cases": [
+        {
+            "name": "syncs blocked contents from remote API",
+            "expected": {
+                "blockedContentsCount": 2,
+                "row(node_hash=sha256(\"node-1\"))": {
+                    "board_hash": "83440fa4f3936f8a407c811ebbcaaeded2b9d1599c9463df3849748d744bbdef",
+                    "reason": "c"
+                },
+                "keyValueStoreKeySet": "moderation:blocked_contents_synced_at"
+            }
+        }
+    ]
+}

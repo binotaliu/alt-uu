@@ -1,0 +1,28 @@
+{
+    "source": "Feature/Auth/AuthFlowTest.php:49",
+    "phpClass": "App\\Services\\UUProxyClient::login + UUSessionAuthenticator (POST /login)",
+    "note": "Upstream exchange for a successful login: warm-up GETs (/ then /learn/index.php, each returns Set-Cookie), then POST /xmlapi/index.php?action=login (form: encrypted username/password + kickOff), then action=my-profile. Golden (kind hungu-login) = UUProxyClient::login() return value {payload, cookies} from the real PHP with these responses.",
+    "cases": [
+        {
+            "name": "stores proxy session and remembered credentials after successful login",
+            "input": {
+                "username": "s1234567",
+                "password": "secret"
+            },
+            "partial": true,
+            "expected": {
+                "response": {
+                    "ok": true
+                },
+                "session": {
+                    "hungu.profile.username": "s1234567",
+                    "hungu.profile.display_name": "測試學生",
+                    "hungu.profile.picture": "https://uu.nou.edu.tw/avatar.jpg"
+                },
+                "sessionStorePresent": true,
+                "credentialsStorePresent": true,
+                "mergedCookies": "PHPSESSID=home, WMSESSID=learn, APPCOOKIE=app, WM=cookie-from-payload (warm-up, then login response Set-Cookie, then payload data.cookie_data)"
+            }
+        }
+    ]
+}

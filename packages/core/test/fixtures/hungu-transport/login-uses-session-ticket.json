@@ -1,0 +1,32 @@
+{
+    "login": {
+        "status": 200,
+        "body": {
+            "code": 0,
+            "message": "success",
+            "data": {
+                "session_data": {
+                    "ticket": "ticket-from-session-data"
+                },
+                "idx_data": {
+                    "session_idx": "idx-should-not-be-used"
+                },
+                "login_data": {
+                    "realname": "測試學生"
+                },
+                "cookie_data": {
+                    "WM": "cookie-from-payload"
+                }
+            }
+        }
+    },
+    "myProfile": {
+        "code": 0,
+        "message": "success",
+        "data": {
+            "username": "reviewer",
+            "realname": "測試學生",
+            "picture": ""
+        }
+    }
+}

@@ -1,0 +1,25 @@
+{
+    "source": "Feature/Course/ParseMaterialContentTest.php:250",
+    "phpClass": "AltUU\\Domains\\Course\\Actions\\ParseMaterialContent (via GET /materials/content/parsed)",
+    "note": "Body of the second (GET) response. First (HEAD) response is 200 text/plain with empty body.",
+    "cases": [
+        {
+            "name": "does not classify plain text content as a download",
+            "input": {
+                "url": "https://example.com/notes/summary?id=1",
+                "responseSequence": [
+                    "HEAD -> 200 text/plain; charset=utf-8, empty body",
+                    "GET -> 200 text/plain; charset=utf-8, this file"
+                ]
+            },
+            "partial": true,
+            "expected": {
+                "downloadUrl": null,
+                "requests": {
+                    "headSent": true,
+                    "getSent": true
+                }
+            }
+        }
+    ]
+}

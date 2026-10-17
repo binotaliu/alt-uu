@@ -1,0 +1,34 @@
+{
+    "generatedBy": "real PHP legacy app (alt-uu-legacy worktree of main)",
+    "phpClass": "AltUU\\Domains\\SchoolPortal\\Actions\\GetExamAgenda (via GET /api/exam-agenda)",
+    "cases": [
+        {
+            "name": "exam-agenda",
+            "input": {
+                "method": "GET",
+                "path": "/api/exam-agenda"
+            },
+            "output": {
+                "status": 200,
+                "json": {
+                    "items": [
+                        {
+                            "courseName": "假課程乙",
+                            "category": "期末考(正考)",
+                            "date": "2026年11月05日(星期三)",
+                            "time": "0900~1040第2節",
+                            "room": "41Z102"
+                        },
+                        {
+                            "courseName": "假課程甲",
+                            "category": "期中考(正考)",
+                            "date": "2026年11月07日(星期六)",
+                            "time": "1500~1610第5節",
+                            "room": "41Z101"
+                        }
+                    ]
+                }
+            }
+        }
+    ]
+}

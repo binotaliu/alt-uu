@@ -1,0 +1,12 @@
+{
+    "code": 0,
+    "message": "success",
+    "data": {
+        "list": [
+            {
+                "course_id": "1001",
+                "title": "(114上)管理學：導論-ZZZ001班"
+            }
+        ]
+    }
+}

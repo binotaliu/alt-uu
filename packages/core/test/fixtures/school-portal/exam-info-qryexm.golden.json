@@ -1,0 +1,81 @@
+{
+    "generatedBy": "real PHP legacy app (alt-uu-legacy worktree of main)",
+    "phpClass": "AltUU\\Domains\\SchoolPortal\\Actions\\GetCourseExamInfo",
+    "cases": [
+        {
+            "name": "returns schedule and scope entries for a scheduled exam course",
+            "input": {
+                "course": {
+                    "courseId": "9001",
+                    "semester": "115上",
+                    "name": "假課程甲"
+                }
+            },
+            "output": {
+                "courseName": "假課程甲",
+                "semesterLabel": "115學年上學期",
+                "schedules": [
+                    {
+                        "category": "期中考(正考)",
+                        "date": "2026年11月07日(星期六)",
+                        "time": "1500~1610第5節",
+                        "room": "41Z101",
+                        "note": null
+                    }
+                ],
+                "scopes": [
+                    {
+                        "category": "期中考試範圍",
+                        "scope": "第一章～第六章"
+                    }
+                ]
+            }
+        },
+        {
+            "name": "returns a note instead of structured fields for a unified/non-scheduled exam",
+            "input": {
+                "course": {
+                    "courseId": "9002",
+                    "semester": "115上",
+                    "name": "假課程乙"
+                }
+            },
+            "output": {
+                "courseName": "假課程乙",
+                "semesterLabel": "115學年上學期",
+                "schedules": [
+                    {
+                        "category": "期中考(正考)",
+                        "date": null,
+                        "time": null,
+                        "room": null,
+                        "note": "說明：統一命題非集中考試"
+                    }
+                ],
+                "scopes": []
+            }
+        },
+        {
+            "name": "returns null when no course matches",
+            "input": {
+                "course": {
+                    "courseId": "9003",
+                    "semester": "115上",
+                    "name": "不存在的課程"
+                }
+            },
+            "output": null
+        },
+        {
+            "name": "returns null when the term does not match",
+            "input": {
+                "course": {
+                    "courseId": "9001",
+                    "semester": "114下",
+                    "name": "假課程甲"
+                }
+            },
+            "output": null
+        }
+    ]
+}

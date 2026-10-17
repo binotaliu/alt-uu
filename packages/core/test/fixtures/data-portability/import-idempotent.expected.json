@@ -1,0 +1,21 @@
+{
+    "source": "Feature/DataPortability/DataExportImportTest.php:160",
+    "phpClass": "AltUU\\Domains\\DataPortability\\Actions\\ExportAccountData / ImportAccountData / MergeAccountData",
+    "note": "Imported twice in a row; must not duplicate rows.",
+    "cases": [
+        {
+            "name": "does not duplicate rows when the same data is imported twice",
+            "input": {
+                "localAccounts": [
+                    "s5555555"
+                ],
+                "subscription": "active",
+                "importTimes": 2
+            },
+            "expected": {
+                "playback_progress(cid 1003) count": 1,
+                "account_daily_activities(2026-07-08) count": 1
+            }
+        }
+    ]
+}

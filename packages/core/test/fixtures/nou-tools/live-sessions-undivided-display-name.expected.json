@@ -1,0 +1,18 @@
+{
+    "source": "Feature/Course/NouToolsIntegrationTest.php:327",
+    "phpClass": "AltUU\\Domains\\Course\\Actions\\GetNouToolsCourseData (+ NouTools live sessions/calendar actions)",
+    "cases": [
+        {
+            "name": "displays 不分班 instead of the UU-provided class name when the matched class is undivided",
+            "partial": true,
+            "expected": {
+                "0": {
+                    "courseId": "2003",
+                    "className": "不分班",
+                    "classCode": "不分班"
+                },
+                "count": 1
+            }
+        }
+    ]
+}

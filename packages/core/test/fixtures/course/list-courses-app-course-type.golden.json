@@ -1,0 +1,26 @@
+{
+    "generatedBy": "real PHP legacy app (alt-uu-legacy worktree of main)",
+    "phpClass": "AltUU\\Domains\\Course\\Actions\\ListCourses",
+    "cases": [
+        {
+            "name": "list-courses-app-course-type",
+            "input": {
+                "method": "GET",
+                "path": "/api/courses"
+            },
+            "output": {
+                "status": 200,
+                "json": [
+                    {
+                        "courseId": "1001",
+                        "commonCourseId": "1002",
+                        "semester": "114下",
+                        "name": "行動學習導論",
+                        "className": "ZZZ001班",
+                        "courseType": "語音"
+                    }
+                ]
+            }
+        }
+    ]
+}

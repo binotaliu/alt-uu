@@ -1,0 +1,25 @@
+{
+    "id": 6789,
+    "name": "教育心理學",
+    "term": "2025A",
+    "previousExams": [],
+    "classes": [
+        {
+            "id": 7001,
+            "code": "ZZZ000",
+            "type": "in_person",
+            "typeLabel": "統一面授",
+            "startTime": "19:00:00+08:00",
+            "endTime": "21:00:00+08:00",
+            "teacherName": "測試教師乙",
+            "link": "https://meet.example.com/unified-room",
+            "sessions": [
+                {
+                    "date": "2025-10-05",
+                    "startTime": "19:00:00+08:00",
+                    "endTime": "21:00:00+08:00"
+                }
+            ]
+        }
+    ]
+}
