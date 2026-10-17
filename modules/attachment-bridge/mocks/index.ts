@@ -91,6 +91,8 @@ export function createMockAttachmentBridgeNativeModule(): MockAttachmentBridgeNa
         cancelDownload: jest.fn(),
         previewFile: jest.fn(),
         saveFile: jest.fn(),
+        readLegacyNativePhpAppKey: jest.fn(),
+        fileExists: jest.fn(),
         addListener: jest.fn(),
         emitDownloadProgress(event: DownloadProgressEvent) {
             listeners.forEach((listener) => listener(event));
@@ -123,6 +125,10 @@ export function createMockAttachmentBridgeNativeModule(): MockAttachmentBridgeNa
             mock.saveFile
                 .mockReset()
                 .mockImplementation(async () => ({ saved: true }));
+            mock.readLegacyNativePhpAppKey
+                .mockReset()
+                .mockImplementation(async () => null);
+            mock.fileExists.mockReset().mockImplementation(async () => false);
             mock.addListener
                 .mockReset()
                 .mockImplementation((_eventName, listener) => {
@@ -155,6 +161,8 @@ export const {
     cancelDownload,
     previewFile,
     saveFile,
+    readLegacyNativePhpAppKey,
+    fileExists,
 } = attachmentBridge;
 
 export default attachmentBridge;

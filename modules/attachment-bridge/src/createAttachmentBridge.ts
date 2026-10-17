@@ -55,6 +55,21 @@ export type AttachmentBridge = {
         fileName: string,
         mimeType?: string,
     ): Promise<SaveFileResult>;
+    /**
+     * Reads (never modifies) the Laravel `APP_KEY` the old NativePHP app
+     * generated on this device: iOS Keychain generic password (service =
+     * bundle id, account `APP_KEY`) or Android
+     * `<dataDir>/app_storage/persisted_data/appkey.txt`. Resolves `null`
+     * when there is none. Rejects with `ERR_LEGACY_READ_FAILED` when the
+     * store exists but cannot be read (e.g. device locked), so callers can
+     * retry instead of treating the key as lost.
+     */
+    readLegacyNativePhpAppKey(): Promise<string | null>;
+    /**
+     * Whether a regular file exists at `path` (`file://` URI or absolute
+     * path). Rejects with `ERR_INVALID_URL` for anything else.
+     */
+    fileExists(path: string): Promise<boolean>;
 };
 
 let downloadSequence = 0;
@@ -155,5 +170,8 @@ export function createAttachmentBridge(
             rethrowNormalized(
                 nativeModule.saveFile(uri, fileName, mimeType ?? null),
             ),
+        readLegacyNativePhpAppKey: () =>
+            rethrowNormalized(nativeModule.readLegacyNativePhpAppKey()),
+        fileExists: (path) => rethrowNormalized(nativeModule.fileExists(path)),
     };
 }

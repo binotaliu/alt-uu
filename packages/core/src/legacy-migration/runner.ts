@@ -92,7 +92,7 @@ export async function runLegacyMigration(
                 ? null
                 : await readLegacySnapshot(
                       handle.reader,
-                      await createEncrypter(deps),
+                      await createEncrypter(deps, attempts < maxAttempts),
                       deps.logger,
                   );
 
@@ -189,16 +189,22 @@ async function writeStatus(
 /**
  * Builds the decrypter from every usable key. Without a key the import
  * still runs, but secrets (passwords, sessions) are dropped and the user
- * signs in again.
+ * signs in again. A failed key read (e.g. a locked keychain) is rethrown
+ * while retries remain, so a transient failure does not drop secrets.
  */
 async function createEncrypter(
     deps: RunLegacyMigrationDeps,
+    rethrowReadFailure: boolean,
 ): Promise<LaravelEncrypter | null> {
     let candidates: readonly string[] = [];
 
     try {
         candidates = await deps.readAppKeys();
     } catch (error) {
+        if (rethrowReadFailure) {
+            throw error;
+        }
+
         log(deps, 'warn', 'could not read the legacy APP_KEY', error);
     }
 

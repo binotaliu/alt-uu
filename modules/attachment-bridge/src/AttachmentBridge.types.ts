@@ -102,6 +102,7 @@ export const ATTACHMENT_BRIDGE_ERROR_CODES = [
     'ERR_NO_PRESENTER',
     'ERR_SAVE_IN_PROGRESS',
     'ERR_SAVE_FAILED',
+    'ERR_LEGACY_READ_FAILED',
 ] as const;
 
 export type AttachmentBridgeErrorCode =
@@ -132,6 +133,8 @@ export interface AttachmentBridgeNativeModule {
         fileName: string,
         mimeType: string | null,
     ): Promise<SaveFileResult>;
+    readLegacyNativePhpAppKey(): Promise<string | null>;
+    fileExists(path: string): Promise<boolean>;
     addListener(
         eventName: 'onDownloadProgress',
         listener: (event: DownloadProgressEvent) => void,

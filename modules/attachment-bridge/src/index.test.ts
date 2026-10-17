@@ -8,8 +8,10 @@ import {
     cancelDownload,
     clearWebViewCookies,
     download,
+    fileExists,
     isAttachmentBridgeError,
     previewFile,
+    readLegacyNativePhpAppKey,
     saveFile,
     setWebViewCookies,
     startDownload,
@@ -208,5 +210,49 @@ describe('previewFile / saveFile', () => {
         expect(isAttachmentBridgeError(error, 'ERR_NO_VIEWER')).toBe(true);
         expect(isAttachmentBridgeError(error, 'ERR_SAVE_FAILED')).toBe(false);
         expect(isAttachmentBridgeError(new Error('plain'))).toBe(false);
+    });
+});
+
+describe('legacy NativePHP access', () => {
+    it('reads the legacy APP_KEY, null by default', async () => {
+        await expect(readLegacyNativePhpAppKey()).resolves.toBeNull();
+
+        mockNativeModule.readLegacyNativePhpAppKey.mockResolvedValueOnce(
+            'base64:abc=',
+        );
+
+        await expect(readLegacyNativePhpAppKey()).resolves.toBe('base64:abc=');
+    });
+
+    it('rejects with ERR_LEGACY_READ_FAILED when the store is unreadable', async () => {
+        mockNativeModule.readLegacyNativePhpAppKey.mockRejectedValueOnce(
+            createAttachmentBridgeError('ERR_LEGACY_READ_FAILED', 'locked'),
+        );
+
+        const error = await readLegacyNativePhpAppKey().catch(
+            (caught: unknown) => caught,
+        );
+
+        expect(isAttachmentBridgeError(error, 'ERR_LEGACY_READ_FAILED')).toBe(
+            true,
+        );
+    });
+
+    it('checks file existence and surfaces invalid paths', async () => {
+        mockNativeModule.fileExists.mockResolvedValueOnce(true);
+
+        await expect(fileExists('/data/db.sqlite')).resolves.toBe(true);
+        expect(mockNativeModule.fileExists).toHaveBeenCalledWith(
+            '/data/db.sqlite',
+        );
+        await expect(fileExists('file:///missing')).resolves.toBe(false);
+
+        mockNativeModule.fileExists.mockRejectedValueOnce(
+            createAttachmentBridgeError('ERR_INVALID_URL', 'relative'),
+        );
+
+        await expect(fileExists('relative/path')).rejects.toMatchObject({
+            code: 'ERR_INVALID_URL',
+        });
     });
 });

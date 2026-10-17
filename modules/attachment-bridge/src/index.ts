@@ -24,6 +24,8 @@ export const {
     cancelDownload,
     previewFile,
     saveFile,
+    readLegacyNativePhpAppKey,
+    fileExists,
 } = attachmentBridge;
 
 export default attachmentBridge;

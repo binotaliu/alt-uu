@@ -66,6 +66,12 @@ internal class AttachmentBridgeException(
     fun noPresenter() =
       AttachmentBridgeException("ERR_NO_PRESENTER", "無法取得目前的畫面以顯示對話框。")
 
+    fun legacyReadFailed(reason: String?, cause: Throwable? = null) = AttachmentBridgeException(
+      "ERR_LEGACY_READ_FAILED",
+      if (reason.isNullOrBlank()) "無法讀取舊版 App 資料。" else "無法讀取舊版 App 資料：$reason",
+      cause
+    )
+
     fun saveInProgress() =
       AttachmentBridgeException("ERR_SAVE_IN_PROGRESS", "已有儲存對話框開啟中。")
 

@@ -57,6 +57,10 @@ internal final class AttachmentBridgeException: Exception, @unchecked Sendable {
   static var noPresenter: AttachmentBridgeException { AttachmentBridgeException("ERR_NO_PRESENTER", "無法取得目前的畫面以顯示對話框。") }
   static var saveInProgress: AttachmentBridgeException { AttachmentBridgeException("ERR_SAVE_IN_PROGRESS", "已有儲存對話框開啟中。") }
 
+  static func legacyReadFailed(_ reason: String) -> AttachmentBridgeException {
+    AttachmentBridgeException("ERR_LEGACY_READ_FAILED", "無法讀取舊版 App 資料：\(reason)")
+  }
+
   static func saveFailed(_ reason: String) -> AttachmentBridgeException {
     AttachmentBridgeException("ERR_SAVE_FAILED", "無法儲存檔案：\(reason)")
   }

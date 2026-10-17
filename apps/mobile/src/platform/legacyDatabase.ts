@@ -1,4 +1,8 @@
 import { Platform } from 'react-native';
+import {
+    fileExists,
+    readLegacyNativePhpAppKey,
+} from '@altuu/attachment-bridge';
 import { defaultDatabaseDirectory, openDatabaseAsync } from 'expo-sqlite';
 import {
     resolveNativePhpLegacyLocation,
@@ -33,6 +37,12 @@ export interface LegacyNativePhpBridge {
      */
     fileExists?(absolutePath: string): Promise<boolean>;
 }
+
+/** Ready-made bridge backed by the attachment-bridge native module. */
+export const nativePhpBridge: LegacyNativePhpBridge = {
+    readAppKey: () => readLegacyNativePhpAppKey(),
+    fileExists: (absolutePath) => fileExists(absolutePath),
+};
 
 export interface LegacyMigrationServices {
     db: AltUUDatabase;

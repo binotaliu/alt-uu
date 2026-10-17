@@ -267,12 +267,30 @@ describe('legacy migration: current schema (v1.1.x)', () => {
         ).toEqual(['s1111111', 's3333333']);
     });
 
-    it('still imports non-secret data when no APP_KEY is readable', async () => {
+    it('retries when reading the APP_KEY fails and retries remain', async () => {
         const ctx = await createTestContext();
         const deps = migrationDeps(ctx, 'legacy-current', []);
         deps.readAppKeys = async () => {
             throw new Error('keychain unavailable');
         };
+
+        const outcome = await runLegacyMigration(deps);
+
+        expect(outcome).toMatchObject({
+            status: 'failed',
+            attempts: 1,
+            willRetry: true,
+        });
+        expect(await ctx.credentials.all()).toEqual([]);
+    });
+
+    it('still imports non-secret data when no APP_KEY is readable on the last attempt', async () => {
+        const ctx = await createTestContext();
+        const deps = migrationDeps(ctx, 'legacy-current', []);
+        deps.readAppKeys = async () => {
+            throw new Error('keychain unavailable');
+        };
+        deps.maxAttempts = 1;
 
         const outcome = await runLegacyMigration(deps);
 

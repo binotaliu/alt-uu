@@ -87,6 +87,56 @@ public final class AttachmentBridgeModule: Module {
       try self.previewPresenter.present(fileURL: fileURL, mimeType: mimeType, from: presenter)
     }.runOnQueue(.main)
 
+    // Read-only. The NativePHP app stored its per-install Laravel APP_KEY as a generic password
+    // (service = bundle id, account "APP_KEY", no kSecAttrGeneric, so expo-secure-store cannot see it).
+    AsyncFunction("readLegacyNativePhpAppKey") { () -> String? in
+      let query: [String: Any] = [
+        kSecClass as String: kSecClassGenericPassword,
+        kSecAttrService as String: Bundle.main.bundleIdentifier ?? "",
+        kSecAttrAccount as String: "APP_KEY",
+        kSecReturnData as String: true,
+        kSecMatchLimit as String: kSecMatchLimitOne,
+      ]
+      var result: CFTypeRef?
+      let status = SecItemCopyMatching(query as CFDictionary, &result)
+
+      if status == errSecItemNotFound {
+        return nil
+      }
+
+      guard status == errSecSuccess else {
+        throw AttachmentBridgeException.legacyReadFailed("Keychain 狀態碼 \(status)")
+      }
+
+      guard let data = result as? Data,
+            let value = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines),
+            !value.isEmpty else {
+        return nil
+      }
+
+      return value
+    }
+
+    AsyncFunction("fileExists") { (path: String) -> Bool in
+      let trimmed = path.trimmingCharacters(in: .whitespacesAndNewlines)
+      let fileURL: URL
+
+      if trimmed.hasPrefix("file://") {
+        guard let parsed = URL(string: trimmed), parsed.isFileURL else {
+          throw AttachmentBridgeException.invalidUrl(trimmed)
+        }
+        fileURL = parsed
+      } else if trimmed.hasPrefix("/") {
+        fileURL = URL(fileURLWithPath: trimmed)
+      } else {
+        throw AttachmentBridgeException.invalidUrl(trimmed)
+      }
+
+      var isDirectory: ObjCBool = false
+
+      return FileManager.default.fileExists(atPath: fileURL.path, isDirectory: &isDirectory) && !isDirectory.boolValue
+    }
+
     AsyncFunction("saveFile") { (uri: String, fileName: String, _: String?, promise: Promise) in
       let fileURL = try resolveLocalFileURL(uri)
 

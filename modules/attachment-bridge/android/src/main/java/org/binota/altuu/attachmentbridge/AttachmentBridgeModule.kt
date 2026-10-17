@@ -140,6 +140,35 @@ class AttachmentBridgeModule : Module() {
       }
     }.runOnQueue(Queues.MAIN)
 
+    // Read-only. The NativePHP app kept its per-install Laravel APP_KEY in this file; it sits outside
+    // the directories expo-file-system can reach.
+    AsyncFunction("readLegacyNativePhpAppKey") {
+      val file = File(context.dataDir, "app_storage/persisted_data/appkey.txt")
+
+      if (!file.isFile) {
+        return@AsyncFunction null
+      }
+
+      try {
+        file.readText(Charsets.UTF_8).trim().ifEmpty { null }
+      } catch (error: java.io.IOException) {
+        throw AttachmentBridgeException.legacyReadFailed(error.localizedMessage, error)
+      }
+    }
+
+    AsyncFunction("fileExists") { path: String ->
+      val trimmed = path.trim()
+      val parsed = Uri.parse(trimmed)
+
+      val file = when {
+        parsed.scheme.equals("file", ignoreCase = true) -> parsed.path?.let(::File)
+        trimmed.startsWith("/") -> File(trimmed)
+        else -> null
+      } ?: throw AttachmentBridgeException.invalidUrl(path)
+
+      file.isFile
+    }
+
     AsyncFunction("saveFile") { uri: String, fileName: String, mimeType: String?, promise: Promise ->
       if (pendingSave != null) {
         throw AttachmentBridgeException.saveInProgress()
