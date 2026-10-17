@@ -10,6 +10,7 @@
         "typecheck": "tsc --noEmit"
     },
     "dependencies": {
+        "@altuu/attachment-bridge": "*",
         "@altuu/core": "*",
         "@altuu/features": "*",
         "@altuu/ui": "*",

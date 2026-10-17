@@ -1,0 +1,23 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'org.binota.altuu.attachmentbridge'
+version = '0.0.0'
+
+android {
+  namespace "org.binota.altuu.attachmentbridge"
+  defaultConfig {
+    versionCode 1
+    versionName "0.0.0"
+  }
+  lintOptions {
+    abortOnError false
+  }
+}
+
+dependencies {
+  // Provides OkHttp (api dependency of react-android) and androidx.core (FileProvider).
+  implementation 'com.facebook.react:react-android'
+}
