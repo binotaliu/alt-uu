@@ -50,7 +50,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       versionCode: buildNumber,
       adaptiveIcon: {
         backgroundColor: '#ffffff',
-        foregroundImage: './assets/images/icon.png',
+        foregroundImage: './assets/images/adaptive-icon-foreground.png',
       },
       predictiveBackGestureEnabled: true,
     },

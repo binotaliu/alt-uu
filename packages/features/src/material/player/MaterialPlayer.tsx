@@ -261,7 +261,7 @@ export function MaterialPlayer({
 
           return { thumbnail: frame, seconds };
         } catch {
-          // Android has no native grabber yet: snapshot the video view.
+          // Android has no native grabber yet: snapshot the video view (needs the textureView below).
         }
 
         const target = videoFrameRef.current;
@@ -343,6 +343,8 @@ export function MaterialPlayer({
           player={player}
           style={{ width: '100%', height: '100%' }}
           contentFit="contain"
+          // The default SurfaceView renders outside the view tree, so captureRef sees a blank frame.
+          surfaceType="textureView"
           nativeControls
           allowsPictureInPicture
           startsPictureInPictureAutomatically
