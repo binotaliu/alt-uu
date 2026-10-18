@@ -94,6 +94,7 @@ export function createMockAttachmentBridgeNativeModule(): MockAttachmentBridgeNa
     readLegacyNativePhpAppKey: jest.fn(),
     fileExists: jest.fn(),
     captureVideoFrame: jest.fn(),
+    getCornerInsets: jest.fn(),
     addListener: jest.fn(),
     emitDownloadProgress(event: DownloadProgressEvent) {
       listeners.forEach((listener) => listener(event));
@@ -131,6 +132,12 @@ export function createMockAttachmentBridgeNativeModule(): MockAttachmentBridgeNa
         width: 1280,
         height: 720,
       }));
+      mock.getCornerInsets.mockReset().mockImplementation(async () => ({
+        top: 0,
+        right: 0,
+        bottom: 0,
+        left: 0,
+      }));
       mock.addListener
         .mockReset()
         .mockImplementation((_eventName, listener) => {
@@ -166,6 +173,7 @@ export const {
   readLegacyNativePhpAppKey,
   fileExists,
   captureVideoFrame,
+  getCornerInsets,
 } = attachmentBridge;
 
 export default attachmentBridge;

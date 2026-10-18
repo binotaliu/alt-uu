@@ -2,6 +2,7 @@ import type {
   AttachmentBridgeNativeModule,
   BridgeCookie,
   BridgeSubscription,
+  CornerInsets,
   DownloadOptions,
   DownloadProgressEvent,
   DownloadResult,
@@ -78,7 +79,17 @@ export type AttachmentBridge = {
    * `ERR_FRAME_CAPTURE_FAILED` when no frame arrives.
    */
   captureVideoFrame(url: string, seconds: number): Promise<VideoFrameResult>;
+  /**
+   * Margins that keep content clear of the iPadOS 26 windowed-mode window
+   * controls (`UIWindow.edgeInsets(for: .margins(cornerAdaptation:))`, the
+   * legacy `--corner-inset-*` CSS variables). Zeros everywhere else, and
+   * when the native module predates the function. Re-read when the window
+   * is resized: the controls change shape with the window.
+   */
+  getCornerInsets(): Promise<CornerInsets>;
 };
+
+const NO_CORNER_INSETS: CornerInsets = { top: 0, right: 0, bottom: 0, left: 0 };
 
 let downloadSequence = 0;
 
@@ -178,5 +189,16 @@ export function createAttachmentBridge(
     fileExists: (path) => rethrowNormalized(nativeModule.fileExists(path)),
     captureVideoFrame: (url, seconds) =>
       rethrowNormalized(nativeModule.captureVideoFrame(url, seconds)),
+    async getCornerInsets() {
+      if (typeof nativeModule.getCornerInsets !== 'function') {
+        return NO_CORNER_INSETS;
+      }
+
+      try {
+        return await nativeModule.getCornerInsets();
+      } catch {
+        return NO_CORNER_INSETS;
+      }
+    },
   };
 }

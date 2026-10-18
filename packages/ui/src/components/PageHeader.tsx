@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useCornerInsets } from '../responsive';
 import { BackButton } from './BackButton';
 import { Text } from './Text';
 
@@ -32,14 +33,15 @@ export function PageHeader({
   below,
 }: PageHeaderProps) {
   const insets = useSafeAreaInsets();
+  const corner = useCornerInsets();
 
   return (
     <View
       className="flex-row items-stretch border-b border-theme-200 bg-white pl-4 pr-4 dark:border-zinc-700/80 dark:bg-zinc-900"
       style={{
         paddingTop: insets.top,
-        paddingLeft: Math.max(insets.left, 16),
-        paddingRight: Math.max(insets.right, 16),
+        paddingLeft: Math.max(insets.left, corner.left, 16),
+        paddingRight: Math.max(insets.right, corner.right, 16),
       }}
     >
       <View className="shrink-0 items-start pt-1.5">

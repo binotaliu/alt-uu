@@ -9,6 +9,7 @@ import {
   clearWebViewCookies,
   download,
   fileExists,
+  getCornerInsets,
   isAttachmentBridgeError,
   previewFile,
   readLegacyNativePhpAppKey,
@@ -245,6 +246,35 @@ describe('legacy NativePHP access', () => {
 
     await expect(fileExists('relative/path')).rejects.toMatchObject({
       code: 'ERR_INVALID_URL',
+    });
+  });
+});
+
+describe('getCornerInsets', () => {
+  it('returns the native insets', async () => {
+    mockNativeModule.getCornerInsets.mockResolvedValueOnce({
+      top: 0,
+      right: 0,
+      bottom: 0,
+      left: 84,
+    });
+
+    await expect(getCornerInsets()).resolves.toEqual({
+      top: 0,
+      right: 0,
+      bottom: 0,
+      left: 84,
+    });
+  });
+
+  it('falls back to zeros when the native call fails', async () => {
+    mockNativeModule.getCornerInsets.mockRejectedValueOnce(new Error('boom'));
+
+    await expect(getCornerInsets()).resolves.toEqual({
+      top: 0,
+      right: 0,
+      bottom: 0,
+      left: 0,
     });
   });
 });

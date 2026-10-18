@@ -167,6 +167,28 @@ public final class AttachmentBridgeModule: Module {
       return FileManager.default.fileExists(atPath: fileURL.path, isDirectory: &isDirectory) && !isDirectory.boolValue
     }
 
+    // iPadOS 26 windowed mode draws window controls inside the app's top-left corner; the system
+    // reports how far content must stay clear of them. Zero on iPhone, full screen and before iOS 26.
+    AsyncFunction("getCornerInsets") { () -> [String: Double] in
+      var insets = UIEdgeInsets.zero
+
+      if #available(iOS 26.0, *) {
+        let window = UIApplication.shared.connectedScenes
+          .compactMap { $0 as? UIWindowScene }
+          .flatMap { $0.windows }
+          .first { $0.isKeyWindow }
+
+        insets = window?.edgeInsets(for: .margins(cornerAdaptation: .horizontal)) ?? .zero
+      }
+
+      return [
+        "top": Double(insets.top),
+        "right": Double(insets.right),
+        "bottom": Double(insets.bottom),
+        "left": Double(insets.left),
+      ]
+    }.runOnQueue(.main)
+
     AsyncFunction("saveFile") { (uri: String, fileName: String, _: String?, promise: Promise) in
       let fileURL = try resolveLocalFileURL(uri)
 

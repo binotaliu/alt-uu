@@ -14,6 +14,7 @@ import {
 import { useBootstrapStore } from '../services/stores';
 import type { AppServices } from '../services/types';
 import { ConnectivityIssueModal } from './ConnectivityIssueModal';
+import { CornerInsetsProvider } from './CornerInsetsProvider';
 import { FatalErrorScreen } from './FatalErrorScreen';
 import { NavigationTracker } from './NavigationTracker';
 import { SessionExpiredPicker } from './SessionExpiredPicker';
@@ -69,15 +70,17 @@ export function AppRoot({ createServices, onReady, children }: AppRootProps) {
 
   return (
     <SafeAreaProvider>
-      {state.status === 'ready' ? (
-        <AppServicesProvider services={state.services}>
-          <ThemeBridge>
-            <Launch onReady={onReady}>{children}</Launch>
-          </ThemeBridge>
-        </AppServicesProvider>
-      ) : state.status === 'error' ? (
-        <FatalErrorScreen error={state.error} onRetry={load} />
-      ) : null}
+      <CornerInsetsProvider>
+        {state.status === 'ready' ? (
+          <AppServicesProvider services={state.services}>
+            <ThemeBridge>
+              <Launch onReady={onReady}>{children}</Launch>
+            </ThemeBridge>
+          </AppServicesProvider>
+        ) : state.status === 'error' ? (
+          <FatalErrorScreen error={state.error} onRetry={load} />
+        ) : null}
+      </CornerInsetsProvider>
     </SafeAreaProvider>
   );
 }

@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useIsTablet, useNavAboveHeader } from '../responsive';
+import { useCornerInsets, useIsTablet, useNavAboveHeader } from '../responsive';
 import { Text } from './Text';
 
 export interface TransparentPageHeaderProps {
@@ -22,6 +22,7 @@ export function TransparentPageHeader({
   actions,
 }: TransparentPageHeaderProps) {
   const insets = useSafeAreaInsets();
+  const corner = useCornerInsets();
   const isTablet = useIsTablet();
   const navAbove = useNavAboveHeader();
 
@@ -30,8 +31,9 @@ export function TransparentPageHeader({
       className="bg-theme-100 py-1.5 dark:bg-zinc-950"
       style={{
         paddingTop: navAbove ? 6 : insets.top + 6,
-        paddingLeft: insets.left,
-        paddingRight: insets.right,
+        // The row below already pads 16.
+        paddingLeft: Math.max(insets.left, corner.left - 16),
+        paddingRight: Math.max(insets.right, corner.right - 16),
       }}
     >
       {nav ? <View className="mb-2">{nav}</View> : null}

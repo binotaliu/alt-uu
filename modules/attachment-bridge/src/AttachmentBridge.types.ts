@@ -91,6 +91,14 @@ export type VideoFrameResult = {
   height: number;
 };
 
+/** Points the window leaves free on each edge for system chrome (iPadOS 26 window controls). */
+export type CornerInsets = {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+};
+
 export type SaveFileResult = {
   /** `false` when the user dismissed the picker. */
   saved: boolean;
@@ -142,6 +150,7 @@ export interface AttachmentBridgeNativeModule {
   readLegacyNativePhpAppKey(): Promise<string | null>;
   fileExists(path: string): Promise<boolean>;
   captureVideoFrame(url: string, seconds: number): Promise<VideoFrameResult>;
+  getCornerInsets(): Promise<CornerInsets>;
   addListener(
     eventName: 'onDownloadProgress',
     listener: (event: DownloadProgressEvent) => void,

@@ -17,6 +17,9 @@ export { cn } from './cn';
 export { Icon, type IconProps } from './components/Icon';
 export { PageHeader, type PageHeaderProps } from './components/PageHeader';
 export {
+  CornerInsetsContext,
+  type CornerInsets,
+  useCornerInsets,
   NavAboveHeaderContext,
   TABLET_MIN_WIDTH,
   useCardColumns,
