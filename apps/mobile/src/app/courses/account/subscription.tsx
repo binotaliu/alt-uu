@@ -1,5 +1,5 @@
-import { ScreenPlaceholder } from '@altuu/features';
+import { SubscriptionScreen } from '@altuu/features';
 
-export default function CoursesaccountsubscriptionRoute() {
-    return <ScreenPlaceholder name="courses/account/subscription" />;
+export default function SubscriptionRoute() {
+    return <SubscriptionScreen />;
 }

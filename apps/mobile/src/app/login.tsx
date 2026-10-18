@@ -1,5 +1,5 @@
-import { ScreenPlaceholder } from '@altuu/features';
+import { LoginScreen } from '@altuu/features';
 
 export default function LoginRoute() {
-    return <ScreenPlaceholder name="login" />;
+    return <LoginScreen />;
 }

@@ -1,5 +1,5 @@
-import { ScreenPlaceholder } from '@altuu/features';
+import { ConnectivityDiagnosticsScreen } from '@altuu/features';
 
-export default function SettingsdiagnosticsRoute() {
-    return <ScreenPlaceholder name="settings/diagnostics" />;
+export default function DiagnosticsRoute() {
+    return <ConnectivityDiagnosticsScreen />;
 }

@@ -1,5 +1,5 @@
-import { ScreenPlaceholder } from '@altuu/features';
+import { SettingsScreen } from '@altuu/features';
 
 export default function SettingsRoute() {
-    return <ScreenPlaceholder name="settings" />;
+    return <SettingsScreen />;
 }

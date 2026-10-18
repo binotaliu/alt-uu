@@ -21,7 +21,10 @@
         "expo-constants": "~58.0.12",
         "expo-crypto": "~58.0.7",
         "expo-device": "~58.0.5",
+        "expo-document-picker": "~58.0.4",
+        "expo-file-system": "~58.0.9",
         "expo-iap": "^6.1.0",
+        "expo-image": "~58.0.15",
         "expo-linking": "~58.0.13",
         "expo-network": "~58.0.3",
         "expo-router": "~58.0.23",
@@ -41,6 +44,7 @@
         "react-native-safe-area-context": "~5.10.1",
         "react-native-screens": "~4.30.0",
         "react-native-svg": "15.16.0",
+        "react-native-view-shot": "6.1.1",
         "react-native-webview": "14.0.1",
         "react-native-worklets": "0.13.0"
     },

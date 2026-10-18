@@ -1,5 +1,5 @@
-import { ScreenPlaceholder } from '@altuu/features';
+import { AccountsScreen } from '@altuu/features';
 
-export default function CoursesaccountaccountsRoute() {
-    return <ScreenPlaceholder name="courses/account/accounts" />;
+export default function AccountsRoute() {
+    return <AccountsScreen />;
 }

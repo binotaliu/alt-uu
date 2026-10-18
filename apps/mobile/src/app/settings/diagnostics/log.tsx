@@ -1,5 +1,5 @@
-import { ScreenPlaceholder } from '@altuu/features';
+import { DiagnosticLogScreen } from '@altuu/features';
 
-export default function SettingsdiagnosticslogRoute() {
-    return <ScreenPlaceholder name="settings/diagnostics/log" />;
+export default function DiagnosticLogRoute() {
+    return <DiagnosticLogScreen />;
 }

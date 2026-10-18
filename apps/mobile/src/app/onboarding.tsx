@@ -1,5 +1,5 @@
-import { ScreenPlaceholder } from '@altuu/features';
+import { OnboardingScreen } from '@altuu/features';
 
 export default function OnboardingRoute() {
-    return <ScreenPlaceholder name="onboarding" />;
+    return <OnboardingScreen />;
 }

@@ -1,5 +1,5 @@
-import { ScreenPlaceholder } from '@altuu/features';
+import { ExamInfoScreen } from '@altuu/features';
 
-export default function CoursesaccountexaminfoRoute() {
-    return <ScreenPlaceholder name="courses/account/exam-info" />;
+export default function ExamInfoRoute() {
+    return <ExamInfoScreen />;
 }

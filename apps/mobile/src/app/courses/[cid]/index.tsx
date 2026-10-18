@@ -1,5 +1,5 @@
-import { ScreenPlaceholder } from '@altuu/features';
+import { CourseShowScreen } from '@altuu/features';
 
 export default function CoursescidRoute() {
-    return <ScreenPlaceholder name="courses/[cid]" />;
+    return <CourseShowScreen />;
 }

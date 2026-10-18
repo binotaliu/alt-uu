@@ -1,5 +1,5 @@
-import { ScreenPlaceholder } from '@altuu/features';
+import { GradesScreen } from '@altuu/features';
 
-export default function CoursesaccountgradesRoute() {
-    return <ScreenPlaceholder name="courses/account/grades" />;
+export default function GradesRoute() {
+    return <GradesScreen />;
 }

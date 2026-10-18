@@ -12,6 +12,8 @@
         "@altuu/core": "*",
         "@altuu/ui": "*",
         "@tanstack/react-query": "^5.104.3",
+        "expo-document-picker": "~58.0.4",
+        "expo-file-system": "~58.0.9",
         "zustand": "^5.0.15"
     },
     "devDependencies": {
@@ -23,13 +25,21 @@
         "react-test-renderer": "^19.3.0"
     },
     "peerDependencies": {
+        "@altuu/attachment-bridge": "*",
         "expo-clipboard": "*",
+        "expo-image": "*",
+        "expo-network": "*",
         "expo-router": "*",
+        "expo-screen-orientation": "*",
+        "expo-sharing": "*",
         "expo-status-bar": "*",
+        "expo-video": "*",
+        "nativewind": "*",
         "react": "*",
         "react-native": "*",
         "react-native-safe-area-context": "*",
         "react-native-svg": "*",
-        "nativewind": "*"
+        "react-native-view-shot": "*",
+        "react-native-webview": "*"
     }
 }

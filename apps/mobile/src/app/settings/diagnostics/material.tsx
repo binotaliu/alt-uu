@@ -1,5 +1,5 @@
-import { ScreenPlaceholder } from '@altuu/features';
+import { MaterialSourceScreen } from '@altuu/features';
 
-export default function SettingsdiagnosticsmaterialRoute() {
-    return <ScreenPlaceholder name="settings/diagnostics/material" />;
+export default function MaterialSourceRoute() {
+    return <MaterialSourceScreen />;
 }
