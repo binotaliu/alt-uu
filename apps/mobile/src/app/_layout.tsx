@@ -3,6 +3,7 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 
 import { createAppServices } from '../compositionRoot';
+import { DevDeepLinkHelper } from '../DevDeepLinkHelper';
 import '../global.css';
 
 void SplashScreen.preventAutoHideAsync();
@@ -17,6 +18,7 @@ export default function RootLayout() {
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="browser" options={{ presentation: 'modal' }} />
       </Stack>
+      {__DEV__ ? <DevDeepLinkHelper /> : null}
     </AppRoot>
   );
 }
