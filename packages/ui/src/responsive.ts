@@ -10,13 +10,14 @@ export function useIsTablet(): boolean {
 }
 
 /**
- * Course card columns (legacy `sm:grid-cols-2 xl:grid-cols-3`: 640 / 1280
- * Tailwind breakpoints).
+ * Card grid columns (Tailwind `grid-cols-1 <breakpoint>:grid-cols-2
+ * xl:grid-cols-3`). `twoColumnsFrom` is the width where the second column
+ * starts: 640 for `sm`, 768 for `md`.
  */
-export function useCardColumns(): 1 | 2 | 3 {
+export function useCardColumns(twoColumnsFrom = 640): 1 | 2 | 3 {
   const { width } = useWindowDimensions();
 
-  return width >= 1280 ? 3 : width >= 640 ? 2 : 1;
+  return width >= 1280 ? 3 : width >= twoColumnsFrom ? 2 : 1;
 }
 
 /**

@@ -1,4 +1,4 @@
-import { Text, cn } from '@altuu/ui';
+import { Text, cn, useCardColumns, useIsTablet } from '@altuu/ui';
 import type { ReactNode } from 'react';
 import { Pressable, View, type ViewProps } from 'react-native';
 
@@ -12,6 +12,41 @@ export function Card({ className, ...props }: ViewProps) {
       )}
       {...props}
     />
+  );
+}
+
+/**
+ * Equal-width card grid (legacy `grid sm:grid-cols-2 xl:grid-cols-3`). A
+ * short last row keeps the column width.
+ */
+export function CardGrid({
+  children,
+  twoColumnsFrom,
+}: {
+  children: ReactNode[];
+  /** Width where the second column starts (640 `sm`, 768 `md`). */
+  twoColumnsFrom?: number;
+}) {
+  const columns = useCardColumns(twoColumnsFrom);
+  const gap = useIsTablet() ? 'gap-5' : 'gap-3';
+  const rows: ReactNode[][] = [];
+
+  for (let index = 0; index < children.length; index += columns) {
+    rows.push(children.slice(index, index + columns));
+  }
+
+  return (
+    <View className={gap}>
+      {rows.map((row, rowIndex) => (
+        <View key={rowIndex} className={`flex-row ${gap}`}>
+          {Array.from({ length: columns }, (_, column) => (
+            <View key={column} className="min-w-0 flex-1">
+              {row[column] ?? null}
+            </View>
+          ))}
+        </View>
+      ))}
+    </View>
   );
 }
 

@@ -1,10 +1,11 @@
-import { Text, Icon } from '@altuu/ui';
+import { Text, Icon, TABLET_MIN_WIDTH } from '@altuu/ui';
 import { Pressable, View } from 'react-native';
 
 import type { ServiceError } from '../services/serviceError';
 import { ErrorRetry } from '../shell/ErrorRetry';
 import {
   Card,
+  CardGrid,
   EmptyNotice,
   SegmentedControl,
   Skeleton,
@@ -251,15 +252,17 @@ export function LiveSessionsView(props: LiveSessionsViewProps) {
   return (
     <View className="gap-4">
       {hasMultipleAccounts ? (
-        <SegmentedControl
-          options={accountScopeOptions}
-          value={showAllAccounts}
-          onChange={props.onShowAllAccountsChange}
-        />
+        <View className="w-full max-w-lg self-center">
+          <SegmentedControl
+            options={accountScopeOptions}
+            value={showAllAccounts}
+            onChange={props.onShowAllAccountsChange}
+          />
+        </View>
       ) : null}
 
       {!isSystemUtcPlus8 ? (
-        <Card>
+        <Card className="w-full max-w-lg self-center">
           <Text className="text-sm font-semibold text-theme-900 dark:text-zinc-100">
             選擇顯示的時區
           </Text>
@@ -301,16 +304,20 @@ export function LiveSessionsView(props: LiveSessionsViewProps) {
                   <Text className="px-1 py-1 text-xs font-bold text-theme-700 dark:text-zinc-200">
                     {month.monthLabel}
                   </Text>
-                  {month.items.map((session) => (
-                    <SessionCard
-                      key={session.id}
-                      session={session}
-                      timeZone={timeZone}
-                      displayTimezone={displayTimezone}
-                      showAccountLabel={hasMultipleAccounts && showAllAccounts}
-                      onEnterClassroom={props.onEnterClassroom}
-                    />
-                  ))}
+                  <CardGrid twoColumnsFrom={TABLET_MIN_WIDTH}>
+                    {month.items.map((session) => (
+                      <SessionCard
+                        key={session.id}
+                        session={session}
+                        timeZone={timeZone}
+                        displayTimezone={displayTimezone}
+                        showAccountLabel={
+                          hasMultipleAccounts && showAllAccounts
+                        }
+                        onEnterClassroom={props.onEnterClassroom}
+                      />
+                    ))}
+                  </CardGrid>
                 </View>
               ))
             )}

@@ -1,11 +1,11 @@
 import type { CourseItem, CourseTasksCount } from '@altuu/core';
-import { Text, Icon, useCardColumns, useIsTablet } from '@altuu/ui';
+import { Text, Icon, useIsTablet } from '@altuu/ui';
 import { router } from 'expo-router';
 import { Pressable, View } from 'react-native';
 
 import { ErrorRetry } from '../shell/ErrorRetry';
 import type { ServiceError } from '../services/serviceError';
-import { Skeleton } from './components/primitives';
+import { CardGrid, Skeleton } from './components/primitives';
 import {
   courseTasksFor,
   formatBadgeCount,
@@ -190,16 +190,6 @@ function CourseListSkeleton() {
   );
 }
 
-function chunk<T>(items: readonly T[], size: number): T[][] {
-  const rows: T[][] = [];
-
-  for (let index = 0; index < items.length; index += size) {
-    rows.push(items.slice(index, index + size));
-  }
-
-  return rows;
-}
-
 /** Semester-grouped course cards with loading / error / empty states. */
 export function CourseListView({
   courses,
@@ -249,9 +239,6 @@ function CourseGroups({
   CourseListViewProps,
   'courses' | 'tasksCount' | 'tasksLoading' | 'tasksError'
 >) {
-  const columns = useCardColumns();
-  const isTablet = useIsTablet();
-
   return (
     <View className="gap-6">
       {groupCoursesBySemester(courses).map((group) => (
@@ -262,28 +249,17 @@ function CourseGroups({
           >
             {group.semester}
           </Text>
-          <View className={isTablet ? 'gap-5' : 'gap-3'}>
-            {chunk(group.courses, columns).map((row) => (
-              <View
-                key={row[0].courseId}
-                className={`flex-row ${isTablet ? 'gap-5' : 'gap-3'}`}
-              >
-                {row.map((course) => (
-                  <View key={course.courseId} className="min-w-0 flex-1">
-                    <CourseCard
-                      course={course}
-                      tasks={courseTasksFor(course, tasksCount)}
-                      tasksLoading={tasksLoading}
-                      tasksError={tasksError}
-                    />
-                  </View>
-                ))}
-                {Array.from({ length: columns - row.length }, (_, index) => (
-                  <View key={`filler-${index}`} className="min-w-0 flex-1" />
-                ))}
-              </View>
+          <CardGrid>
+            {group.courses.map((course) => (
+              <CourseCard
+                key={course.courseId}
+                course={course}
+                tasks={courseTasksFor(course, tasksCount)}
+                tasksLoading={tasksLoading}
+                tasksError={tasksError}
+              />
             ))}
-          </View>
+          </CardGrid>
         </View>
       ))}
     </View>
