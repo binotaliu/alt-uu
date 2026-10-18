@@ -5,4 +5,9 @@ const { withNativeWind } = require('nativewind/metro');
 // workspaces automatically, so only NativeWind needs to be wired in here.
 const config = getDefaultConfig(__dirname);
 
-module.exports = withNativeWind(config, { input: './src/global.css' });
+// NativeWind's native default is 1rem = 14px; the legacy WebView used 16px, so
+// every rem-based class (text-sm, w-12, ...) came out ~12% smaller than parity.
+module.exports = withNativeWind(config, {
+  input: './src/global.css',
+  inlineRem: 16,
+});

@@ -88,7 +88,7 @@ export function SubscriptionScreen() {
 
   return (
     <SubPage title="Alt UU+" backHref="/courses/account">
-      <View className="overflow-hidden rounded-2xl border border-theme-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+      <View className="overflow-hidden rounded-2xl border border-theme-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
         <View
           className="bg-orange-500 px-5 py-6 dark:bg-orange-700"
           style={subscriptionHeroStyle(isDark, accentColor)}

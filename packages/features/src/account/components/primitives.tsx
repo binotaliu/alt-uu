@@ -8,6 +8,7 @@ import {
 } from 'react';
 import {
   ActivityIndicator,
+  Animated,
   Image,
   Pressable,
   TextInput,
@@ -25,7 +26,7 @@ export function Card({
 }) {
   return (
     <View
-      className={`rounded-xl border border-theme-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 ${className}`}
+      className={`rounded-xl border border-theme-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900 ${className}`}
     >
       {children}
     </View>
@@ -351,6 +352,17 @@ export function PillSwitch({
       ? 'bg-emerald-600 dark:bg-emerald-500'
       : 'bg-theme-700 dark:bg-theme-600';
 
+  // Legacy `transition`: the thumb slides between translate-x-1 and translate-x-6.
+  const [thumbX] = useState(() => new Animated.Value(value ? 24 : 4));
+
+  useEffect(() => {
+    Animated.timing(thumbX, {
+      toValue: value ? 24 : 4,
+      duration: 150,
+      useNativeDriver: true,
+    }).start();
+  }, [value, thumbX]);
+
   return (
     <Pressable
       accessibilityRole="switch"
@@ -363,9 +375,9 @@ export function PillSwitch({
         value ? on : 'bg-theme-300 dark:bg-zinc-600'
       } ${disabled ? 'opacity-60' : ''}`}
     >
-      <View
-        className="size-5 rounded-full bg-white shadow"
-        style={{ marginLeft: value ? 24 : 4 }}
+      <Animated.View
+        className="size-5 rounded-full bg-white"
+        style={{ transform: [{ translateX: thumbX }] }}
       />
     </Pressable>
   );

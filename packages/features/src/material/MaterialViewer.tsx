@@ -106,7 +106,7 @@ export function MaterialViewer({
         <Text className="px-1 text-xs text-red-600">{reloadError}</Text>
       ) : null}
 
-      <View className="flex-row items-stretch gap-2 rounded-2xl border border-theme-200 bg-white/90 px-4 py-3 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+      <View className="flex-row items-stretch gap-2 rounded-2xl border border-theme-200 bg-white/90 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-900">
         <Pressable
           accessibilityRole="button"
           disabled={!canOpenInAppBrowser}
@@ -176,7 +176,7 @@ export function MaterialViewer({
       </View>
 
       {hasHtml && !hasDownload ? (
-        <View className="overflow-hidden rounded-2xl border border-theme-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+        <View className="overflow-hidden rounded-2xl border border-theme-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
           <View className="flex-row justify-end border-b border-theme-200 px-4 py-2 dark:border-zinc-700">
             <View className="flex-row items-center gap-1 rounded-xl border border-theme-200 bg-theme-50 p-1 dark:border-zinc-700 dark:bg-zinc-800">
               <Pressable
@@ -230,7 +230,7 @@ export function MaterialViewer({
           )}
         </View>
       ) : hasDownload ? (
-        <View className="rounded-2xl border border-theme-200 bg-white p-5 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+        <View className="rounded-2xl border border-theme-200 bg-white p-5 dark:border-zinc-700 dark:bg-zinc-900">
           <Text className="mb-3 text-sm text-theme-900 dark:text-zinc-300">
             {content.isPdf
               ? '本教材為 PDF 檔案，您可以下載後以其他 App 開啟或使用內建瀏覽器檢視。'

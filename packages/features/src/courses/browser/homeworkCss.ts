@@ -175,7 +175,6 @@ table.cssTable > tbody > tr.cssTrOdd:not(#fileUploadTraditional) {
     border-radius: var(--hw-radius);
     margin-bottom: 0.85rem;
     padding: 0.9rem 1rem;
-    box-shadow: 0 1px 2px oklch(0 0 0 / 0.04);
 }
 
 table.cssTable > tbody > tr.cssTrHead > .cssTd,
@@ -203,7 +202,6 @@ table.cssTable > tbody > tr > td.cssTrHelp {
     border-radius: var(--hw-radius);
     margin-bottom: 0.85rem;
     padding: 0.9rem 1rem;
-    box-shadow: 0 1px 2px oklch(0 0 0 / 0.04);
     font-size: 0.9rem;
     color: var(--hw-theme-800) !important;
 }
@@ -449,7 +447,6 @@ table.cssTable > tbody > tr > td.cssTrHead {
     border-radius: var(--hw-radius);
     margin-bottom: 0.85rem;
     padding: 0.9rem 1rem !important;
-    box-shadow: 0 1px 2px oklch(0 0 0 / 0.04);
     font-size: 0.9rem;
     line-height: 1.9;
     color: var(--hw-theme-800) !important;
@@ -484,7 +481,6 @@ table.cssTable > tbody > tr.font01 {
     border-radius: var(--hw-radius);
     margin-bottom: 0.85rem;
     padding: 0.9rem 1rem;
-    box-shadow: 0 1px 2px oklch(0 0 0 / 0.04);
 }
 
 table.cssTable > tbody > tr.font01 > td {

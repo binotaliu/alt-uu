@@ -39,7 +39,7 @@ export function AudioPlayerControls({
   onScrubbingChange,
 }: AudioPlayerControlsProps) {
   return (
-    <View className="border-theme-700/25 gap-2 rounded-xl border bg-white px-3 py-2.5 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+    <View className="gap-2 rounded-xl border border-theme-700 bg-white px-3 py-2.5 dark:border-zinc-700 dark:bg-zinc-900">
       <View className="flex-row items-center gap-2">
         <View className="min-w-0 flex-1">
           <Text
@@ -81,7 +81,7 @@ export function AudioPlayerControls({
           accessibilityLabel={playing ? '暫停' : '播放'}
           hitSlop={6}
           onPress={onTogglePlay}
-          className="border-theme-700/35 h-8 w-8 items-center justify-center rounded-full border bg-theme-700 dark:border-zinc-600 dark:bg-theme-400"
+          className="h-8 w-8 items-center justify-center rounded-full border border-theme-700 bg-theme-700 dark:border-zinc-600 dark:bg-theme-400"
         >
           <PlayPauseGlyph playing={playing} />
         </Pressable>

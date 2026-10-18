@@ -119,7 +119,7 @@ export function MaterialDirectory({
 
   return (
     <View>
-      <View className="border-theme-200/80 flex-row items-center justify-between gap-3 border-b bg-white px-4 pb-3 pt-3 dark:border-zinc-700/80 dark:bg-zinc-900">
+      <View className="flex-row items-center justify-between gap-3 border-b border-theme-200 bg-white px-4 pb-3 pt-3 dark:border-zinc-700/80 dark:bg-zinc-900">
         <View className="flex-row items-center gap-2">
           <Icon
             name="folder"
@@ -156,7 +156,7 @@ export function MaterialDirectory({
         ) : null}
       </View>
 
-      <View className="gap-2 px-3 pb-3 pt-2">
+      <View className="gap-2.5 px-3 pb-4 pt-3">
         {isLoading ? (
           [0, 1, 2, 3].map((row) => (
             <Skeleton key={row} className="h-10 rounded-xl" />
@@ -184,7 +184,7 @@ export function MaterialDirectory({
                 accessibilityState={{ expanded: !isCollapsed }}
                 onPress={() => toggle(node)}
                 style={{ marginLeft: indent }}
-                className={`min-h-10 flex-row items-center justify-between gap-2 rounded-xl border bg-white px-3 dark:bg-zinc-900 ${
+                className={`min-h-10 flex-row items-center justify-between gap-2 rounded-2xl border bg-white px-4 dark:bg-zinc-900 ${
                   inActivePath
                     ? 'border-theme-700 dark:border-zinc-500'
                     : 'border-theme-100 active:bg-theme-50 dark:border-zinc-700/70 dark:active:bg-zinc-800'
@@ -217,10 +217,12 @@ export function MaterialDirectory({
                   testID="material-node"
                   accessibilityRole="button"
                   onPress={() => select(node)}
-                  className={`min-h-10 flex-row items-center justify-between gap-2 rounded-xl border px-3 py-1 ${
+                  className={`min-h-10 flex-row items-center justify-between gap-2 border px-4 py-2 ${
+                    isLastSeen && !isActive ? 'rounded-t-2xl' : 'rounded-2xl'
+                  } ${
                     isActive
                       ? 'border-theme-700 bg-theme-100 dark:border-zinc-500 dark:bg-zinc-700'
-                      : 'border-theme-200/70 bg-white active:bg-theme-50 dark:border-zinc-700/70 dark:bg-zinc-900 dark:active:bg-zinc-800'
+                      : 'border-theme-200 bg-white active:bg-theme-50 dark:border-zinc-700/70 dark:bg-zinc-900 dark:active:bg-zinc-800'
                   }`}
                 >
                   <Text
@@ -230,7 +232,7 @@ export function MaterialDirectory({
                     {nodeTitle(node)}
                   </Text>
                   <View
-                    className={`shrink-0 flex-row items-center gap-1 rounded-full px-2 py-0.5 ${
+                    className={`shrink-0 flex-row items-center gap-1.5 rounded-full px-2.5 py-1 ${
                       node.duration
                         ? 'bg-emerald-100 dark:bg-emerald-900'
                         : 'bg-slate-100 dark:bg-zinc-700'
@@ -257,8 +259,8 @@ export function MaterialDirectory({
                   </View>
                 </Pressable>
                 {isLastSeen && !isActive ? (
-                  <View className="rounded-b-xl border border-t-0 border-sky-500 bg-sky-100 px-2 py-1 dark:bg-sky-900">
-                    <Text className="text-center text-sm text-sky-700 dark:text-sky-300">
+                  <View className="rounded-b-2xl border border-t-0 border-sky-500 bg-sky-100 px-2 py-1.5 dark:bg-sky-900">
+                    <Text className="text-center text-xs text-sky-700 dark:text-sky-300">
                       {lastSeenLabel(
                         lastSeenPositionSeconds,
                         lastSeenDurationSeconds,

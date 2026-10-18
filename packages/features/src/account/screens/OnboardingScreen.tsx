@@ -70,8 +70,8 @@ const SWIPE_DISTANCE = 48;
 /** Static preview of the study timer header (legacy "study-time" slide). */
 function StudyTimerPreview() {
   return (
-    <View className="border-theme-200/80 mt-8 overflow-hidden rounded-2xl border bg-white/90 dark:border-zinc-700/80 dark:bg-zinc-900/90">
-      <View className="border-theme-200/80 flex-row items-stretch border-b dark:border-zinc-700/80">
+    <View className="mt-8 overflow-hidden rounded-2xl border border-theme-200 bg-white/90 dark:border-zinc-700/80 dark:bg-zinc-900/90">
+      <View className="flex-row items-stretch border-b border-theme-200 dark:border-zinc-700/80">
         <View className="flex-1 flex-row items-center gap-3 px-4 py-3.5">
           <View style={{ transform: [{ rotate: '180deg' }] }}>
             <Icon

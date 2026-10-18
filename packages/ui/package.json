@@ -12,11 +12,14 @@
     "./tailwind-preset": "./tailwind-preset.js"
   },
   "peerDependencies": {
+    "expo-router": "*",
     "nativewind": "^4.2.7",
     "react": "*",
     "react-native": "*",
     "react-native-safe-area-context": "*",
-    "expo-router": "*",
     "react-native-svg": "*"
+  },
+  "dependencies": {
+    "tailwind-merge": "^3.7.0"
   }
 }

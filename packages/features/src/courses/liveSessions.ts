@@ -138,15 +138,28 @@ export function formatMonthDay(
   }).format(date);
 }
 
+const WEEKDAY_LABELS: Record<string, string> = {
+  Sun: '週日',
+  Mon: '週一',
+  Tue: '週二',
+  Wed: '週三',
+  Thu: '週四',
+  Fri: '週五',
+  Sat: '週六',
+};
+
+/** Hermes' zh-TW `weekday: 'short'` yields 周X, while the legacy WebView showed 週X. */
 export function formatWeekday(date: Date | null, timeZone: string): string {
   if (!date) {
     return '';
   }
 
-  return new Intl.DateTimeFormat('zh-TW', {
+  const weekday = new Intl.DateTimeFormat('en-US', {
     timeZone,
     weekday: 'short',
   }).format(date);
+
+  return WEEKDAY_LABELS[weekday] ?? '';
 }
 
 export function formatSessionClock(

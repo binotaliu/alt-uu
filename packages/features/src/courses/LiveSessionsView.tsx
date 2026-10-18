@@ -66,7 +66,7 @@ function SessionCard({
 
   return (
     <Card>
-      <View className="flex-row items-start gap-3">
+      <View className="flex-row items-center gap-3">
         <View className="w-20 shrink-0 items-center gap-1">
           {showAccountLabel && session.accountLabel ? (
             <View className="max-w-full rounded-full bg-theme-100 px-2 py-0.5 dark:bg-zinc-800">
@@ -116,66 +116,80 @@ function SessionCard({
               </View>
             ) : null}
           </View>
-          <Text className="mt-1 text-xs text-theme-700 dark:text-zinc-400">
-            {session.className || '未提供班級名稱'}・
-            {session.typeLabel || '未知班別'}
-          </Text>
-          <Text className="mt-1 text-xs text-theme-700 dark:text-zinc-400">
-            {teacher.name}
-            {teacher.hasTitle ? ' 老師' : ''}
-          </Text>
-          <Text className="mt-1 text-sm font-medium text-theme-800 dark:text-zinc-200">
-            {formatSessionClock(
-              session.startAt,
-              session.startTime,
-              session.date,
-              clock,
-            )}
-            {' - '}
-            {formatSessionClock(
-              session.endAt,
-              session.endTime,
-              session.date,
-              clock,
-            )}
-          </Text>
+
+          <View className="flex-row flex-wrap items-end justify-between gap-y-2">
+            <View className="shrink-0 gap-1">
+              <Text className="text-xs text-theme-700 dark:text-zinc-400">
+                {session.className || '未提供班級名稱'} ・{' '}
+                {session.typeLabel || '未知班別'}
+              </Text>
+              <Text className="text-xs text-theme-700 dark:text-zinc-400">
+                {teacher.name}
+                {teacher.hasTitle ? (
+                  <Text className="text-[10px] text-theme-700 dark:text-zinc-400">
+                    {' 老師'}
+                  </Text>
+                ) : null}
+              </Text>
+              <Text className="mt-1 text-sm font-medium text-theme-800 dark:text-zinc-200">
+                {formatSessionClock(
+                  session.startAt,
+                  session.startTime,
+                  session.date,
+                  clock,
+                )}
+                {' - '}
+                {formatSessionClock(
+                  session.endAt,
+                  session.endTime,
+                  session.date,
+                  clock,
+                )}
+              </Text>
+            </View>
+
+            {session.link || session.backupClassroomUrl ? (
+              <View className="shrink-0 items-end gap-1">
+                {session.link ? (
+                  <Pressable
+                    accessibilityRole="link"
+                    onPress={() =>
+                      onEnterClassroom(session.link as string, session)
+                    }
+                    className="flex-row items-center gap-1 rounded-lg border border-theme-300 px-3 py-1.5 active:bg-theme-50 dark:border-zinc-600 dark:active:bg-zinc-800"
+                  >
+                    <Icon
+                      name="video-camera"
+                      size={20}
+                      className="text-theme-700 dark:text-zinc-200"
+                    />
+                    <Text className="text-base font-medium text-theme-700 dark:text-zinc-200">
+                      進入教室
+                    </Text>
+                  </Pressable>
+                ) : null}
+                {session.backupClassroomUrl ? (
+                  <Pressable
+                    accessibilityRole="link"
+                    accessibilityHint="主教室人數已滿時可改用此備用連結"
+                    onPress={() =>
+                      onEnterClassroom(
+                        session.backupClassroomUrl as string,
+                        session,
+                      )
+                    }
+                    className="px-3 py-1"
+                  >
+                    <Text className="text-xs font-medium text-theme-700 dark:text-zinc-400">
+                      備用教室
+                    </Text>
+                  </Pressable>
+                ) : null}
+              </View>
+            ) : null}
+          </View>
         </View>
       </View>
-
-      {session.link || session.backupClassroomUrl ? (
-        <View className="mt-3 flex-row items-center justify-end gap-3">
-          {session.backupClassroomUrl ? (
-            <Pressable
-              accessibilityRole="link"
-              accessibilityHint="主教室人數已滿時可改用此備用連結"
-              onPress={() =>
-                onEnterClassroom(session.backupClassroomUrl as string, session)
-              }
-              className="px-3 py-1"
-            >
-              <Text className="text-xs font-medium text-theme-700 dark:text-zinc-400">
-                備用教室
-              </Text>
-            </Pressable>
-          ) : null}
-          {session.link ? (
-            <Pressable
-              accessibilityRole="link"
-              onPress={() => onEnterClassroom(session.link as string, session)}
-              className="flex-row items-center gap-1 rounded-lg border border-theme-300 px-3 py-1.5 active:bg-theme-50 dark:border-zinc-600 dark:active:bg-zinc-800"
-            >
-              <Icon
-                name="video-camera"
-                size={20}
-                className="text-theme-700 dark:text-zinc-200"
-              />
-              <Text className="text-base font-medium text-theme-700 dark:text-zinc-200">
-                進入教室
-              </Text>
-            </Pressable>
-          ) : null}
-        </View>
-      ) : null}
     </Card>
   );
 }

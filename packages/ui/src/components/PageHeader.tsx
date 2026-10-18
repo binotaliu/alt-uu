@@ -35,7 +35,7 @@ export function PageHeader({
 
   return (
     <View
-      className="border-theme-200/80 flex-row items-stretch border-b bg-white pl-4 pr-4 dark:border-zinc-700/80 dark:bg-zinc-900"
+      className="flex-row items-stretch border-b border-theme-200 bg-white pl-4 pr-4 dark:border-zinc-700/80 dark:bg-zinc-900"
       style={{
         paddingTop: insets.top,
         paddingLeft: Math.max(insets.left, 16),

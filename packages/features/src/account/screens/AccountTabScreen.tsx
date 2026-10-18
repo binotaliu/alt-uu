@@ -131,7 +131,7 @@ export function AccountTabScreen() {
           </View>
         </Card>
 
-        <View className="overflow-hidden rounded-xl border border-theme-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+        <View className="overflow-hidden rounded-xl border border-theme-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
           <LinkRow label="我的成績" href="/courses/account/grades" />
           <LinkRow
             label="考試資訊"

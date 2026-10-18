@@ -1,8 +1,9 @@
 import type { ActivityHeatmap as ActivityHeatmapData } from '@altuu/core';
-import { Text, Icon } from '@altuu/ui';
+import { Text, Icon, useIsDark } from '@altuu/ui';
 import { useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { router } from 'expo-router';
+import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
 import { useServiceQuery } from '../../services/useServiceQuery';
 import { buildSampleActivity } from '../lib/activity';
@@ -30,6 +31,26 @@ function Skeleton() {
   );
 }
 
+/** Legacy `bg-gradient-to-t from-white via-white/95 to-transparent`. */
+function FadeToSurface() {
+  const surface = useIsDark() ? '#18181b' : '#ffffff';
+
+  return (
+    <View pointerEvents="none" className="absolute inset-0">
+      <Svg width="100%" height="100%">
+        <Defs>
+          <LinearGradient id="fade" x1="0" y1="1" x2="0" y2="0">
+            <Stop offset="0" stopColor={surface} stopOpacity="1" />
+            <Stop offset="0.5" stopColor={surface} stopOpacity="0.95" />
+            <Stop offset="1" stopColor={surface} stopOpacity="0" />
+          </LinearGradient>
+        </Defs>
+        <Rect width="100%" height="100%" fill="url(#fade)" />
+      </Svg>
+    </View>
+  );
+}
+
 /** Legacy AccountActivityWidget: the heatmap, or a blurred sample behind an upsell. */
 export function AccountActivityWidget({ subscribed }: { subscribed: boolean }) {
   const [allAccounts, setAllAccounts] = useState(false);
@@ -43,7 +64,7 @@ export function AccountActivityWidget({ subscribed }: { subscribed: boolean }) {
   });
 
   return (
-    <Card className="overflow-hidden">
+    <Card className="relative overflow-hidden">
       <View className="mb-3 flex-row items-center justify-between gap-2">
         <View className="flex-row items-center gap-2">
           <Icon
@@ -102,16 +123,12 @@ export function AccountActivityWidget({ subscribed }: { subscribed: boolean }) {
           <Skeleton />
         )
       ) : (
-        <View>
-          <View pointerEvents="none" className="opacity-60">
+        <>
+          <View pointerEvents="none">
             <ActivityHeatmap {...sample} />
           </View>
-          <View className="bg-theme-900/80 absolute right-0 top-0 rounded-full px-2 py-0.5 dark:bg-zinc-100/80">
-            <Text className="text-[10px] font-medium text-theme-50 dark:text-zinc-900">
-              範例資料
-            </Text>
-          </View>
-          <View className="mt-3 items-center gap-2 rounded-xl bg-white/90 p-4 dark:bg-zinc-900/90">
+          <View className="-mx-4 -mb-4 -mt-24 items-center gap-2 overflow-hidden rounded-b-2xl p-4 pt-10">
+            <FadeToSurface />
             <Sparkles />
             <Text className="text-sm font-semibold text-theme-900 dark:text-zinc-100">
               學習活動為 Alt UU+ 專屬功能
@@ -127,7 +144,15 @@ export function AccountActivityWidget({ subscribed }: { subscribed: boolean }) {
               <Text className="text-sm font-medium text-theme-50">升級</Text>
             </Pressable>
           </View>
-        </View>
+          <View
+            pointerEvents="none"
+            className="absolute right-3 top-3 rounded-full bg-theme-700 px-2 py-0.5 dark:bg-zinc-300"
+          >
+            <Text className="text-[10px] font-medium text-white dark:text-zinc-900">
+              範例資料
+            </Text>
+          </View>
+        </>
       )}
     </Card>
   );

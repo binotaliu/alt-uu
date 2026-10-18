@@ -39,6 +39,8 @@ const LEVEL_CLASSES = [
 
 const CELL = 12;
 const GAP = 4;
+// Taller than a cell so CJK month glyphs are not clipped; labels overflow sideways.
+const LABEL_HEIGHT = 16;
 
 function StatBox({
   label,
@@ -63,7 +65,7 @@ function StatBox({
 
 function WeekdayColumn() {
   return (
-    <View style={{ gap: GAP, paddingTop: CELL + GAP }}>
+    <View style={{ gap: GAP, paddingTop: LABEL_HEIGHT + GAP }}>
       {WEEKDAY_LABELS.map((label, index) => (
         <View key={index} style={{ height: CELL, justifyContent: 'center' }}>
           <Text className="text-[10px] leading-3 text-theme-700 dark:text-zinc-400">
@@ -145,10 +147,11 @@ export function ActivityHeatmap({
         <View style={{ flexDirection: 'row', gap: GAP }}>
           {weeks.map((week, weekIndex) => (
             <View key={weekIndex} style={{ gap: GAP }}>
-              <View style={{ height: CELL, width: CELL }}>
+              <View style={{ height: LABEL_HEIGHT, width: CELL }}>
                 <Text
                   numberOfLines={1}
-                  className="w-10 text-[10px] leading-3 text-theme-700 dark:text-zinc-400"
+                  style={{ lineHeight: LABEL_HEIGHT }}
+                  className="w-10 text-[10px] text-theme-700 dark:text-zinc-400"
                 >
                   {monthLabelFor(weeks, weekIndex)}
                 </Text>

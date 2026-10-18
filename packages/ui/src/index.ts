@@ -13,6 +13,7 @@ export {
   type ErrorDetailView,
   type ErrorRetryViewProps,
 } from './components/ErrorRetryView';
+export { cn } from './cn';
 export { Icon, type IconProps } from './components/Icon';
 export { PageHeader, type PageHeaderProps } from './components/PageHeader';
 export { Screen, type ScreenProps } from './components/Screen';

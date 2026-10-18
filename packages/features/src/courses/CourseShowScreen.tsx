@@ -40,12 +40,12 @@ function TabBadge({ count, active }: { count: number; active: boolean }) {
 
   return (
     <View
-      className={`ml-2 w-8 items-center rounded-full px-2 py-0.5 ${
+      className={`-my-1 ml-2 h-5 w-8 items-center justify-center rounded-full ${
         active ? 'bg-white dark:bg-zinc-900' : 'bg-theme-800 dark:bg-zinc-600'
       }`}
     >
       <Text
-        className={`text-xs font-semibold ${
+        className={`text-xs font-semibold leading-4 ${
           active ? 'text-theme-800 dark:text-white' : 'text-white'
         }`}
       >

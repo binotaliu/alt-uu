@@ -1,4 +1,4 @@
-import { Text } from '@altuu/ui';
+import { Text, cn } from '@altuu/ui';
 import type { ReactNode } from 'react';
 import { Pressable, View, type ViewProps } from 'react-native';
 
@@ -6,7 +6,10 @@ import { Pressable, View, type ViewProps } from 'react-native';
 export function Card({ className, ...props }: ViewProps) {
   return (
     <View
-      className={`rounded-2xl border border-theme-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900 ${className ?? ''}`}
+      className={cn(
+        'rounded-2xl border border-theme-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900',
+        className,
+      )}
       {...props}
     />
   );
