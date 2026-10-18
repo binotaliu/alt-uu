@@ -275,6 +275,10 @@ async function build(): Promise<AppServices> {
   });
   subscriptionServices = createSubscriptionServices({
     billing: await createBilling(),
+    // Local StoreKit transactions are only accepted by a dummy server.
+    config: process.env.EXPO_PUBLIC_IAP_BASE_URL
+      ? { baseUrl: process.env.EXPO_PUBLIC_IAP_BASE_URL }
+      : undefined,
     fetch,
     keyValues: storage.keyValues,
     clock,
