@@ -148,7 +148,7 @@ export function SavingProgressToast({ visible }: { visible: boolean }) {
       style={{ top: insets.top + 8 }}
       accessibilityLiveRegion="polite"
     >
-      <View className="w-full max-w-md flex-row items-center gap-3 rounded-2xl border border-theme-200 bg-white/95 px-4 py-3 shadow-lg dark:border-zinc-700 dark:bg-zinc-900/95">
+      <View className="w-full max-w-md flex-row items-center gap-3 rounded-2xl border border-theme-200 bg-white px-4 py-3 shadow-lg dark:border-zinc-700 dark:bg-zinc-900">
         <ActivityIndicator size="small" />
         <View>
           <Text className="text-sm font-semibold text-theme-900 dark:text-zinc-100">
