@@ -56,6 +56,15 @@ jest.mock(
   'expo-screen-orientation',
   () => require('./testDoubles').passthroughModules.orientation,
 );
+const mockBeforeRemoveListeners: Array<() => void> = [];
+const mockNavigation = {
+  addListener: (_event: string, listener: () => void) => {
+    mockBeforeRemoveListeners.push(listener);
+
+    return () => undefined;
+  },
+};
+
 jest.mock('expo-router', () => ({
   router: {
     push: jest.fn(),
@@ -70,6 +79,7 @@ jest.mock('expo-router', () => ({
     back: jest.fn(),
     canGoBack: () => true,
   }),
+  useNavigation: () => mockNavigation,
 }));
 
 const HUNGU = 'https://uu.nou.edu.tw';
@@ -421,6 +431,28 @@ describe('MaterialScreen', () => {
           url: `${HUNGU}/base/html.htm`,
           seconds: 42,
         }),
+      );
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it('reports the study time when leaving without the back button', async () => {
+    const { renderScreen, record } = setup();
+    let now = Date.parse('2026-10-18T02:00:00.000Z');
+    const spy = jest.spyOn(Date, 'now').mockImplementation(() => now);
+
+    try {
+      await renderScreen('html');
+      await waitFor(() => expect(screen.getByTestId('webview')).toBeTruthy());
+
+      now += 30_000;
+      mockBeforeRemoveListeners.forEach((listener) => listener());
+
+      await waitFor(() =>
+        expect(record).toHaveBeenCalledWith(
+          expect.objectContaining({ activityId: 'html', seconds: 30 }),
+        ),
       );
     } finally {
       spy.mockRestore();

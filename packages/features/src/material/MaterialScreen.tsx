@@ -2,7 +2,7 @@ import type { CourseMaterialNode, ParsedMaterialContent } from '@altuu/core';
 import { PageHeader, Screen, Text, accentPalettes, useIsDark } from '@altuu/ui';
 import { useQueryClient } from '@tanstack/react-query';
 import * as Network from 'expo-network';
-import { router } from 'expo-router';
+import { router, useNavigation } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AppState,
@@ -183,6 +183,10 @@ function AdjacentButton({
  * previous / next navigation, study-time reporting on leave, the resume and
  * cellular prompts, and crash-recovery checkpoints.
  */
+interface BeforeRemoveSource {
+  addListener: (event: 'beforeRemove', listener: () => void) => () => void;
+}
+
 export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
   const runtime = useServiceRuntime();
   const { services } = runtime;
@@ -500,35 +504,52 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
   }, [checkpoint]);
 
   // Leaving without the back button (swipe back, replaced route): report
-  // in the background like the legacy page-hide beacon.
+  // in the background like the legacy page-hide beacon. Runs from
+  // `beforeRemove` (player still mounted, so the live position is readable)
+  // and, as a fallback, from the unmount cleanup; `leftRef` makes it once.
   const keyValues = services.storage.keyValues;
+  const navigation = useNavigation();
+
+  const reportLeaveInBackground = useCallback(() => {
+    const {
+      activeNode: node,
+      timer: currentTimer,
+      checkpoint: writeCheckpoint,
+    } = latest.current;
+
+    currentTimer.stopTimer();
+
+    if (leftRef.current || node?.href == null) {
+      return;
+    }
+
+    leftRef.current = true;
+
+    const href = node.href;
+
+    void (async () => {
+      await writeCheckpoint();
+
+      if (await currentTimer.sendStudyTime(node.identifier, href)) {
+        await clearActiveMaterialSession(keyValues);
+        // The course screen underneath is still mounted: refetch now so the
+        // directory shows the new progress.
+        void queryClient.invalidateQueries({ queryKey: ['courses', cid] });
+      }
+    })();
+  }, [cid, keyValues, queryClient]);
 
   useEffect(
-    () => () => {
-      const {
-        activeNode: node,
-        timer: currentTimer,
-        checkpoint: writeCheckpoint,
-      } = latest.current;
-
-      currentTimer.stopTimer();
-
-      if (leftRef.current || node?.href == null) {
-        return;
-      }
-
-      const href = node.href;
-
-      void (async () => {
-        await writeCheckpoint();
-
-        if (await currentTimer.sendStudyTime(node.identifier, href)) {
-          await clearActiveMaterialSession(keyValues);
-        }
-      })();
-    },
-    [keyValues],
+    () =>
+      // expo-router types the route-less navigation object without it.
+      (navigation as unknown as BeforeRemoveSource).addListener(
+        'beforeRemove',
+        reportLeaveInBackground,
+      ),
+    [navigation, reportLeaveInBackground],
   );
+
+  useEffect(() => reportLeaveInBackground, [reportLeaveInBackground]);
 
   const handleBack = useCallback(async () => {
     if (savingRef.current) {

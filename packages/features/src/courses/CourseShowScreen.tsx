@@ -89,6 +89,16 @@ export function CourseShowView({
 
   // Returning from the in-app browser refreshes the list that opened it.
   useEffect(() => {
+    // Returning from a material page: show the latest learning progress.
+    if (here && !wasHere.current) {
+      void queryClient.invalidateQueries({
+        queryKey: courseKeys.learningTimes(cid),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: courseKeys.lastSeen(cid),
+      });
+    }
+
     if (here && !wasHere.current && refreshOnReturn.current) {
       refreshOnReturn.current = false;
       void queryClient.invalidateQueries({
