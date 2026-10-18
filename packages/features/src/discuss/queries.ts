@@ -7,21 +7,11 @@ import type {
 } from '@altuu/core';
 import { useQueryClient } from '@tanstack/react-query';
 
+import { useCourses } from '../courses/courseQueries';
 import { useServiceMutation, useServiceQuery } from '../services';
+import { discussQueryKeys } from './queryKeys';
 
-/** Query keys of this area; the course discuss tab invalidates `all` after a read. */
-export const discussQueryKeys = {
-    all: ['discuss'] as const,
-    boards: (boardCid: string) => ['discuss', 'boards', boardCid] as const,
-    nodes: (boardCid: string, bid: string, keyword = '') =>
-        ['discuss', 'nodes', boardCid, bid, keyword] as const,
-    nodesOfBoard: (boardCid: string, bid: string) =>
-        ['discuss', 'nodes', boardCid, bid] as const,
-    posts: (boardCid: string, bid: string, nid: string) =>
-        ['discuss', 'posts', boardCid, bid, nid] as const,
-    courseTitle: (cid: string) => ['discuss', 'course', cid] as const,
-    blockedUsers: ['moderation', 'blocked-users'] as const,
-};
+export { discussQueryKeys };
 
 export function useDiscussBoards(boardCid: string) {
     return useServiceQuery<BoardListViewModel>({
@@ -60,11 +50,7 @@ export function useCourseTitle(cid: string): {
     title: string;
     isLoading: boolean;
 } {
-    const courses = useServiceQuery({
-        op: 'courses.list',
-        queryKey: discussQueryKeys.courseTitle(cid),
-        queryFn: (services) => services.course.listCourses(),
-    });
+    const courses = useCourses();
     const course = courses.data?.find((item) => item.courseId === cid);
 
     return {

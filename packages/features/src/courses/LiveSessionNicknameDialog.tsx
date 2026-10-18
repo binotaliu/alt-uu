@@ -1,9 +1,7 @@
-import { Button, Sheet, Text } from '@altuu/ui';
+import { Button, Sheet, Text, Icon } from '@altuu/ui';
 import * as Clipboard from 'expo-clipboard';
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, TextInput, View } from 'react-native';
-
-import { CourseIcon } from './components/CourseIcon';
 
 type CopyState = 'idle' | 'copied' | 'failed';
 
@@ -105,7 +103,7 @@ export function LiveSessionNicknameDialog({
                                 }
                                 className="shrink-0 flex-row items-center gap-1 rounded-lg border border-theme-300 px-3 py-2 active:bg-theme-50 dark:border-zinc-600 dark:active:bg-zinc-800"
                             >
-                                <CourseIcon
+                                <Icon
                                     name={
                                         copyStates[field.key] === 'copied'
                                             ? 'check'

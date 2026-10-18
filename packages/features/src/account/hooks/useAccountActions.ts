@@ -48,7 +48,7 @@ export function useAddAccount() {
     const queryClient = useQueryClient();
 
     return useServiceMutation<AccountViewModel[], Credentials>({
-        op: 'auth.login',
+        op: 'accounts.add',
         mutationFn: async (credentials, services) => {
             const accounts = unwrap(await services.account.add(credentials));
             queryClient.setQueryData(queryKeys.accounts, accounts);
@@ -68,7 +68,7 @@ export function useReauthenticate(accountId: number) {
     const queryClient = useQueryClient();
 
     return useServiceMutation<string, string>({
-        op: 'auth.login',
+        op: 'accounts.reauth',
         mutationFn: async (password, services) => {
             const accounts = unwrap(
                 await services.account.reauthenticate(accountId, password),
@@ -93,7 +93,7 @@ export function useRenameAccount() {
         AccountViewModel[],
         { accountId: number; nickname: string }
     >({
-        op: 'accounts.list',
+        op: 'accounts.rename',
         mutationFn: async ({ accountId, nickname }, services) => {
             const wasActive = (await services.account.list()).find(
                 (account) => account.id === accountId,
@@ -119,7 +119,7 @@ export function useRemoveAccount() {
     const queryClient = useQueryClient();
 
     return useServiceMutation<AccountViewModel[], number>({
-        op: 'accounts.list',
+        op: 'accounts.remove',
         mutationFn: async (accountId, services) => {
             const wasActive = (await services.account.list()).find(
                 (account) => account.id === accountId,

@@ -1,16 +1,20 @@
 /**
- * Port of legacy CourseNameMatcher. Kept local to this domain because the
- * domains are developed independently; behaviour must stay identical.
+ * Port of legacy `Course\Support\CourseNameMatcher`, shared by the school
+ * portal (grades, exam info, class sessions, homework notices) and nou-tools
+ * course matching.
  */
-export function normalizeCourseName(name: string): string {
-    const value = name.trim();
 
-    if (value === '') {
+/** NFKC, lower-cased, with all separators, punctuation and symbols removed. */
+export function normalizeCourseName(name: string): string {
+    const trimmed = name.trim();
+
+    if (trimmed === '') {
         return '';
     }
 
-    return value
-        .normalize('NFKC')
+    const normalized = trimmed.normalize('NFKC');
+
+    return (normalized !== '' ? normalized : trimmed)
         .toLowerCase()
         .replace(/[\p{Z}\p{P}\p{S}]+/gu, '')
         .trim();

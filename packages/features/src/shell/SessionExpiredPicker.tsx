@@ -110,6 +110,7 @@ export function SessionExpiredPicker() {
             {failedAccountId !== null ? (
                 <View className="border-t border-theme-200 px-5 py-3 dark:border-zinc-700">
                     <Pressable
+                        testID="session-expired-reauth"
                         accessibilityRole="button"
                         onPress={() => goToReauth(failedAccountId)}
                     >

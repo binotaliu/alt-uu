@@ -1,0 +1,12 @@
+# Maestro workspace config: `maestro test apps/mobile/e2e` runs every flow
+# below (subflows/ only contains building blocks used via runFlow).
+flows:
+  - '*.yaml'
+executionOrder:
+  continueOnFailure: true
+  flowsOrder:
+    - login
+    - course-material
+    - discuss-thread
+    - switch-account
+    - session-expiry

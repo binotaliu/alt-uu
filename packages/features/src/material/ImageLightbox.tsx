@@ -3,7 +3,7 @@ import { Modal, Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { lightboxDocument, type LightboxImage } from './lightboxDocument';
-import { TypedWebView } from '../courses/browser/TypedWebView';
+import { TypedWebView } from '../shell/TypedWebView';
 
 export type { LightboxImage };
 

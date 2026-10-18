@@ -1,5 +1,5 @@
 import type { NodeViewModel } from '@altuu/core';
-import { Button, PageHeader, Text } from '@altuu/ui';
+import { Button, PageHeader, Text, Icon } from '@altuu/ui';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import {
@@ -14,7 +14,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useServiceMutation } from '../services';
 import { ErrorRetry } from '../shell';
 import { ComposeSheet } from './components/ComposeSheet';
-import { GlyphIcon } from './components/GlyphIcon';
 import { getReasonLabel } from './moderation';
 import {
     discussQueryKeys,
@@ -113,8 +112,8 @@ export function DiscussBoardScreen({
     const header = (
         <View className="gap-3">
             <View className="flex-row items-center gap-2">
-                <GlyphIcon
-                    name="chat"
+                <Icon
+                    name="chat-bubble-left-right"
                     size={20}
                     className="text-theme-900 dark:text-zinc-100"
                 />
@@ -163,7 +162,7 @@ export function DiscussBoardScreen({
                             onPress={() => setIsComposeOpen(true)}
                             className="flex-row items-center gap-1 rounded-xl bg-theme-700 px-4 py-2 active:bg-theme-800 dark:bg-theme-800"
                         >
-                            <GlyphIcon
+                            <Icon
                                 name="plus"
                                 size={16}
                                 className="text-white"
@@ -277,6 +276,7 @@ function NodeRow({
 }) {
     return (
         <Pressable
+            testID="discuss-node-row"
             accessibilityRole="button"
             onPress={onPress}
             className="rounded-xl border border-theme-200 bg-white px-3 py-2 active:border-theme-400 dark:border-zinc-700 dark:bg-zinc-900"
@@ -304,8 +304,8 @@ function NodeRow({
 
                 {node.likesCount && node.likesCount > 0 ? (
                     <View className="flex-row items-center gap-1">
-                        <GlyphIcon
-                            name="thumb-up"
+                        <Icon
+                            name="hand-thumb-up"
                             size={16}
                             className="text-theme-700 dark:text-zinc-400"
                         />

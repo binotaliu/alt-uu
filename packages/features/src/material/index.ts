@@ -6,8 +6,4 @@ export {
     type RestoreActiveMediaRoute,
 } from './ActiveMaterialRestorePrompt';
 export { ImageLightbox, type LightboxImage } from './ImageLightbox';
-export {
-    descriptorToDownloadRequest,
-    parseCookieHeader,
-    seedHunguWebViewCookies,
-} from './materialCookies';
+export { seedHunguWebViewCookies } from './materialCookies';

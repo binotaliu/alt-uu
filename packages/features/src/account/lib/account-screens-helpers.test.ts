@@ -1,4 +1,4 @@
-import { formatSchoolPortalTimeRange } from './schoolPortalFormat';
+import { formatSchoolPortalTimeRange } from '../../courses/format';
 import { groupExamAgenda } from '../screens/ExamInfoScreen';
 import { groupBySemester, isScorePassing } from '../screens/GradesScreen';
 import { summarize } from '../screens/ConnectivityDiagnosticsScreen';

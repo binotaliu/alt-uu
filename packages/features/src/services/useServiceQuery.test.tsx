@@ -2,7 +2,11 @@ import { UserFacingHttpError } from '@altuu/core';
 import { renderHook, waitFor } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 
-import { createFakeServices, resetStores } from '../testing/fakeServices';
+import {
+    createFakeServices,
+    createTestQueryClient,
+    resetStores,
+} from '../testing/fakeServices';
 import { AppServicesProvider } from './AppServicesProvider';
 import { ServiceError } from './serviceError';
 import { useServiceMutation, useServiceQuery } from './useServiceQuery';
@@ -11,9 +15,11 @@ beforeEach(resetStores);
 
 function setup() {
     const fake = createFakeServices();
+    const queryClient = createTestQueryClient();
     const wrapper = ({ children }: { children: ReactNode }) => (
         <AppServicesProvider
             services={fake.services}
+            queryClient={queryClient}
             router={{ push: jest.fn(), replace: jest.fn() }}
         >
             {children}

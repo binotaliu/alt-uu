@@ -1,9 +1,8 @@
-import { Text } from '@altuu/ui';
+import { Text, Icon } from '@altuu/ui';
 import { Pressable, View } from 'react-native';
 
 import type { ServiceError } from '../services/serviceError';
 import { ErrorRetry } from '../shell/ErrorRetry';
-import { CourseIcon } from './components/CourseIcon';
 import {
     Card,
     EmptyNotice,
@@ -179,7 +178,7 @@ function SessionCard({
                             }
                             className="flex-row items-center gap-1 rounded-lg border border-theme-300 px-3 py-1.5 active:bg-theme-50 dark:border-zinc-600 dark:active:bg-zinc-800"
                         >
-                            <CourseIcon
+                            <Icon
                                 name="video-camera"
                                 size={20}
                                 className="text-theme-700 dark:text-zinc-200"

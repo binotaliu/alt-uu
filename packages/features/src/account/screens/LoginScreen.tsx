@@ -1,4 +1,4 @@
-import { Text } from '@altuu/ui';
+import { Icon, Text, useIsDark } from '@altuu/ui';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import {
@@ -11,12 +11,12 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { openInAppBrowser } from '../../shell/openUrl';
-import { AccountIcon } from '../components/AccountIcon';
 import {
     FormField,
     PasswordField,
     PrimaryButton,
 } from '../components/primitives';
+import { authBackgroundStyle } from '../components/backgrounds';
 import { useLogin } from '../hooks/useAccountActions';
 import { rawOf } from '../lib/actionError';
 import { POLICY_URLS } from '../lib/links';
@@ -57,10 +57,12 @@ export function LoginScreen() {
     };
 
     const border = error !== '';
+    const isDark = useIsDark();
 
     return (
         <KeyboardAvoidingView
             className="flex-1 bg-theme-50 dark:bg-zinc-950"
+            style={authBackgroundStyle(isDark)}
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
             <ScrollView
@@ -73,7 +75,7 @@ export function LoginScreen() {
                 }}
             >
                 <View className="items-center justify-center py-2">
-                    <AccountIcon
+                    <Icon
                         name="academic-cap"
                         size={64}
                         className="text-theme-700"
@@ -96,6 +98,7 @@ export function LoginScreen() {
 
                         <View className="mt-6 gap-4">
                             <FormField
+                                testID="login-username"
                                 label="帳號"
                                 icon="user"
                                 value={username}
@@ -107,6 +110,7 @@ export function LoginScreen() {
                                 invalid={border}
                             />
                             <PasswordField
+                                testID="login-password"
                                 label="密碼"
                                 value={password}
                                 onChangeText={setPassword}
@@ -126,6 +130,7 @@ export function LoginScreen() {
                             ) : null}
 
                             <PrimaryButton
+                                testID="login-submit"
                                 label={login.isPending ? '登入中...' : '登入'}
                                 disabled={login.isPending}
                                 onPress={() => void submit()}
@@ -183,7 +188,7 @@ export function LoginScreen() {
                         onPress={() => router.push('/settings')}
                         className="mt-6 flex-row items-center justify-center gap-1 self-center"
                     >
-                        <AccountIcon
+                        <Icon
                             name="cog-6-tooth"
                             size={16}
                             className="text-theme-700 dark:text-zinc-300"

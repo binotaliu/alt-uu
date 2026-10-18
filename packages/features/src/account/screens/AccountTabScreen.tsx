@@ -1,4 +1,4 @@
-import { Screen, Text, TransparentPageHeader } from '@altuu/ui';
+import { Screen, Text, TransparentPageHeader, Icon } from '@altuu/ui';
 import { useQueryClient } from '@tanstack/react-query';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useRef } from 'react';
@@ -10,7 +10,6 @@ import {
     AccountActivityWidget,
     ACTIVITY_QUERY_KEY,
 } from '../components/AccountActivityWidget';
-import { AccountIcon } from '../components/AccountIcon';
 import { Avatar, Card, Sparkles } from '../components/primitives';
 import {
     formatExpiry,
@@ -37,7 +36,7 @@ function LinkRow({
             <Text className="text-sm font-medium text-theme-900 dark:text-zinc-100">
                 {label}
             </Text>
-            <AccountIcon
+            <Icon
                 name="chevron-right"
                 size={16}
                 className="text-theme-700 dark:text-zinc-500"
@@ -76,7 +75,7 @@ export function AccountTabScreen() {
             <TransparentPageHeader
                 title="我的帳號"
                 icon={
-                    <AccountIcon
+                    <Icon
                         name="user-circle"
                         size={20}
                         className="text-theme-900 dark:text-zinc-100"
@@ -88,7 +87,7 @@ export function AccountTabScreen() {
                         onPress={() => router.push('/settings')}
                         className="flex-row items-center gap-1 rounded-full border border-theme-300 bg-white px-3 py-1.5 active:bg-theme-50 dark:border-zinc-600 dark:bg-zinc-800 dark:active:bg-zinc-700"
                     >
-                        <AccountIcon
+                        <Icon
                             name="cog-6-tooth"
                             size={16}
                             className="text-theme-700 dark:text-zinc-300"
@@ -115,6 +114,7 @@ export function AccountTabScreen() {
                             ) : null}
                         </View>
                         <Pressable
+                            testID="account-manage-accounts"
                             accessibilityRole="link"
                             onPress={() =>
                                 router.push('/courses/account/accounts')
@@ -124,7 +124,7 @@ export function AccountTabScreen() {
                             <Text className="text-sm font-medium text-theme-700 dark:text-zinc-400">
                                 切換帳號
                             </Text>
-                            <AccountIcon
+                            <Icon
                                 name="chevron-down"
                                 size={16}
                                 className="text-theme-700 dark:text-zinc-400"
@@ -189,7 +189,7 @@ export function AccountTabScreen() {
                         <Card>
                             <View className="flex-row items-center justify-between gap-4">
                                 <View className="min-w-0 flex-1 flex-row items-center gap-3">
-                                    <AccountIcon
+                                    <Icon
                                         name="arrows-right-left"
                                         size={24}
                                         className="text-theme-700 dark:text-zinc-400"

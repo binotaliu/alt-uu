@@ -1,8 +1,7 @@
-import { Text } from '@altuu/ui';
+import { Text, Icon } from '@altuu/ui';
 import { useEffect, useMemo } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 
-import { AccountIcon } from '../components/AccountIcon';
 import { ConnectivityServiceRow } from '../components/ConnectivityServiceRow';
 import { SubPage } from '../components/SubPage';
 import { Card, CardTitle, OutlineButton } from '../components/primitives';
@@ -97,19 +96,19 @@ export function ConnectivityDiagnosticsScreen() {
                     {overview.level === 'loading' ? (
                         <ActivityIndicator />
                     ) : overview.level === 'ok' ? (
-                        <AccountIcon
+                        <Icon
                             name="check-circle"
                             size={24}
                             className="text-emerald-600 dark:text-emerald-400"
                         />
                     ) : overview.level === 'warning' ? (
-                        <AccountIcon
+                        <Icon
                             name="exclamation-triangle"
                             size={24}
                             className="text-amber-600 dark:text-amber-400"
                         />
                     ) : (
-                        <AccountIcon
+                        <Icon
                             name="x-circle"
                             size={24}
                             className="text-rose-600 dark:text-rose-400"
@@ -173,7 +172,7 @@ export function ConnectivityDiagnosticsScreen() {
                                             : '裝置目前無網路連線'}
                                     </Text>
                                 </View>
-                                <AccountIcon
+                                <Icon
                                     name={
                                         diagnostics.deviceNetwork.connected
                                             ? 'check-circle'

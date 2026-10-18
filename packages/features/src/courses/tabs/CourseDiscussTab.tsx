@@ -1,10 +1,9 @@
 import type { BoardViewModel } from '@altuu/core';
-import { Text } from '@altuu/ui';
+import { Text, Icon } from '@altuu/ui';
 import { router } from 'expo-router';
 import { Pressable, View } from 'react-native';
 
 import { Card, EmptyNotice, Skeleton } from '../components/primitives';
-import { CourseIcon } from '../components/CourseIcon';
 import { useCourseBoards } from '../courseQueries';
 import { ErrorRetry } from '../../shell/ErrorRetry';
 
@@ -27,6 +26,7 @@ function BoardRow({
 }) {
     return (
         <Pressable
+            testID="discuss-board-row"
             accessibilityRole="link"
             onPress={onPress}
             className="rounded-xl border border-theme-200 bg-white px-3 py-2 active:border-theme-400 dark:border-zinc-700 dark:bg-zinc-800 dark:active:border-zinc-500"
@@ -103,7 +103,7 @@ export function CourseDiscussTab({
     return (
         <Card className="p-4">
             <View className="mb-3 flex-row items-center gap-2">
-                <CourseIcon
+                <Icon
                     name="chat-bubble-left-right"
                     size={20}
                     className="text-theme-900 dark:text-zinc-100"

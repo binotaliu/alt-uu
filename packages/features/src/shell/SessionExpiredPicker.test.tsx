@@ -13,6 +13,7 @@ import { useSessionExpiryStore } from '../services/stores';
 import {
     account,
     createFakeServices,
+    createTestQueryClient,
     resetStores,
 } from '../testing/fakeServices';
 import { SessionExpiredPicker } from './SessionExpiredPicker';
@@ -30,7 +31,10 @@ beforeEach(() => {
 async function renderPicker(fake = createFakeServices()) {
     await render(
         <SafeAreaProvider initialMetrics={metrics}>
-            <AppServicesProvider services={fake.services}>
+            <AppServicesProvider
+                services={fake.services}
+                queryClient={createTestQueryClient()}
+            >
                 <SessionExpiredPicker />
             </AppServicesProvider>
         </SafeAreaProvider>,

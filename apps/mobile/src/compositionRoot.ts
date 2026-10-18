@@ -373,6 +373,7 @@ async function build(): Promise<AppServices> {
             clock,
             platform: Platform.OS === 'android' ? 'android' : 'ios',
             appVersion: buildConfig.appVersion,
+            onUpstreamCall,
         }),
         nouTools: createNouToolsServices({
             fetch,
@@ -383,6 +384,7 @@ async function build(): Promise<AppServices> {
             isIntegrationEnabled: () =>
                 appPreference.store.getNouToolsIntegrationEnabled(),
             listUserCourses: listNouToolsUserCourses,
+            onUpstreamCall,
             onError: (error) => console.warn('NouTools error', error),
         }),
         subscription: subscriptionServices,

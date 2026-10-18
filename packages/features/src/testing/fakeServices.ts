@@ -123,6 +123,22 @@ export function createFakeServices(initial: Partial<FakeServiceState> = {}): {
     return { services, state };
 }
 
+/**
+ * Query client for tests. `gcTime: Infinity` keeps TanStack Query from
+ * scheduling cache-eviction timers, which would otherwise keep Jest workers
+ * alive after the suite finished.
+ */
+export function createTestQueryClient(
+    queryDefaults: { staleTime?: number } = {},
+): QueryClient {
+    return new QueryClient({
+        defaultOptions: {
+            queries: { retry: false, gcTime: Infinity, ...queryDefaults },
+            mutations: { retry: false, gcTime: Infinity },
+        },
+    });
+}
+
 export function createTestRuntime(initial: Partial<FakeServiceState> = {}): {
     runtime: ServiceRuntime;
     state: FakeServiceState;
@@ -131,9 +147,7 @@ export function createTestRuntime(initial: Partial<FakeServiceState> = {}): {
 } {
     const { services, state } = createFakeServices(initial);
     const router = { push: jest.fn(), replace: jest.fn() };
-    const queryClient = new QueryClient({
-        defaultOptions: { queries: { retry: false } },
-    });
+    const queryClient = createTestQueryClient();
 
     return {
         runtime: createServiceRuntime({ services, queryClient, router }),

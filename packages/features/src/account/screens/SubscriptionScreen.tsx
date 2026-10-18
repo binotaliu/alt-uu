@@ -1,5 +1,5 @@
 import type { EntitlementViewModel, ProductViewModel } from '@altuu/core';
-import { Text } from '@altuu/ui';
+import { Icon, Text, useIsDark } from '@altuu/ui';
 import { Alert, Platform, Pressable, View } from 'react-native';
 
 import {
@@ -7,7 +7,8 @@ import {
     useServiceQuery,
 } from '../../services/useServiceQuery';
 import { openExternalUrl } from '../../shell/openUrl';
-import { AccountIcon } from '../components/AccountIcon';
+import { useAppPreferences } from '../../services/hooks';
+import { subscriptionHeroStyle } from '../components/backgrounds';
 import { SubPage } from '../components/SubPage';
 import { Sparkles } from '../components/primitives';
 import {
@@ -36,6 +37,8 @@ export function storeDisclosure(platform: string): string {
 /** Legacy Account/Subscription.vue. */
 export function SubscriptionScreen() {
     const subscription = useSubscriptionStatus();
+    const isDark = useIsDark();
+    const { accentColor } = useAppPreferences();
     const products = useServiceQuery<ProductViewModel[]>({
         op: 'subscription.products',
         queryKey: ['account', 'subscription', 'products'],
@@ -86,7 +89,10 @@ export function SubscriptionScreen() {
     return (
         <SubPage title="Alt UU+" backHref="/courses/account">
             <View className="overflow-hidden rounded-2xl border border-theme-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
-                <View className="bg-orange-500 px-5 py-6 dark:bg-orange-700">
+                <View
+                    className="bg-orange-500 px-5 py-6 dark:bg-orange-700"
+                    style={subscriptionHeroStyle(isDark, accentColor)}
+                >
                     <View className="flex-row items-center gap-2">
                         <View className="flex-row items-center gap-1 rounded-full bg-white/20 px-3 py-1">
                             <Sparkles size={14} className="text-white" />
@@ -166,7 +172,7 @@ export function SubscriptionScreen() {
                                         className="flex-row items-start gap-2"
                                     >
                                         <View className="mt-0.5">
-                                            <AccountIcon
+                                            <Icon
                                                 name="check-circle"
                                                 size={16}
                                                 className="text-amber-600 dark:text-amber-400"

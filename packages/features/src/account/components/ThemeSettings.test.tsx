@@ -27,11 +27,14 @@ function setup({
         expiresAt: null,
         platform: null,
     };
+    // Called by the refresh effect once the account list has loaded, so
+    // tests can wait for it before pressing an accent.
+    const getEntitlementStatus = jest.fn(async () => entitlement);
     const fake = withServices({
         account: { list: async () => accounts },
         subscription: {
             getCachedEntitlement: async () => entitlement,
-            getEntitlementStatus: async () => entitlement,
+            getEntitlementStatus,
         },
     });
     const update = jest.fn(async (input: object) => {
@@ -44,7 +47,7 @@ function setup({
     (fake.services.appPreference as unknown as { update: jest.Mock }).update =
         update;
 
-    return { services: fake.services, update };
+    return { services: fake.services, update, getEntitlementStatus };
 }
 
 describe('ThemeSettings', () => {
@@ -60,9 +63,12 @@ describe('ThemeSettings', () => {
     });
 
     it('sends non-subscribers to the subscription page for a paid accent', async () => {
-        const { services, update } = setup({ subscribed: false });
+        const { services, update, getEntitlementStatus } = setup({
+            subscribed: false,
+        });
         await renderScreen(<ThemeSettings />, services);
         await screen.findByText('Alt UU+');
+        await waitFor(() => expect(getEntitlementStatus).toHaveBeenCalled());
 
         await fireEvent.press(screen.getByTestId('accent-ocean'));
 

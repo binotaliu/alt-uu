@@ -1,4 +1,4 @@
-import { Text } from '@altuu/ui';
+import { Text, Icon, type IconName } from '@altuu/ui';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Linking, View } from 'react-native';
@@ -11,7 +11,6 @@ import {
 import { useClientConfigStore } from '../../services/stores';
 import { openInAppBrowser } from '../../shell/openUrl';
 import { useWhatsNew } from '../../shell/useWhatsNew';
-import { AccountIcon, type AccountIconName } from '../components/AccountIcon';
 import { SubPage } from '../components/SubPage';
 import { ThemeSettings } from '../components/ThemeSettings';
 import {
@@ -78,7 +77,7 @@ function LinkButton({
     label,
     onPress,
 }: {
-    icon: AccountIconName;
+    icon: IconName;
     label: string;
     onPress: () => void;
 }) {
@@ -205,7 +204,7 @@ export function SettingsScreen() {
         >
             <View className="mb-4 items-center justify-center gap-4 py-2">
                 <View className="items-center">
-                    <AccountIcon
+                    <Icon
                         name="academic-cap"
                         size={64}
                         className="text-theme-700"

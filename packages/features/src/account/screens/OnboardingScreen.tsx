@@ -1,4 +1,4 @@
-import { Text } from '@altuu/ui';
+import { Icon, Text, useIsDark, type IconName } from '@altuu/ui';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import {
@@ -11,7 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useServiceRuntime } from '../../services/AppServicesProvider';
 import { useAppPreferences, useUpdatePreferences } from '../../services/hooks';
-import { AccountIcon, type AccountIconName } from '../components/AccountIcon';
+import { authBackgroundStyle } from '../components/backgrounds';
 import {
     Card,
     CardDescription,
@@ -24,7 +24,7 @@ interface OnboardingSlide {
     title: string;
     description: string;
     note?: string;
-    icon: AccountIconName;
+    icon: IconName;
     /** Icon tile colours (legacy `panelClass`). */
     panelClass: string;
     iconClass: string;
@@ -74,7 +74,7 @@ function StudyTimerPreview() {
             <View className="border-theme-200/80 flex-row items-stretch border-b dark:border-zinc-700/80">
                 <View className="flex-1 flex-row items-center gap-3 px-4 py-3.5">
                     <View style={{ transform: [{ rotate: '180deg' }] }}>
-                        <AccountIcon
+                        <Icon
                             name="chevron-right"
                             size={24}
                             className="text-theme-700 dark:text-zinc-300"
@@ -87,7 +87,7 @@ function StudyTimerPreview() {
                 </View>
                 <View className="shrink-0 justify-center px-4 py-3.5">
                     <View className="flex-row items-center gap-2 rounded-full bg-theme-100 px-3 py-1.5 dark:bg-zinc-700/60">
-                        <AccountIcon
+                        <Icon
                             name="clock"
                             size={16}
                             className="text-theme-800 dark:text-zinc-200"
@@ -112,6 +112,7 @@ export function OnboardingScreen() {
     const insets = useSafeAreaInsets();
     const runtime = useServiceRuntime();
     const preferences = useAppPreferences();
+    const isDark = useIsDark();
     const updatePreferences = useUpdatePreferences();
     const [currentSlide, setCurrentSlide] = useState(0);
     const [isFinishing, setIsFinishing] = useState(false);
@@ -193,6 +194,7 @@ export function OnboardingScreen() {
     return (
         <ScrollView
             className="flex-1 bg-theme-50 dark:bg-zinc-950"
+            style={authBackgroundStyle(isDark)}
             contentContainerClassName="flex-grow items-center justify-center px-5"
             contentContainerStyle={{
                 paddingTop: Math.max(insets.top, 32),
@@ -228,7 +230,7 @@ export function OnboardingScreen() {
                         <View
                             className={`size-12 items-center justify-center rounded-2xl border ${slide.panelClass}`}
                         >
-                            <AccountIcon
+                            <Icon
                                 name={slide.icon}
                                 size={24}
                                 className={slide.iconClass}
@@ -322,6 +324,7 @@ export function OnboardingScreen() {
                         </Text>
                     </Pressable>
                     <Pressable
+                        testID="onboarding-continue"
                         accessibilityRole="button"
                         disabled={isFinishing}
                         onPress={handleContinue}

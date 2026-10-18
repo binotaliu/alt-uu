@@ -1,0 +1,34 @@
+# Legacy tests/Browser/Courses/{CoursesTest,MaterialTest}: open a course,
+# then the first material of its directory.
+appId: ${MAESTRO_APP_ID}
+name: Course and material
+tags:
+  - courses
+---
+- runFlow: subflows/fresh-login.yaml
+- runFlow: subflows/open-first-course.yaml
+- extendedWaitUntil:
+    visible:
+      id: material-(node|folder)
+    timeout: 60000
+# Leaf materials of collapsed folders are not rendered: expand one first.
+- runFlow:
+    when:
+      notVisible:
+        id: material-node
+    commands:
+      - tapOn:
+          id: material-folder
+          index: 0
+- tapOn:
+    id: material-node
+    index: 0
+- extendedWaitUntil:
+    visible:
+      id: material-screen
+    timeout: 60000
+- assertVisible:
+    text: '學習計時.*'
+- back
+- assertVisible:
+    id: course-tab-materials

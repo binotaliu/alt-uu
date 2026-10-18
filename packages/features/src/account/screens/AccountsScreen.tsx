@@ -1,4 +1,4 @@
-import { ConfirmDialog, Text } from '@altuu/ui';
+import { ConfirmDialog, Text, Icon } from '@altuu/ui';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Pressable, View } from 'react-native';
@@ -6,7 +6,6 @@ import { Alert, Pressable, View } from 'react-native';
 import { useAccounts, useSwitchAccount } from '../../services/hooks';
 import { useSessionExpiryStore } from '../../services/stores';
 import { ErrorRetry } from '../../shell/ErrorRetry';
-import { AccountIcon } from '../components/AccountIcon';
 import { RenameAccountDialog } from '../components/RenameAccountDialog';
 import { SubPage } from '../components/SubPage';
 import {
@@ -28,14 +27,17 @@ function OutlineRowButton({
     onPress,
     disabled,
     danger = false,
+    testID,
 }: {
     label: string;
     onPress: () => void;
     disabled?: boolean;
     danger?: boolean;
+    testID?: string;
 }) {
     return (
         <Pressable
+            testID={testID}
             accessibilityRole="button"
             disabled={disabled}
             onPress={onPress}
@@ -217,6 +219,7 @@ export function AccountsScreen() {
                                     }`}
                                 >
                                     <Pressable
+                                        testID={`account-row-${account.username}`}
                                         accessibilityRole="button"
                                         accessibilityState={{ expanded }}
                                         onPress={() =>
@@ -265,7 +268,7 @@ export function AccountsScreen() {
                                                 ],
                                             }}
                                         >
-                                            <AccountIcon
+                                            <Icon
                                                 name="chevron-down"
                                                 size={16}
                                                 className="text-theme-700 dark:text-zinc-500"
@@ -277,6 +280,7 @@ export function AccountsScreen() {
                                         <View className="gap-2 border-t border-theme-200 p-3 dark:border-zinc-700">
                                             {account.isActive ? null : (
                                                 <OutlineRowButton
+                                                    testID="account-switch"
                                                     label={
                                                         switchingAccountId ===
                                                         account.id
@@ -325,6 +329,7 @@ export function AccountsScreen() {
                     {addVisible ? (
                         <View className="mt-3 gap-2 rounded-lg border border-theme-200 p-3 dark:border-zinc-700">
                             <FormField
+                                testID="add-account-username"
                                 compact
                                 value={addUsername}
                                 onChangeText={setAddUsername}
@@ -333,6 +338,7 @@ export function AccountsScreen() {
                                 textContentType="username"
                             />
                             <PasswordField
+                                testID="add-account-password"
                                 compact
                                 value={addPassword}
                                 onChangeText={setAddPassword}
@@ -345,6 +351,7 @@ export function AccountsScreen() {
                             ) : null}
                             <View className="flex-row gap-2">
                                 <Pressable
+                                    testID="add-account-submit"
                                     accessibilityRole="button"
                                     disabled={addAccount.isPending}
                                     onPress={() => void onAdd()}
@@ -371,11 +378,12 @@ export function AccountsScreen() {
                         </View>
                     ) : (
                         <Pressable
+                            testID="add-account-open"
                             accessibilityRole="button"
                             onPress={toggleAddForm}
                             className="mt-3 flex-row items-center justify-center gap-1 rounded-lg border border-dashed border-theme-300 px-3 py-2 active:bg-theme-50 dark:border-zinc-600 dark:active:bg-zinc-800"
                         >
-                            <AccountIcon
+                            <Icon
                                 name="plus"
                                 size={16}
                                 className="text-theme-700 dark:text-zinc-300"

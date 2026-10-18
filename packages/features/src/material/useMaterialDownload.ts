@@ -9,7 +9,7 @@ import type { MaterialFetchDescriptor } from '@altuu/core';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useAppServices } from '../services/AppServicesProvider';
-import { descriptorToDownloadRequest } from './materialCookies';
+import { toDownloadOptions } from '../courses/attachments/downloadRequest';
 
 export const DOWNLOAD_FAILED_MESSAGE = '下載失敗，請稍後再試。';
 
@@ -77,10 +77,10 @@ export function useMaterialDownload(): MaterialDownloadState {
                 }
 
                 const started = startDownload({
-                    ...descriptorToDownloadRequest(
+                    ...toDownloadOptions(
                         descriptor ?? { url: request.url, headers: {} },
+                        request.fileName,
                     ),
-                    fileName: request.fileName,
                     onProgress: (event) => {
                         setProgress(
                             event.totalBytes > 0

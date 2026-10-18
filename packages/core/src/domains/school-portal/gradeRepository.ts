@@ -1,4 +1,7 @@
-import { normalizeCourseName, normalizeTermCode } from './courseNameMatcher';
+import {
+    normalizeCourseName,
+    normalizeTermCode,
+} from '../course/support/courseNameMatcher';
 import type { SchoolPortalDomainDeps } from './deps';
 import { CACHE_TTL_SECONDS, HISTORICAL_CACHE_TTL_SECONDS } from './deps';
 import {

@@ -2,6 +2,11 @@ import { UserFacingHttpError, type CourseItem } from '@altuu/core';
 import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { router } from 'expo-router';
 
+import {
+    ACTIVE_MATERIAL_SESSION_KEY,
+    type ActiveMaterialSession,
+} from '../material/activeMaterialSession';
+import { resetActiveMaterialRestoreForTests } from '../material/ActiveMaterialRestorePrompt';
 import { CoursesScreen } from './CoursesScreen';
 import { renderWithServices } from './testUtils';
 
@@ -35,7 +40,57 @@ const baseOverrides = (
     },
 });
 
+beforeEach(() => {
+    resetActiveMaterialRestoreForTests();
+    (router.push as jest.Mock).mockClear();
+});
+
 describe('CoursesScreen', () => {
+    it('offers to go back to the material that was playing when the app was killed', async () => {
+        const now = new Date().toISOString();
+        const session: ActiveMaterialSession = {
+            accountId: 1,
+            routePath: '/courses/10/s1',
+            cid: '10',
+            activityId: 's1',
+            href: 'https://uu.example/learn/s1.html',
+            startedAt: now,
+            lastActiveAt: now,
+            positionSeconds: 30,
+            mediaDurationSeconds: 600,
+            wasPlaying: true,
+            materialName: '第一講',
+            courseName: '微積分',
+        };
+        const store = new Map([
+            [ACTIVE_MATERIAL_SESSION_KEY, JSON.stringify(session)],
+        ]);
+
+        await renderWithServices(<CoursesScreen />, {
+            ...baseOverrides(async () => [course('10')]),
+            storage: {
+                activeProfile: { get: async () => 1 },
+                keyValues: {
+                    get: async (key: string) => store.get(key) ?? null,
+                    set: async (key: string, value: string) => {
+                        store.set(key, value);
+                    },
+                    delete: async (key: string) => {
+                        store.delete(key);
+                    },
+                },
+            },
+            studyTime: { record: jest.fn(async () => undefined) },
+        });
+
+        expect(await screen.findByText('回到上次播放的教材？')).toBeTruthy();
+        expect(store.has(ACTIVE_MATERIAL_SESSION_KEY)).toBe(false);
+
+        await fireEvent.press(screen.getByText('返回教材'));
+
+        expect(router.push).toHaveBeenCalledWith('/courses/10/s1');
+    });
+
     it('groups courses by semester and shows task badges incl. the common course', async () => {
         await renderWithServices(
             <CoursesScreen />,

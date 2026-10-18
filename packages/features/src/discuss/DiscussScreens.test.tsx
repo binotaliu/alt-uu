@@ -14,8 +14,12 @@ import {
 import { router } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { AppServicesProvider, createAppQueryClient } from '../services';
-import { createFakeServices, resetStores } from '../testing/fakeServices';
+import { AppServicesProvider } from '../services';
+import {
+    createFakeServices,
+    createTestQueryClient,
+    resetStores,
+} from '../testing/fakeServices';
 import { DiscussBoardScreen } from './DiscussBoardScreen';
 import { DiscussThreadScreen } from './DiscussThreadScreen';
 
@@ -137,7 +141,7 @@ function setup(
     };
     const { services } = createFakeServices();
     Object.assign(services, { discuss, moderation, course });
-    const queryClient = createAppQueryClient();
+    const queryClient = createTestQueryClient({ staleTime: 60_000 });
     const wrap = (children: React.ReactNode) => (
         <SafeAreaProvider initialMetrics={metrics}>
             <AppServicesProvider
@@ -330,6 +334,37 @@ describe('DiscussThreadScreen', () => {
             expect(moderation.unblockUser).toHaveBeenCalledWith('u1', '王小明'),
         );
         expect(await screen.findByText('內容')).toBeTruthy();
+    });
+
+    it('waits for the block list before showing any post', async () => {
+        const { wrap, moderation } = setup({
+            blockedUsers: [{ poster: 'u1', realname: '王小明' }],
+        });
+        let releaseBlockList: () => void = () => undefined;
+        moderation.getBlockedUsers.mockImplementationOnce(
+            () =>
+                new Promise((resolve) => {
+                    releaseBlockList = () =>
+                        resolve([{ poster: 'u1', realname: '王小明' }]);
+                }),
+        );
+
+        await renderThread(wrap);
+
+        await waitFor(() =>
+            expect(moderation.getBlockedUsers).toHaveBeenCalled(),
+        );
+        expect(screen.queryByText('內容')).toBeNull();
+        expect(screen.queryByText(/樓層 1/)).toBeNull();
+
+        releaseBlockList();
+
+        expect(
+            await screen.findByText(
+                /由於你封鎖了名稱為「王小明」、帳號為「u1」的使用者/,
+            ),
+        ).toBeTruthy();
+        expect(screen.queryByText('內容')).toBeNull();
     });
 
     it('blocks a user after confirmation and hides their post', async () => {

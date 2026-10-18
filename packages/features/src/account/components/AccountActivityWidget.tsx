@@ -1,12 +1,11 @@
 import type { ActivityHeatmap as ActivityHeatmapData } from '@altuu/core';
-import { Text } from '@altuu/ui';
+import { Text, Icon } from '@altuu/ui';
 import { useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { router } from 'expo-router';
 
 import { useServiceQuery } from '../../services/useServiceQuery';
 import { buildSampleActivity } from '../lib/activity';
-import { AccountIcon } from './AccountIcon';
 import { ActivityHeatmap } from './ActivityHeatmap';
 import { Card, PremiumBadge, Sparkles } from './primitives';
 
@@ -47,7 +46,7 @@ export function AccountActivityWidget({ subscribed }: { subscribed: boolean }) {
         <Card className="overflow-hidden">
             <View className="mb-3 flex-row items-center justify-between gap-2">
                 <View className="flex-row items-center gap-2">
-                    <AccountIcon
+                    <Icon
                         name="chart-bar"
                         size={20}
                         className="text-theme-700 dark:text-zinc-400"

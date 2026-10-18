@@ -1,0 +1,35 @@
+# Legacy tests/Browser/Auth/SessionExpiredTest: the remembered password
+# stops working → the app asks for it again and returns to the course list.
+# The dev-only route altuu://dev/expire-session (debug builds only) drops the
+# HUNGU session and replaces the remembered password to simulate it.
+appId: ${MAESTRO_APP_ID}
+name: Session expiry and re-authentication
+tags:
+  - auth
+---
+- runFlow: subflows/fresh-login.yaml
+- openLink: altuu://dev/expire-session
+- tapOn:
+    id: dev-expire-session
+# Several accounts on the device show the account picker first.
+- runFlow:
+    when:
+      visible:
+        id: session-expired-reauth
+    commands:
+      - tapOn:
+          id: session-expired-reauth
+- extendedWaitUntil:
+    visible:
+      id: reauth-password
+    timeout: 60000
+- tapOn:
+    id: reauth-password
+- inputText: ${MAESTRO_PASSWORD}
+- hideKeyboard
+- tapOn:
+    id: reauth-submit
+- extendedWaitUntil:
+    visible:
+      id: course-row
+    timeout: 60000

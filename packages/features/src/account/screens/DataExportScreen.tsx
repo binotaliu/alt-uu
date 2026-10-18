@@ -32,7 +32,7 @@ export function DataExportScreen() {
     );
 
     const exportData = useServiceMutation<boolean>({
-        op: 'dataExport.import',
+        op: 'dataExport.export',
         mutationFn: async (_variables, services) => {
             const { fileName, contents } =
                 await services.dataPortability.exportFile();

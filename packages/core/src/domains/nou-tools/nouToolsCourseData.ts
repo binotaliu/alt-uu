@@ -1,5 +1,8 @@
 import { isRecord } from '../../http/encoding';
-import { normalizeCourseName, normalizeTermCode } from './courseNameMatcher';
+import {
+    normalizeCourseName,
+    normalizeTermCode,
+} from '../course/support/courseNameMatcher';
 import type { JsonObject, NouToolsClient } from './nouToolsClient';
 
 export const UNDIVIDED_CLASS_CODE = '不分班';

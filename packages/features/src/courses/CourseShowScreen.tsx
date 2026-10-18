@@ -73,6 +73,14 @@ export function CourseShowView({
     initialTab = 'materials',
 }: CourseShowViewProps) {
     const [activeTab, setActiveTab] = useState<CourseTab>(initialTab);
+    const [routeTab, setRouteTab] = useState<CourseTab>(initialTab);
+
+    // A `?tab=` change on an already mounted screen (e.g. the discuss board's
+    // back link replacing the route) selects that tab.
+    if (routeTab !== initialTab) {
+        setRouteTab(initialTab);
+        setActiveTab(initialTab);
+    }
     const courses = useCourses();
     const tasks = useCourseTasksCount();
     const queryClient = useQueryClient();
@@ -151,6 +159,7 @@ export function CourseShowView({
                             return (
                                 <Pressable
                                     key={tab.id}
+                                    testID={`course-tab-${tab.id}`}
                                     accessibilityRole="tab"
                                     accessibilityState={{ selected }}
                                     onPress={() => setActiveTab(tab.id)}

@@ -16,7 +16,12 @@ export { EntryRedirect } from './EntryRedirect';
 export { ErrorRetry, type ErrorRetryProps } from './ErrorRetry';
 export { FatalErrorScreen } from './FatalErrorScreen';
 export { NavigationTracker } from './NavigationTracker';
-export { openExternalUrl, openInAppBrowser } from './openUrl';
+export {
+    openExternalUrl,
+    openInAppBrowser,
+    type InAppBrowserCssPreset,
+    type InAppBrowserOptions,
+} from './openUrl';
 export {
     findRelease,
     hasUnseenRelease,
@@ -24,10 +29,6 @@ export {
     type Release,
     type ReleaseHighlight,
 } from './releaseNotes';
-export {
-    ScreenPlaceholder,
-    type ScreenPlaceholderProps,
-} from './ScreenPlaceholder';
 export { SessionExpiredPicker } from './SessionExpiredPicker';
 export { ThemeBridge } from './ThemeBridge';
 export { useShowWhatsNewOnUpgrade, useWhatsNew } from './useWhatsNew';

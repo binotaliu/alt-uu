@@ -1,0 +1,37 @@
+# Legacy tests/Browser/Courses/{DiscussBoardTest,DiscussThreadTest}: course
+# 討論 tab → first board → first topic → posts render. Needs a course whose
+# first board has at least one topic.
+appId: ${MAESTRO_APP_ID}
+name: Discuss board and thread
+tags:
+  - discuss
+---
+- runFlow: subflows/fresh-login.yaml
+- runFlow: subflows/open-first-course.yaml
+- tapOn:
+    id: course-tab-discuss
+- extendedWaitUntil:
+    visible:
+      id: discuss-board-row
+    timeout: 60000
+- tapOn:
+    id: discuss-board-row
+    index: 0
+- extendedWaitUntil:
+    visible:
+      id: discuss-node-row
+    timeout: 60000
+- tapOn:
+    id: discuss-node-row
+    index: 0
+- extendedWaitUntil:
+    visible:
+      id: discuss-thread
+    timeout: 60000
+- extendedWaitUntil:
+    visible:
+      text: '樓層 .*'
+    timeout: 60000
+- back
+- assertVisible:
+    id: discuss-node-row

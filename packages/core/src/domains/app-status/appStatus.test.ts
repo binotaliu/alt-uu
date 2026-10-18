@@ -2,6 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { loadFixtureJson, loadGolden } from '../../../test/fixtures';
 import { createFakeFetch } from '../../http/testing';
 import type { FakeReply } from '../../http/testing';
+import type {
+    UpstreamCallEvent,
+    UpstreamCallListener,
+} from '../../http/transport';
 import { createHarness, setClockTo } from '../account/testing';
 import { ValidationError } from '../account/validation';
 import { createAppStatusServices, versionCompare } from './index';
@@ -22,7 +26,11 @@ interface Scenario {
 }
 
 async function setup(
-    options: { appVersion?: string; platform?: 'ios' | 'android' } = {},
+    options: {
+        appVersion?: string;
+        platform?: 'ios' | 'android';
+        onUpstreamCall?: UpstreamCallListener;
+    } = {},
     replies: FakeReply[] | FakeReply = { body: {} },
 ) {
     const harness = await createHarness();
@@ -35,6 +43,7 @@ async function setup(
         platform: options.platform ?? 'ios',
         appVersion: options.appVersion ?? '1.0.0',
         staticsBaseUrl: 'https://statics.test',
+        onUpstreamCall: options.onUpstreamCall,
     });
 
     return { harness, fake, status };
@@ -213,5 +222,24 @@ describe('versionCompare (PHP version_compare)', () => {
         ['2.0', '1.9.9', 1],
     ])('%s vs %s', (left, right, expected) => {
         expect(versionCompare(left, right)).toBe(expected);
+    });
+});
+
+describe('app status diagnostics', () => {
+    it('reports the status feed fetch to the diagnostics hook', async () => {
+        const events: UpstreamCallEvent[] = [];
+        const { status } = await setup(
+            {
+                onUpstreamCall: (event) => {
+                    events.push(event);
+                },
+            },
+            { status: 503, body: 'down' },
+        );
+
+        await status.get();
+
+        expect(events).toHaveLength(1);
+        expect(events[0]).toMatchObject({ service: 'statics', status: 503 });
     });
 });

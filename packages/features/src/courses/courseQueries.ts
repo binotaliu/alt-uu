@@ -12,10 +12,14 @@ import type {
     SchoolPortalGrade,
 } from '@altuu/core';
 
+import { discussQueryKeys } from '../discuss/queryKeys';
 import { useServiceQuery } from '../services/useServiceQuery';
 import { indexTasksCount } from './format';
 
-/** Query keys of the course area; the first element is always `courses` / `nouTools`. */
+/**
+ * Query keys of the course area; the first element is `courses` / `nouTools`,
+ * except the discuss boards, which use the discuss area's key.
+ */
 export const courseKeys = {
     list: ['courses', 'list'] as const,
     tasksCount: ['courses', 'tasksCount'] as const,
@@ -27,7 +31,8 @@ export const courseKeys = {
     schoolPortalInfo: (cid: string) =>
         ['courses', cid, 'schoolPortalInfo'] as const,
     nouToolsInfo: (cid: string) => ['nouTools', 'courseInfo', cid] as const,
-    boards: (cid: string) => ['courses', cid, 'boards'] as const,
+    /** Shared with the discuss screens, whose reads invalidate the unread badges. */
+    boards: (cid: string) => discussQueryKeys.boards(cid),
     liveSessions: (allAccounts: boolean) =>
         ['nouTools', 'liveSessions', allAccounts] as const,
     schoolCalendar: ['nouTools', 'schoolCalendar'] as const,
@@ -107,7 +112,7 @@ export function useCourseGrade(cid: string, enabled: boolean) {
 
 export function useCourseSchoolPortalInfo(cid: string, enabled: boolean) {
     return useServiceQuery<CourseSchoolPortalInfo>({
-        op: 'courses.grade',
+        op: 'courses.schoolPortalInfo',
         queryKey: courseKeys.schoolPortalInfo(cid),
         queryFn: (services) =>
             services.schoolPortalDomain.getCourseSchoolPortalInfo(cid),

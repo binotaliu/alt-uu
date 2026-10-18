@@ -1,11 +1,10 @@
 import type { CourseItem, CourseTasksCount } from '@altuu/core';
-import { Text } from '@altuu/ui';
+import { Text, Icon } from '@altuu/ui';
 import { router } from 'expo-router';
 import { Pressable, View } from 'react-native';
 
 import { ErrorRetry } from '../shell/ErrorRetry';
 import type { ServiceError } from '../services/serviceError';
-import { CourseIcon } from './components/CourseIcon';
 import { Skeleton } from './components/primitives';
 import {
     courseTasksFor,
@@ -89,7 +88,7 @@ function TaskBadges({
         <View className="flex-row items-center gap-2">
             {tasks.pendingHomeworks > 0 ? (
                 <View className="flex-row items-center gap-0.5 rounded-full border border-rose-700 px-2 py-0.5 dark:border-red-400">
-                    <CourseIcon
+                    <Icon
                         name="clipboard-document-list"
                         size={12}
                         className="text-rose-700 dark:text-red-400"
@@ -104,7 +103,7 @@ function TaskBadges({
             ) : null}
             {tasks.unreadArticles > 0 ? (
                 <View className="flex-row items-center gap-0.5 rounded-full border border-yellow-800 px-2 py-0.5 dark:border-yellow-300">
-                    <CourseIcon
+                    <Icon
                         name="chat-bubble-left-right"
                         size={12}
                         className="text-yellow-800 dark:text-yellow-300"
@@ -134,6 +133,7 @@ function CourseCard({
 }) {
     return (
         <Pressable
+            testID="course-row"
             accessibilityRole="link"
             accessibilityLabel={course.name || `課程 ${course.courseId}`}
             onPress={() =>

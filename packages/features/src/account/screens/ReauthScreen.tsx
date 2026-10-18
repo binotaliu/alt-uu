@@ -1,4 +1,4 @@
-import { Text } from '@altuu/ui';
+import { Text, useIsDark } from '@altuu/ui';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAccounts } from '../../services/hooks';
 import { Avatar, PasswordField, PrimaryButton } from '../components/primitives';
+import { authBackgroundStyle } from '../components/backgrounds';
 import { useReauthenticate } from '../hooks/useAccountActions';
 
 /** Legacy Auth/Reauthenticate.vue: ask for the password of an expired account. */
@@ -17,6 +18,7 @@ export function ReauthScreen() {
     const accountId = Number(rawId);
 
     const insets = useSafeAreaInsets();
+    const isDark = useIsDark();
     const accounts = useAccounts();
     const account = accounts.data?.find((item) => item.id === accountId);
     const reauthenticate = useReauthenticate(accountId);
@@ -45,6 +47,7 @@ export function ReauthScreen() {
     return (
         <KeyboardAvoidingView
             className="flex-1 bg-theme-50 dark:bg-zinc-950"
+            style={authBackgroundStyle(isDark)}
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
             <ScrollView
@@ -75,6 +78,7 @@ export function ReauthScreen() {
                         <View className="mt-6 gap-4">
                             <View>
                                 <PasswordField
+                                    testID="reauth-password"
                                     label="密碼"
                                     value={password}
                                     onChangeText={setPassword}
@@ -95,6 +99,7 @@ export function ReauthScreen() {
                             </View>
 
                             <PrimaryButton
+                                testID="reauth-submit"
                                 label={
                                     reauthenticate.isPending
                                         ? '登入中...'

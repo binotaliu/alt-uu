@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 
+import { ActiveMaterialRestorePrompt } from '../material/ActiveMaterialRestorePrompt';
 import { useShowWhatsNewOnUpgrade } from '../shell/useWhatsNew';
 import { CourseListView } from './CourseListView';
 import { TabScreenFrame } from './components/TabScreenFrame';
@@ -7,7 +8,9 @@ import { useCourses, useCourseTasksCount } from './courseQueries';
 
 /**
  * 我的課程 tab (legacy MainScreen + CoursesPane). Also the screen that shows
- * the What's new sheet after an upgrade.
+ * the What's new sheet after an upgrade and, once per launch, offers to go
+ * back to a material whose playback was interrupted (legacy
+ * `restoreActiveMediaRoute` in CoursesPane).
  */
 export function CoursesScreen() {
     useShowWhatsNewOnUpgrade();
@@ -42,6 +45,7 @@ export function CoursesScreen() {
                 retrying={courses.isFetching}
                 onRetry={() => void refetchCourses()}
             />
+            <ActiveMaterialRestorePrompt />
         </TabScreenFrame>
     );
 }

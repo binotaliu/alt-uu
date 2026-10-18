@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { createTestContext } from '../../../test/db/helpers';
 import { loadFixture, loadGolden } from '../../../test/fixtures';
 import {
-    createSchoolPortalDomainServices,
     normalizeCourseName,
     normalizeTermCode,
+} from '../course/support/courseNameMatcher';
+import {
+    createSchoolPortalDomainServices,
     type SchoolPortalCourseRef,
 } from './index';
 

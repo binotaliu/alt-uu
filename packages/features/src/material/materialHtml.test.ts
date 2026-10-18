@@ -10,10 +10,6 @@ import {
     parseMaterialHtmlMessage,
 } from './materialHtmlDocument';
 import { lightboxDocument } from './lightboxDocument';
-import {
-    descriptorToDownloadRequest,
-    parseCookieHeader,
-} from './materialCookies';
 
 jest.mock('@altuu/attachment-bridge', () =>
     require('@altuu/attachment-bridge/mock'),
@@ -117,33 +113,5 @@ describe('material HTML document', () => {
         ).toContain(
             'src="https://a/i.png?x=1&amp;y=&quot;2&quot;" alt="&lt;圖>"',
         );
-    });
-});
-
-describe('material cookies', () => {
-    it('parses a Cookie header', () => {
-        expect(parseCookieHeader('a=1; b=x=y; ;bad')).toEqual([
-            { name: 'a', value: '1' },
-            { name: 'b', value: 'x=y' },
-        ]);
-    });
-
-    it('moves the Cookie header into host-scoped cookies', () => {
-        expect(
-            descriptorToDownloadRequest({
-                url: 'https://uu.nou.edu.tw/file.pdf',
-                headers: {
-                    'User-Agent': 'UA',
-                    Cookie: 'PHPSESSID=abc; idx=1',
-                },
-            }),
-        ).toEqual({
-            url: 'https://uu.nou.edu.tw/file.pdf',
-            headers: { 'User-Agent': 'UA' },
-            cookies: [
-                { name: 'PHPSESSID', value: 'abc', domain: 'uu.nou.edu.tw' },
-                { name: 'idx', value: '1', domain: 'uu.nou.edu.tw' },
-            ],
-        });
     });
 });

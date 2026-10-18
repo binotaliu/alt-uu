@@ -1,5 +1,7 @@
 /**
- * Operation keys, ported from the legacy `lib/operations.ts`. A key is passed
+ * Operation keys, ported from the legacy `lib/operations.ts` (plus keys for
+ * calls legacy only told apart by URL, or not at all: account add / rename /
+ * remove / reauth, data export, school portal grades / exam agenda / info). A key is passed
  * to `diagnostics.trackOperation` for every service call and yields the short
  * code shown next to error messages ("載入課程失敗 [CRS-U500]"), so a
  * screenshot alone says which part of the app failed.
@@ -23,6 +25,9 @@ export const OPERATIONS = {
     'courses.selfExams': { code: 'CSE', label: '自我練習' },
     'courses.grade': { code: 'CGRD', label: '成績' },
     'courses.lastSeenMaterial': { code: 'CLSM', label: '最後觀看教材' },
+    'courses.schoolPortalInfo': { code: 'CSPI', label: '課程校務資訊' },
+    'schoolPortal.grades': { code: 'SPGR', label: '歷年成績' },
+    'schoolPortal.examAgenda': { code: 'SPEX', label: '考試資訊' },
     'material.parsed': { code: 'MPRS', label: '教材解析' },
     'playback.progress': { code: 'PLAY', label: '播放進度' },
     'discuss.boards': { code: 'DBRD', label: '討論板' },
@@ -36,6 +41,10 @@ export const OPERATIONS = {
     'accounts.list': { code: 'ACCT', label: '帳號列表' },
     'accounts.activity': { code: 'AACT', label: '學習活動' },
     'accounts.switch': { code: 'ASW', label: '切換帳號' },
+    'accounts.add': { code: 'AADD', label: '新增帳號' },
+    'accounts.rename': { code: 'ARNM', label: '修改帳號暱稱' },
+    'accounts.remove': { code: 'ARMV', label: '移除帳號' },
+    'accounts.reauth': { code: 'ARAU', label: '重新驗證帳號' },
     'auth.login': { code: 'LGIN', label: '登入' },
     'auth.logout': { code: 'LGUT', label: '登出' },
     'auth.profile': { code: 'PROF', label: '個人資料' },
@@ -52,6 +61,7 @@ export const OPERATIONS = {
     'moderation.sync': { code: 'MSYN', label: '同步封鎖清單' },
     'attachments.tasks': { code: 'ATT', label: '附件下載' },
     'dataExport.import': { code: 'IMPT', label: '資料匯入' },
+    'dataExport.export': { code: 'EXPT', label: '資料匯出' },
     'studyTime.record': { code: 'STUD', label: '學習時數回報' },
     'diagnostics.connectivity': { code: 'DIAG', label: '連線診斷' },
     'diagnostics.log': { code: 'DLOG', label: '診斷記錄' },

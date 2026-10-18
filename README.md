@@ -5,19 +5,34 @@ Alt UU 是一款由 NOU 學生為同學打造的非官方手機 App。使用 Alt
 
 ## 開發 / Development
 
-本專案採用 NativePHP，後端使用 Laravel，前端使用 Vue.js 與 TailwindCSS。
+本專案使用 [React Native](https://reactnative.dev/) 與 [Expo](https://expo.dev/)（SDK 58、expo-router、NativeWind）開發，以 npm workspaces 管理以下套件：
+
+| 路徑                        | 說明                                                                                |
+| --------------------------- | ----------------------------------------------------------------------------------- |
+| `apps/mobile`               | Expo App（路由、組合根、平台實作、fastlane、Maestro E2E）                           |
+| `packages/core`             | 純 TypeScript 核心：HUNGU／校務系統連線、Session、各功能領域服務、資料庫（drizzle） |
+| `packages/features`         | 畫面與 hooks（TanStack Query、Zustand）                                             |
+| `packages/ui`               | NativeWind 設計 token 與基礎元件                                                    |
+| `modules/attachment-bridge` | 自製 Expo 原生模組（WebView Cookie、附件下載、預覽與儲存）                          |
+
 若您有興趣參與貢獻，可 Clone 本專案後，依照以下步驟進行：
 
-1. 請確保您的環境有 PHP 8.4 以上與 Node.js 22 以上。您可使用 [PHP.new](https://php.new/) 或 [Laravel Herd](https://herd.laravel.com)，快速建立 PHP 開發環境。此外，您的環境需要支援使用 `make` 指令。
-2. 安裝相依套件：`composer install`
-3. 執行 `composer run setup` —— 此指令會建立 `.env` 檔案、產生應用程式金鑰、執行資料庫遷移、安裝前端套件並打包前端資源。
-4. 啟動開發伺服器：`composer run dev`，預設會在 `http://localhost:8000` 提供服務。
+1. 準備 Node.js 22 以上。編譯 iOS 需要 macOS 與 Xcode；編譯 Android 需要 Android Studio（SDK 與模擬器）。
+2. 安裝相依套件：`npm ci`
+3. 編譯並在模擬器或裝置上執行（於 `apps/mobile` 目錄）：`npx expo run:ios` 或 `npx expo run:android`。之後可用 `npx expo start` 啟動開發伺服器。
 
-若您要將本專案編譯安裝至行動裝置，可使用本專案根目錄所包含的 [`MakeFile`](Makefile)。
+常用指令（於專案根目錄執行）：
 
-開發時請遵守 [Code of Conduct](CODE_OF_CONDUCT.md) 中的行為準則，維持友善且包容的社群環境。
+```sh
+npm run lint          # ESLint
+npm run typecheck     # TypeScript
+npm test              # 所有套件的測試（Vitest、Jest）
+npm run format        # Prettier
+```
 
-本專案含有測試，可執行 `php artisan test` 來確保功能正常。
+端對端測試使用 [Maestro](https://maestro.mobile.dev)，需要真實帳號，說明請見 [`apps/mobile/e2e/README.md`](apps/mobile/e2e/README.md)。發行流程（GitHub Actions + fastlane）請見 [`apps/mobile/fastlane/README.md`](apps/mobile/fastlane/README.md)。
+
+開發時請遵守 [Code of Conduct](CODE_OF_CONDUCT.md) 中的行為準則，維持友善且包容的社群環境；貢獻流程請參閱 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
 本專案使用「[Conventional Commits](https://www.conventionalcommits.org/)」風格，範例：
 

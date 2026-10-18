@@ -92,6 +92,7 @@ export function AccountSwitcherButton() {
     return (
         <>
             <Pressable
+                testID="account-switcher"
                 accessibilityRole="button"
                 accessibilityLabel={`帳號：${label}`}
                 accessibilityHint={

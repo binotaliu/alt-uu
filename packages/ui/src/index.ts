@@ -26,7 +26,7 @@ export {
     TransparentPageHeader,
     type TransparentPageHeaderProps,
 } from './components/TransparentPageHeader';
-export { iconPaths, type IconName } from './icons/paths';
+export { iconPaths, solidIconPaths, type IconName } from './icons/paths';
 export {
     accentNames,
     accentPalettes,

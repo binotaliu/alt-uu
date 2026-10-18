@@ -1,9 +1,8 @@
-import { Text } from '@altuu/ui';
+import { Text, Icon } from '@altuu/ui';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
 
-import { CourseIcon } from './components/CourseIcon';
 import { Skeleton } from './components/primitives';
 import { formatClock } from './format';
 import {
@@ -122,7 +121,7 @@ export function MaterialDirectory({
         <View>
             <View className="border-theme-200/80 flex-row items-center justify-between gap-3 border-b bg-white px-4 pb-3 pt-3 dark:border-zinc-700/80 dark:bg-zinc-900">
                 <View className="flex-row items-center gap-2">
-                    <CourseIcon
+                    <Icon
                         name="folder"
                         size={18}
                         className="text-theme-800 dark:text-zinc-200"
@@ -182,6 +181,7 @@ export function MaterialDirectory({
                         return (
                             <Pressable
                                 key={node.internalId}
+                                testID="material-folder"
                                 accessibilityRole="button"
                                 accessibilityState={{ expanded: !isCollapsed }}
                                 onPress={() => toggle(node)}
@@ -198,7 +198,7 @@ export function MaterialDirectory({
                                 >
                                     {nodeTitle(node)}
                                 </Text>
-                                <CourseIcon
+                                <Icon
                                     name={
                                         isCollapsed
                                             ? 'chevron-right'
@@ -224,6 +224,7 @@ export function MaterialDirectory({
                                 style={{ marginLeft: indent }}
                             >
                                 <Pressable
+                                    testID="material-node"
                                     accessibilityRole="button"
                                     onPress={() => select(node)}
                                     className={`min-h-10 flex-row items-center justify-between gap-2 rounded-xl border px-3 py-1 ${
@@ -245,7 +246,7 @@ export function MaterialDirectory({
                                                 : 'bg-slate-100 dark:bg-zinc-700'
                                         }`}
                                     >
-                                        <CourseIcon
+                                        <Icon
                                             name="clock"
                                             size={14}
                                             className={

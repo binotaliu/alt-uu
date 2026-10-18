@@ -1,0 +1,16 @@
+# From the course list, opens the first course (lands on its 教材 tab).
+appId: ${MAESTRO_APP_ID}
+---
+- tapOn:
+    id: tab-index
+- extendedWaitUntil:
+    visible:
+      id: course-row
+    timeout: 30000
+- tapOn:
+    id: course-row
+    index: 0
+- extendedWaitUntil:
+    visible:
+      id: course-tab-materials
+    timeout: 30000

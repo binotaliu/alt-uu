@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useCourses } from '../courses/courseQueries';
 import { useServiceRuntime } from '../services/AppServicesProvider';
 import { useAppPreferences } from '../services/hooks';
 import { asServiceError } from '../services/serviceError';
@@ -48,7 +49,6 @@ import {
     materialKeys,
     useMaterialContent,
     useMaterialCoursePath,
-    useMaterialCourses,
     useMaterialFontScale,
     useMaterialResources,
 } from './materialQueries';
@@ -192,7 +192,7 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
     const insets = useSafeAreaInsets();
 
     const [activeScoid, setActiveScoid] = useState(scoid);
-    const courses = useMaterialCourses();
+    const courses = useCourses();
     const path = useMaterialCoursePath(cid);
     const content = useMaterialContent(cid, activeScoid);
     const resources = useMaterialResources(cid, activeScoid);
@@ -886,7 +886,7 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
     );
 
     return (
-        <Screen ignoreTopInset ignoreBottomInset>
+        <Screen testID="material-screen" ignoreTopInset ignoreBottomInset>
             <PageHeader
                 title={courseTitle}
                 subtitle={activeNodeText || '檢視教材'}

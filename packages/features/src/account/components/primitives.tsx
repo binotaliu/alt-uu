@@ -1,4 +1,4 @@
-import { Text } from '@altuu/ui';
+import { Text, Icon, type IconName } from '@altuu/ui';
 import {
     useCallback,
     useEffect,
@@ -14,8 +14,6 @@ import {
     View,
     type TextInputProps,
 } from 'react-native';
-
-import { AccountIcon, SolidIcon, type AccountIconName } from './AccountIcon';
 
 /** White rounded panel used by every account / settings section. */
 export function Card({
@@ -61,7 +59,7 @@ export function CardDescription({
 export interface OutlineButtonProps {
     label: string;
     onPress: () => void;
-    icon?: AccountIconName;
+    icon?: IconName;
     disabled?: boolean;
     loading?: boolean;
     className?: string;
@@ -92,7 +90,7 @@ export function OutlineButton({
             {loading ? (
                 <ActivityIndicator size="small" color="#9ca3af" />
             ) : icon ? (
-                <AccountIcon
+                <Icon
                     name={icon}
                     size={16}
                     className="text-theme-700 dark:text-zinc-200"
@@ -109,7 +107,7 @@ export function OutlineButton({
 export function PremiumBadge() {
     return (
         <View className="flex-row items-center gap-1 self-start rounded-full bg-amber-100 px-2 py-0.5 dark:bg-amber-900/40">
-            <AccountIcon
+            <Icon
                 name="lock-closed"
                 size={12}
                 className="text-amber-700 dark:text-amber-400"
@@ -136,7 +134,7 @@ export function Avatar({
             accessibilityIgnoresInvertColors
         />
     ) : (
-        <AccountIcon
+        <Icon
             name="user-circle"
             size={size}
             className="text-theme-700 dark:text-zinc-500"
@@ -146,7 +144,7 @@ export function Avatar({
 
 export interface FormFieldProps extends TextInputProps {
     label?: string;
-    icon?: AccountIconName;
+    icon?: IconName;
     invalid?: boolean;
     trailing?: ReactNode;
     compact?: boolean;
@@ -176,7 +174,7 @@ export function FormField({
                 }`}
             >
                 {icon ? (
-                    <AccountIcon
+                    <Icon
                         name={icon}
                         size={20}
                         className="text-theme-700 dark:text-zinc-400"
@@ -217,7 +215,7 @@ export function PasswordField(
                     onPress={() => setVisible((value) => !value)}
                     className="ml-2 p-1"
                 >
-                    <AccountIcon
+                    <Icon
                         name={visible ? 'eye-slash' : 'eye'}
                         size={20}
                         className="text-theme-700 dark:text-zinc-400"
@@ -234,14 +232,17 @@ export function PrimaryButton({
     onPress,
     disabled = false,
     className = '',
+    testID,
 }: {
     label: string;
     onPress: () => void;
     disabled?: boolean;
     className?: string;
+    testID?: string;
 }) {
     return (
         <Pressable
+            testID={testID}
             accessibilityRole="button"
             accessibilityState={{ disabled }}
             disabled={disabled}
@@ -269,7 +270,7 @@ export function Sparkles({
     size?: number;
     className?: string;
 }) {
-    return <SolidIcon name="sparkles" size={size} className={className} />;
+    return <Icon solid name="sparkles" size={size} className={className} />;
 }
 
 export interface FlashState {

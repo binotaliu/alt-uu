@@ -1,8 +1,7 @@
-import { Text } from '@altuu/ui';
+import { Text, Icon } from '@altuu/ui';
 import { ActivityIndicator, View } from 'react-native';
 
 import type { ConnectivityServiceRow as Row } from '../hooks/useConnectivityDiagnostics';
-import { AccountIcon } from './AccountIcon';
 import { Card } from './primitives';
 
 function statusText(row: Row): string {
@@ -40,13 +39,13 @@ export function ConnectivityServiceRow({ row }: { row: Row }) {
                 {row.status === 'checking' ? (
                     <ActivityIndicator size="small" />
                 ) : row.status === 'done' && row.reachable ? (
-                    <AccountIcon
+                    <Icon
                         name="check-circle"
                         size={24}
                         className="text-emerald-600 dark:text-emerald-400"
                     />
                 ) : row.status === 'done' ? (
-                    <AccountIcon
+                    <Icon
                         name="x-circle"
                         size={24}
                         className="text-rose-600 dark:text-rose-400"

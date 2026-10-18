@@ -9,7 +9,6 @@ import {
     mockNativeModule,
     resetAttachmentBridgeMock,
 } from '@altuu/attachment-bridge/mock';
-import { QueryClient } from '@tanstack/react-query';
 import {
     act,
     fireEvent,
@@ -22,7 +21,11 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AppServicesProvider } from '../services/AppServicesProvider';
 import { useClientConfigStore } from '../services/stores';
-import { createFakeServices, resetStores } from '../testing/fakeServices';
+import {
+    createFakeServices,
+    createTestQueryClient,
+    resetStores,
+} from '../testing/fakeServices';
 import { MaterialScreen } from './MaterialScreen';
 import { usePlaybackRateStore } from './player/PlaybackRateMenu';
 import {
@@ -202,9 +205,7 @@ function setup(
         delete: jest.fn(async () => undefined),
     };
 
-    const queryClient = new QueryClient({
-        defaultOptions: { queries: { retry: false, gcTime: Infinity } },
-    });
+    const queryClient = createTestQueryClient();
 
     return {
         ...fake,
@@ -488,7 +489,12 @@ describe('MaterialScreen downloads', () => {
                 url: `${HUNGU}/base/ch3.pdf`,
                 headers: { 'User-Agent': 'UA' },
                 cookies: [
-                    { name: 'PHPSESSID', value: 's1', domain: 'uu.nou.edu.tw' },
+                    {
+                        name: 'PHPSESSID',
+                        value: 's1',
+                        domain: 'uu.nou.edu.tw',
+                        path: '/',
+                    },
                 ],
                 fileName: 'ch3.pdf',
             }),

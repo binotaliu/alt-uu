@@ -114,7 +114,7 @@ function SemesterGrade({ value }: { value: string | null }) {
 /** Legacy Account/Grades.vue. */
 export function GradesScreen() {
     const grades = useServiceQuery<SchoolPortalGrade[]>({
-        op: 'courses.grade',
+        op: 'schoolPortal.grades',
         queryKey: ['account', 'grades'],
         queryFn: (services) => services.schoolPortalDomain.getAllCourseGrades(),
         staleTime: 0,

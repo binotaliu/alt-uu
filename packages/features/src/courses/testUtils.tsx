@@ -1,11 +1,14 @@
 import { render } from '@testing-library/react-native';
-import { QueryClient } from '@tanstack/react-query';
 import type { ReactElement } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AppServicesProvider } from '../services/AppServicesProvider';
 import type { AppServices } from '../services/types';
-import { createFakeServices, resetStores } from '../testing/fakeServices';
+import {
+    createFakeServices,
+    createTestQueryClient,
+    resetStores,
+} from '../testing/fakeServices';
 
 const metrics = {
     frame: { x: 0, y: 0, width: 390, height: 844 },
@@ -24,9 +27,7 @@ export async function renderWithServices(
 
     const { services } = createFakeServices();
     const merged = { ...services, ...overrides } as unknown as AppServices;
-    const queryClient = new QueryClient({
-        defaultOptions: { queries: { retry: false, gcTime: Infinity } },
-    });
+    const queryClient = createTestQueryClient();
     const router = { push: jest.fn(), replace: jest.fn() };
 
     const result = await render(

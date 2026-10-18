@@ -1,0 +1,41 @@
+# Legacy tests/Browser/Account/AccountsTest: add a second account
+# (${MAESTRO_USERNAME_2}), which becomes active, then switch back to the first.
+appId: ${MAESTRO_APP_ID}
+name: Switch account
+tags:
+  - account
+---
+- runFlow: subflows/fresh-login.yaml
+- tapOn:
+    id: tab-account
+- tapOn:
+    id: account-manage-accounts
+- tapOn:
+    id: add-account-open
+- tapOn:
+    id: add-account-username
+- inputText: ${MAESTRO_USERNAME_2}
+- tapOn:
+    id: add-account-password
+- inputText: ${MAESTRO_PASSWORD_2}
+- hideKeyboard
+- tapOn:
+    id: add-account-submit
+- extendedWaitUntil:
+    visible:
+      id: account-row-${MAESTRO_USERNAME_2}
+    timeout: 60000
+- tapOn:
+    id: account-row-${MAESTRO_USERNAME}
+- tapOn:
+    id: account-switch
+- extendedWaitUntil:
+    visible:
+      id: course-row
+    timeout: 60000
+- tapOn:
+    id: tab-account
+- extendedWaitUntil:
+    visible:
+      text: '(?i).*${MAESTRO_USERNAME}.*'
+    timeout: 30000

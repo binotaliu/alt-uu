@@ -1,6 +1,9 @@
 import { textContent } from 'domutils';
 import type { Element } from 'domhandler';
-import { normalizeCourseName, normalizeTermCode } from './courseNameMatcher';
+import {
+    normalizeCourseName,
+    normalizeTermCode,
+} from '../course/support/courseNameMatcher';
 import type { SchoolPortalDomainDeps } from './deps';
 import { CACHE_TTL_SECONDS } from './deps';
 import {

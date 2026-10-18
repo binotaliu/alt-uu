@@ -1,10 +1,7 @@
 import { useImperativeHandle, useRef, type Ref } from 'react';
 import { View } from 'react-native';
 import type { WebViewMessageEvent } from 'react-native-webview';
-import {
-    TypedWebView,
-    type WebViewHandle,
-} from '../../courses/browser/TypedWebView';
+import { TypedWebView, type WebViewHandle } from '../../shell/TypedWebView';
 import type { ShouldStartLoadRequest } from 'react-native-webview/lib/WebViewTypes';
 
 export interface YoutubeEmbedHandle {

@@ -2,7 +2,7 @@ import type { CacheRepository } from '../../db/cache';
 import type { KeyValueStoreRepository } from '../../db/keyValueStore';
 import { ExternalServiceUnavailableError } from '../../errors/errors';
 import { dataGet, decodeJson, isRecord } from '../../http/encoding';
-import { HttpTransport } from '../../http/transport';
+import { HttpTransport, type UpstreamCallListener } from '../../http/transport';
 import type { Clock, Fetch } from '../../platform';
 import { ValidationError } from '../account/validation';
 import { readJsonRecord } from '../app-preference/appPreferenceStore';
@@ -42,6 +42,8 @@ export interface AppStatusServicesDeps {
     /** Running release number; builds without one (e.g. `DEBUG`) get no banners. */
     appVersion: string;
     staticsBaseUrl?: string;
+    /** Diagnostics hook (legacy UpstreamCallSubscriber saw every HTTP call). */
+    onUpstreamCall?: UpstreamCallListener;
 }
 
 /**
@@ -54,6 +56,7 @@ export function createAppStatusServices(deps: AppStatusServicesDeps) {
         fetch: deps.fetch,
         service: 'statics',
         timeoutMs: 3000,
+        onUpstreamCall: deps.onUpstreamCall,
     });
     const baseUrl = (deps.staticsBaseUrl ?? DEFAULT_STATICS_BASE_URL).replace(
         /\/+$/,

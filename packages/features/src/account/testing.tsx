@@ -6,6 +6,7 @@ import { AppServicesProvider } from '../services/AppServicesProvider';
 import type { AppServices } from '../services/types';
 import {
     createFakeServices,
+    createTestQueryClient,
     type FakeServiceState,
 } from '../testing/fakeServices';
 
@@ -35,7 +36,10 @@ export async function renderScreen(
 ) {
     return render(
         <SafeAreaProvider initialMetrics={metrics}>
-            <AppServicesProvider services={services}>
+            <AppServicesProvider
+                services={services}
+                queryClient={createTestQueryClient()}
+            >
                 {element}
             </AppServicesProvider>
         </SafeAreaProvider>,

@@ -8,7 +8,7 @@ import { ErrorRetry } from '../../shell/ErrorRetry';
 import { SubPage } from '../components/SubPage';
 import { Card } from '../components/primitives';
 import { EmptyCard, LoadingCard } from '../components/states';
-import { formatSchoolPortalTimeRange } from '../lib/schoolPortalFormat';
+import { formatSchoolPortalTimeRange } from '../../courses/format';
 
 interface ExamDateGroup {
     date: string;
@@ -62,7 +62,7 @@ export function groupExamAgenda(
 /** Legacy Account/ExamInfo.vue. */
 export function ExamInfoScreen() {
     const agenda = useServiceQuery<SchoolPortalExamAgendaItem[]>({
-        op: 'courses.grade',
+        op: 'schoolPortal.examAgenda',
         queryKey: ['account', 'exam-agenda'],
         queryFn: (services) => services.schoolPortalDomain.getExamAgenda(),
         staleTime: 0,

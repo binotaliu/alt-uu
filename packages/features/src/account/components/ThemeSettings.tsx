@@ -1,4 +1,4 @@
-import { accentPalettes, Text, type AccentName } from '@altuu/ui';
+import { accentPalettes, Text, type AccentName, Icon } from '@altuu/ui';
 import { router } from 'expo-router';
 import { useEffect } from 'react';
 import { Pressable, View } from 'react-native';
@@ -9,7 +9,6 @@ import {
     useUpdatePreferences,
 } from '../../services/hooks';
 import { asServiceError } from '../../services/serviceError';
-import { AccountIcon, SolidIcon } from './AccountIcon';
 import {
     Card,
     CardDescription,
@@ -179,14 +178,15 @@ export function ThemeSettings() {
                                     }`}
                                 >
                                     {selected ? (
-                                        <SolidIcon
+                                        <Icon
+                                            solid
                                             name="check"
                                             size={20}
                                             className="text-white"
                                         />
                                     ) : !subscription.active &&
                                       option.id !== DEFAULT_ACCENT ? (
-                                        <AccountIcon
+                                        <Icon
                                             name="lock-closed"
                                             size={16}
                                             className="text-white/90"

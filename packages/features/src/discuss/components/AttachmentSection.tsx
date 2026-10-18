@@ -1,5 +1,5 @@
 import type { AttachmentViewModel } from '@altuu/core';
-import { ConfirmDialog, Sheet, Text } from '@altuu/ui';
+import { ConfirmDialog, Sheet, Text, Icon } from '@altuu/ui';
 import { Image, type ImageSource } from 'expo-image';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, View } from 'react-native';
@@ -9,7 +9,6 @@ import {
     useAttachmentRequest,
     useOpenAttachment,
 } from '../attachments';
-import { GlyphIcon } from './GlyphIcon';
 
 export interface AttachmentSectionProps {
     cid: string;
@@ -93,7 +92,7 @@ export function AttachmentSection({
                             key={attachmentKey(attachment) || index}
                             className="flex-row items-center gap-2"
                         >
-                            <GlyphIcon
+                            <Icon
                                 name="paper-clip"
                                 size={16}
                                 className="text-theme-700 dark:text-zinc-500"

@@ -22,7 +22,6 @@ import { useServiceMutation } from '../services';
 import { ErrorRetry } from '../shell';
 import { AttachmentSection } from './components/AttachmentSection';
 import { ComposeSheet } from './components/ComposeSheet';
-import { GlyphIcon } from './components/GlyphIcon';
 import { ImageLightbox } from './components/ImageLightbox';
 import { PostHtml } from './components/PostHtml';
 import { ReportSheet } from './components/ReportSheet';
@@ -89,6 +88,9 @@ export function DiscussThreadScreen({
     const posts = useDiscussPosts(boardCid, bid, nid);
     const blocked = useBlockedUsers();
     const blockedUsers = blocked.data ?? [];
+    // Hold the posts back until the block list is known, so a blocked
+    // user's post never flashes on screen (a failed load shows them all).
+    const isWaitingForBlockList = blocked.isPending;
     const postsKey = discussQueryKeys.posts(boardCid, bid, nid);
 
     const boardTitle =
@@ -422,11 +424,7 @@ export function DiscussThreadScreen({
                         onPress={() => setIsReplyOpen(true)}
                         className="flex-row items-center gap-1 rounded-xl bg-theme-700 px-4 py-2 active:bg-theme-800 dark:bg-theme-800"
                     >
-                        <GlyphIcon
-                            name="plus"
-                            size={16}
-                            className="text-white"
-                        />
+                        <Icon name="plus" size={16} className="text-white" />
                         <Text className="text-sm font-semibold text-white">
                             新增回覆
                         </Text>
@@ -435,7 +433,8 @@ export function DiscussThreadScreen({
             />
 
             <FlatList
-                data={posts.error ? [] : postList}
+                testID="discuss-thread"
+                data={posts.error || isWaitingForBlockList ? [] : postList}
                 keyExtractor={(post, index) =>
                     post.node ?? `floor-${post.floor ?? index}`
                 }
@@ -453,8 +452,8 @@ export function DiscussThreadScreen({
                 }
                 ListHeaderComponent={
                     <View className="flex-row items-center gap-2">
-                        <GlyphIcon
-                            name="chat"
+                        <Icon
+                            name="chat-bubble-left-right"
                             size={20}
                             className="text-theme-900 dark:text-zinc-100"
                         />
@@ -470,7 +469,7 @@ export function DiscussThreadScreen({
                             retrying={posts.isFetching}
                             onRetry={() => void posts.refetch()}
                         />
-                    ) : posts.isPending ? (
+                    ) : posts.isPending || isWaitingForBlockList ? (
                         <View className="gap-3">
                             {[0, 1, 2].map((row) => (
                                 <View
@@ -679,8 +678,8 @@ function PostCard({
                             : 'border-theme-300 bg-white active:bg-theme-100 dark:border-zinc-600 dark:bg-zinc-800'
                     }`}
                 >
-                    <GlyphIcon
-                        name="thumb-up"
+                    <Icon
+                        name="hand-thumb-up"
                         solid={post.liked}
                         size={16}
                         className={
@@ -751,7 +750,7 @@ function PostCard({
                         onPress={onReport}
                         className={smallButton}
                     >
-                        <GlyphIcon
+                        <Icon
                             name="flag"
                             size={14}
                             className="text-theme-700 dark:text-zinc-400"
@@ -767,7 +766,7 @@ function PostCard({
                         onPress={onBlock}
                         className={smallButton}
                     >
-                        <GlyphIcon
+                        <Icon
                             name="no-symbol"
                             size={14}
                             className="text-theme-700 dark:text-zinc-400"

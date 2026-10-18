@@ -1,7 +1,7 @@
 import type { CacheRepository } from '../../db/cache';
 import { ExternalServiceUnavailableError } from '../../errors/errors';
 import { decodeJson, isRecord } from '../../http/encoding';
-import { HttpTransport } from '../../http/transport';
+import { HttpTransport, type UpstreamCallListener } from '../../http/transport';
 import type { Fetch } from '../../platform';
 
 export type JsonObject = Record<string, unknown>;
@@ -26,6 +26,8 @@ export interface NouToolsClientDeps {
     cache: CacheRepository;
     config?: NouToolsClientConfig;
     sleep?: (milliseconds: number) => Promise<void>;
+    /** Diagnostics hook (legacy UpstreamCallSubscriber covered NouToolsClient). */
+    onUpstreamCall?: UpstreamCallListener;
 }
 
 /** Port of the legacy NouToolsClient: cached reads of nou-tools.binota.org. */
@@ -43,6 +45,7 @@ export class NouToolsClient {
             fetch: deps.fetch,
             service: 'nou-tools',
             timeoutMs: config.timeoutMs ?? 10_000,
+            onUpstreamCall: deps.onUpstreamCall,
         });
         this.userAgent = config.userAgent ?? 'alt-uu';
     }

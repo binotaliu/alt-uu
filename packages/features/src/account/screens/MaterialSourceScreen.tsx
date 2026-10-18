@@ -1,18 +1,17 @@
 import type {
-    CourseItem,
     MaterialDirectoryInspectionViewModel,
     MaterialDirectoryNodeViewModel,
     MaterialSourceInspectionViewModel,
 } from '@altuu/core';
-import { Sheet, Text } from '@altuu/ui';
+import { Sheet, Text, Icon } from '@altuu/ui';
 import * as Clipboard from 'expo-clipboard';
 import { useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 
+import { useCourses } from '../../courses/courseQueries';
 import { useAppConfig } from '../../services/hooks';
 import { useServiceQuery } from '../../services/useServiceQuery';
 import { ErrorRetry } from '../../shell/ErrorRetry';
-import { AccountIcon } from '../components/AccountIcon';
 import { SubPage } from '../components/SubPage';
 import {
     Card,
@@ -87,11 +86,7 @@ export function MaterialSourceScreen() {
     const [activeScoid, setActiveScoid] = useState('');
     const [showRawJson, setShowRawJson] = useState(false);
 
-    const courses = useServiceQuery<CourseItem[]>({
-        op: 'courses.list',
-        queryKey: ['account', 'material-source', 'courses'],
-        queryFn: (services) => services.course.listCourses(),
-    });
+    const courses = useCourses();
     const directory = useServiceQuery<MaterialDirectoryInspectionViewModel>({
         op: 'diagnostics.material',
         queryKey: ['account', 'material-source', 'directory', selectedCid],
@@ -196,7 +191,7 @@ export function MaterialSourceScreen() {
                                     ? '載入課程中…'
                                     : (selectedCourseName ?? '請選擇課程')}
                             </Text>
-                            <AccountIcon
+                            <Icon
                                 name="chevron-down"
                                 size={16}
                                 className="text-theme-700 dark:text-zinc-400"
@@ -324,7 +319,7 @@ export function MaterialSourceScreen() {
                                         }
                                         className="flex-row items-center gap-1.5"
                                     >
-                                        <AccountIcon
+                                        <Icon
                                             name="clipboard-document"
                                             size={16}
                                             className="text-theme-700 dark:text-zinc-400"

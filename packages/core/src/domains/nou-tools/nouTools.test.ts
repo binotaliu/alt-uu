@@ -11,9 +11,13 @@ import {
 } from '../account/testing';
 import { createAppPreferenceServices } from '../app-preference';
 import {
-    createNouToolsServices,
     normalizeCourseName,
     normalizeTermCode,
+} from '../course/support/courseNameMatcher';
+import type { UpstreamCallEvent } from '../../http/transport';
+import {
+    NouToolsClient,
+    createNouToolsServices,
     type NouToolsUserCourse,
 } from './index';
 
@@ -420,6 +424,30 @@ describe('NouToolsClient caching and retry', () => {
         expect(await nouTools.client.getCourseDetail(1)).toBeNull();
         expect(await nouTools.client.getCourseDetail(1)).toBeNull();
         expect(calls).toBe(2);
+    });
+});
+
+describe('NouToolsClient diagnostics', () => {
+    it('reports upstream calls, including failures it turns into empty lists', async () => {
+        const harness = await createHarness([
+            [`${NOU_TOOLS}/school-calendar`, { status: 500, body: 'oops' }],
+        ]);
+        const events: UpstreamCallEvent[] = [];
+        const client = new NouToolsClient({
+            fetch: harness.fake.fetch,
+            cache: harness.cache,
+            sleep: async () => {},
+            onUpstreamCall: (event) => {
+                events.push(event);
+            },
+        });
+
+        expect(await client.getSchoolCalendar()).toEqual([]);
+        expect(events.length).toBeGreaterThan(0);
+        expect(events[0]).toMatchObject({
+            service: 'nou-tools',
+            status: 500,
+        });
     });
 });
 

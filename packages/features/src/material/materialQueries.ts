@@ -1,5 +1,4 @@
 import type {
-    CourseItem,
     CourseMaterialResource,
     CoursePath,
     MaterialFontScalePreference,
@@ -10,11 +9,10 @@ import { useServiceQuery } from '../services/useServiceQuery';
 
 /**
  * Query keys of the material page. They share the `['courses', …]` prefix
- * (and the list key) with the course area so invalidating a course refreshes
- * both.
+ * with the course area (whose `useCourses` list the page reads) so
+ * invalidating a course refreshes both.
  */
 export const materialKeys = {
-    courses: ['courses', 'list'] as const,
     path: (cid: string) => ['courses', cid, 'path'] as const,
     content: (cid: string, scoid: string) =>
         ['courses', cid, 'content', scoid] as const,
@@ -22,14 +20,6 @@ export const materialKeys = {
         ['courses', cid, 'resources', scoid] as const,
     fontScale: ['material', 'fontScale'] as const,
 };
-
-export function useMaterialCourses() {
-    return useServiceQuery<CourseItem[]>({
-        op: 'courses.list',
-        queryKey: materialKeys.courses,
-        queryFn: (services) => services.course.listCourses(),
-    });
-}
 
 export function useMaterialCoursePath(cid: string) {
     return useServiceQuery<CoursePath>({

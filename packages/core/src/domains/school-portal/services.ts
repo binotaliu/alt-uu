@@ -1,4 +1,7 @@
-import { normalizeCourseName, normalizeTermCode } from './courseNameMatcher';
+import {
+    normalizeCourseName,
+    normalizeTermCode,
+} from '../course/support/courseNameMatcher';
 import { createGetCourseClassSessionInfo } from './classSessionInfo';
 import type { SchoolPortalDomainDeps } from './deps';
 import { SchoolPortalExamInfoRepository } from './examInfoRepository';

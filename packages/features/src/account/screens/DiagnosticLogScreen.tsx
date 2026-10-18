@@ -1,5 +1,5 @@
 import type { DiagnosticEventListViewModel } from '@altuu/core';
-import { ConfirmDialog, Text } from '@altuu/ui';
+import { ConfirmDialog, Text, Icon } from '@altuu/ui';
 import { keepPreviousData, useQueryClient } from '@tanstack/react-query';
 import * as Clipboard from 'expo-clipboard';
 import { useState } from 'react';
@@ -9,7 +9,6 @@ import {
     useServiceMutation,
     useServiceQuery,
 } from '../../services/useServiceQuery';
-import { AccountIcon } from '../components/AccountIcon';
 import { DiagnosticEventRow } from '../components/DiagnosticEventRow';
 import { SubPage } from '../components/SubPage';
 import {
@@ -260,7 +259,7 @@ export function DiagnosticLogScreen() {
                         onPress={() => void log.refetch()}
                         className="flex-row items-center gap-1.5"
                     >
-                        <AccountIcon
+                        <Icon
                             name="arrow-path"
                             size={16}
                             className="text-theme-700 dark:text-zinc-400"

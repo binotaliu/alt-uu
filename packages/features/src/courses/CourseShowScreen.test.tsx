@@ -1,7 +1,13 @@
 import { fireEvent, screen } from '@testing-library/react-native';
 import { router } from 'expo-router';
+import { useState } from 'react';
+import { Pressable, Text } from 'react-native';
 
-import { CourseShowView, resolveCourseTab } from './CourseShowScreen';
+import {
+    CourseShowView,
+    resolveCourseTab,
+    type CourseTab,
+} from './CourseShowScreen';
 import { renderWithServices } from './testUtils';
 
 jest.mock('@altuu/attachment-bridge', () =>
@@ -175,6 +181,28 @@ describe('CourseShowView', () => {
             />,
             services(),
         );
+
+        expect(await screen.findByText('作業一')).toBeTruthy();
+    });
+
+    it('follows a later tab param change', async () => {
+        function Harness() {
+            const [tab, setTab] = useState<CourseTab>('materials');
+
+            return (
+                <>
+                    <Pressable onPress={() => setTab('homework')}>
+                        <Text>go-homework</Text>
+                    </Pressable>
+                    <CourseShowView cid="10" initialTab={tab} />
+                </>
+            );
+        }
+
+        await renderWithServices(<Harness />, services());
+        expect(screen.queryByText('作業一')).toBeNull();
+
+        await fireEvent.press(screen.getByText('go-homework'));
 
         expect(await screen.findByText('作業一')).toBeTruthy();
     });

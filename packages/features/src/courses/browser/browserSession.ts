@@ -1,12 +1,7 @@
 import type { BridgeCookie } from '@altuu/attachment-bridge';
 
 import type { AppServices } from '../../services/types';
-
-function hostOf(url: string): string | null {
-    const match = /^[a-z][a-z0-9+.-]*:\/\/([^/:?#]+)/i.exec(url);
-
-    return match ? match[1] : null;
-}
+import { hostOf } from '../../shell/url';
 
 function toBridgeCookies(
     cookies: Record<string, string>,

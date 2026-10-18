@@ -1,5 +1,7 @@
 import type { BridgeCookie, DownloadOptions } from '@altuu/attachment-bridge';
 
+import { hostOf } from '../../shell/url';
+
 export interface FetchDescriptor {
     url: string;
     headers: Record<string, string>;
@@ -7,12 +9,6 @@ export interface FetchDescriptor {
     cookies?: Record<string, string>;
     /** Session base URL; its host scopes the cookies. */
     baseUrl?: string;
-}
-
-function hostOf(url: string): string | null {
-    const match = /^[a-z][a-z0-9+.-]*:\/\/([^/:?#]+)/i.exec(url);
-
-    return match ? match[1] : null;
 }
 
 /** Parses a `Cookie` request header into name/value pairs. */

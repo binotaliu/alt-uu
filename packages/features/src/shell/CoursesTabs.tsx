@@ -71,6 +71,7 @@ function TabButton({
 
     return (
         <Pressable
+            testID={`tab-${tab.name}`}
             accessibilityRole="tab"
             accessibilityLabel={tab.label}
             accessibilityState={{ selected: isFocused }}

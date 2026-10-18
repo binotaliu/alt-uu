@@ -1,5 +1,12 @@
 import { setWebViewCookies } from '@altuu/attachment-bridge';
-import { Button, PageHeader, Screen, Text } from '@altuu/ui';
+import {
+    Button,
+    PageHeader,
+    Screen,
+    Text,
+    Icon,
+    type IconName,
+} from '@altuu/ui';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -23,19 +30,19 @@ import type {
 import { useAppServices } from '../../services/AppServicesProvider';
 import { NoViewerSheet } from '../attachments/NoViewerSheet';
 import { useAttachmentDownload } from '../attachments/useAttachmentDownload';
-import { CourseIcon, type CourseIconName } from '../components/CourseIcon';
 import {
     encodeFormBody,
     parseBrowserParams,
     type BrowserRequest,
 } from './browserParams';
 import { buildBeforeContentLoadedScript } from './browserScripts';
-import { TypedWebView, type WebViewHandle } from './TypedWebView';
+import { TypedWebView, type WebViewHandle } from '../../shell/TypedWebView';
 import {
     loadDownloadCookies,
     loadHunguBrowserSession,
     type BrowserSession,
 } from './browserSession';
+import { hostOf } from '../../shell/url';
 
 const DEFAULT_TITLE = 'App 內瀏覽器';
 
@@ -63,12 +70,6 @@ function fileNameFromUrl(url: string): string | undefined {
     }
 }
 
-function hostOf(url: string): string {
-    const match = /^[a-z][a-z0-9+.-]*:\/\/([^/:?#]+)/i.exec(url);
-
-    return match ? match[1] : '';
-}
-
 function HeaderButton({
     label,
     icon,
@@ -76,7 +77,7 @@ function HeaderButton({
     disabled = false,
 }: {
     label: string;
-    icon: CourseIconName;
+    icon: IconName;
     onPress: () => void;
     disabled?: boolean;
 }) {
@@ -90,7 +91,7 @@ function HeaderButton({
             onPress={onPress}
             className={`p-1.5 ${disabled ? 'opacity-30' : ''}`}
         >
-            <CourseIcon
+            <Icon
                 name={icon}
                 size={22}
                 className="text-theme-700 dark:text-zinc-300"
