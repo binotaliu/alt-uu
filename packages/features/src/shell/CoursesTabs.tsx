@@ -234,45 +234,43 @@ export function CoursesTabs() {
     </TabTrigger>
   ));
 
-  // Legacy CoursesTopNav (md and up) replaces CoursesBottomNav.
+  // Legacy CoursesTopNav (md and up) replaces CoursesBottomNav. expo-router
+  // only registers triggers of a TabList that is a direct child of Tabs, so
+  // neither list may sit inside a wrapper element.
   return (
-    <Tabs>
-      <NavAboveHeaderContext.Provider value={isTablet}>
-        {isTablet ? (
-          <View
-            className="bg-theme-100 dark:bg-zinc-950"
-            style={{
-              paddingTop: insets.top + 6,
-              paddingLeft: insets.left,
-              paddingRight: insets.right,
-            }}
-          >
+    <NavAboveHeaderContext.Provider value={isTablet}>
+      <View className="flex-1 bg-theme-100 dark:bg-zinc-950">
+        <Tabs>
+          {isTablet ? (
             <TabList asChild>
-              <View className="mx-auto w-full max-w-lg flex-row items-center gap-2 rounded-2xl border border-theme-200 bg-white/90 p-1 dark:border-zinc-700 dark:bg-zinc-900/90">
+              <View
+                className="w-full max-w-lg flex-row items-center gap-2 self-center rounded-2xl border border-theme-200 bg-white/90 p-1 dark:border-zinc-700 dark:bg-zinc-900/90"
+                style={{ marginTop: insets.top + 6 }}
+              >
                 {tabTriggers}
               </View>
             </TabList>
-          </View>
-        ) : null}
-        <TabSlot />
-        {isTablet ? null : (
-          <TabList asChild>
-            <View
-              className="flex-row gap-2 border-t border-theme-200 bg-white px-4 pt-2 dark:border-zinc-700 dark:bg-zinc-900"
-              style={{ paddingBottom: Math.max(insets.bottom, 12) }}
-            >
-              {tabTriggers}
-            </View>
-          </TabList>
-        )}
-      </NavAboveHeaderContext.Provider>
-      <NouToolsEnableDialog
-        visible={dialogOpen}
-        onClose={() => setDialogOpen(false)}
-        onEnable={() => void enableNouTools()}
-        error={error}
-        enabling={enabling}
-      />
-    </Tabs>
+          ) : null}
+          <TabSlot />
+          {isTablet ? null : (
+            <TabList asChild>
+              <View
+                className="flex-row gap-2 border-t border-theme-200 bg-white px-4 pt-2 dark:border-zinc-700 dark:bg-zinc-900"
+                style={{ paddingBottom: Math.max(insets.bottom, 12) }}
+              >
+                {tabTriggers}
+              </View>
+            </TabList>
+          )}
+          <NouToolsEnableDialog
+            visible={dialogOpen}
+            onClose={() => setDialogOpen(false)}
+            onEnable={() => void enableNouTools()}
+            error={error}
+            enabling={enabling}
+          />
+        </Tabs>
+      </View>
+    </NavAboveHeaderContext.Provider>
   );
 }
