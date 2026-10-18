@@ -1,20 +1,20 @@
 import { Platform } from 'react-native';
 import {
-    fileExists,
-    readLegacyNativePhpAppKey,
+  fileExists,
+  readLegacyNativePhpAppKey,
 } from '@altuu/attachment-bridge';
 import { defaultDatabaseDirectory, openDatabaseAsync } from 'expo-sqlite';
 import {
-    resolveNativePhpLegacyLocation,
-    runLegacyMigration,
-    type AltUUDatabase,
-    type Clock,
-    type CredentialCipher,
-    type KeyValueStoreRepository,
-    type LegacyDatabaseHandle,
-    type LegacyMigrationOutcome,
-    type Logger,
-    type SqlValue,
+  resolveNativePhpLegacyLocation,
+  runLegacyMigration,
+  type AltUUDatabase,
+  type Clock,
+  type CredentialCipher,
+  type KeyValueStoreRepository,
+  type LegacyDatabaseHandle,
+  type LegacyMigrationOutcome,
+  type Logger,
+  type SqlValue,
 } from '@altuu/core';
 
 /**
@@ -28,29 +28,29 @@ import {
  * - Android: text file `<dataDir>/app_storage/persisted_data/appkey.txt`.
  */
 export interface LegacyNativePhpBridge {
-    /** The `base64:...` APP_KEY, or null when there is none. */
-    readAppKey(): Promise<string | null>;
-    /**
-     * Optional existence check. Without it, opening a missing legacy DB
-     * makes SQLite create an empty file (harmless: it is detected as
-     * "no legacy data").
-     */
-    fileExists?(absolutePath: string): Promise<boolean>;
+  /** The `base64:...` APP_KEY, or null when there is none. */
+  readAppKey(): Promise<string | null>;
+  /**
+   * Optional existence check. Without it, opening a missing legacy DB
+   * makes SQLite create an empty file (harmless: it is detected as
+   * "no legacy data").
+   */
+  fileExists?(absolutePath: string): Promise<boolean>;
 }
 
 /** Ready-made bridge backed by the attachment-bridge native module. */
 export const nativePhpBridge: LegacyNativePhpBridge = {
-    readAppKey: () => readLegacyNativePhpAppKey(),
-    fileExists: (absolutePath) => fileExists(absolutePath),
+  readAppKey: () => readLegacyNativePhpAppKey(),
+  fileExists: (absolutePath) => fileExists(absolutePath),
 };
 
 export interface LegacyMigrationServices {
-    db: AltUUDatabase;
-    clock: Clock;
-    cipher: CredentialCipher;
-    keyValues: KeyValueStoreRepository;
-    bridge: LegacyNativePhpBridge;
-    logger?: Logger;
+  db: AltUUDatabase;
+  clock: Clock;
+  cipher: CredentialCipher;
+  keyValues: KeyValueStoreRepository;
+  bridge: LegacyNativePhpBridge;
+  logger?: Logger;
 }
 
 /**
@@ -62,85 +62,80 @@ export interface LegacyMigrationServices {
  * release).
  */
 export function runLegacyMigrationIfNeeded(
-    services: LegacyMigrationServices,
+  services: LegacyMigrationServices,
 ): Promise<LegacyMigrationOutcome> {
-    const { bridge } = services;
+  const { bridge } = services;
 
-    return runLegacyMigration({
-        db: services.db,
-        cipher: services.cipher,
-        keyValues: services.keyValues,
-        clock: services.clock,
-        logger: services.logger,
-        openLegacyDatabase: () => openLegacyDatabase(bridge),
-        readAppKeys: async () => {
-            const appKey = await bridge.readAppKey();
+  return runLegacyMigration({
+    db: services.db,
+    cipher: services.cipher,
+    keyValues: services.keyValues,
+    clock: services.clock,
+    logger: services.logger,
+    openLegacyDatabase: () => openLegacyDatabase(bridge),
+    readAppKeys: async () => {
+      const appKey = await bridge.readAppKey();
 
-            return appKey === null || appKey.trim() === ''
-                ? []
-                : [appKey.trim()];
-        },
-    });
+      return appKey === null || appKey.trim() === '' ? [] : [appKey.trim()];
+    },
+  });
 }
 
 /** Absolute path of the legacy NativePHP database on this device. */
 export function legacyDatabasePath(): string | null {
-    const location = resolveLocation();
+  const location = resolveLocation();
 
-    return location === null
-        ? null
-        : `${location.databaseDirectory}/${location.databaseFileName}`;
+  return location === null
+    ? null
+    : `${location.databaseDirectory}/${location.databaseFileName}`;
 }
 
 function resolveLocation() {
-    if (
-        (Platform.OS !== 'ios' && Platform.OS !== 'android') ||
-        typeof defaultDatabaseDirectory !== 'string'
-    ) {
-        return null;
-    }
+  if (
+    (Platform.OS !== 'ios' && Platform.OS !== 'android') ||
+    typeof defaultDatabaseDirectory !== 'string'
+  ) {
+    return null;
+  }
 
-    return resolveNativePhpLegacyLocation(
-        Platform.OS,
-        defaultDatabaseDirectory,
-    );
+  return resolveNativePhpLegacyLocation(Platform.OS, defaultDatabaseDirectory);
 }
 
 async function openLegacyDatabase(
-    bridge: LegacyNativePhpBridge,
+  bridge: LegacyNativePhpBridge,
 ): Promise<LegacyDatabaseHandle | null> {
-    const location = resolveLocation();
+  const location = resolveLocation();
 
-    if (location === null) {
-        return null;
-    }
+  if (location === null) {
+    return null;
+  }
 
-    const path = `${location.databaseDirectory}/${location.databaseFileName}`;
+  const path = `${location.databaseDirectory}/${location.databaseFileName}`;
 
-    if (bridge.fileExists !== undefined && !(await bridge.fileExists(path))) {
-        return null;
-    }
+  if (bridge.fileExists !== undefined && !(await bridge.fileExists(path))) {
+    return null;
+  }
 
-    const sqlite = await openDatabaseAsync(
-        location.databaseFileName,
-        { useNewConnection: true },
-        location.databaseDirectory,
-    );
+  const sqlite = await openDatabaseAsync(
+    location.databaseFileName,
+    { useNewConnection: true },
+    location.databaseDirectory,
+  );
 
-    try {
-        await sqlite.execAsync('PRAGMA query_only = ON;');
-    } catch (error) {
-        await sqlite.closeAsync();
-        throw error;
-    }
+  try {
+    await sqlite.execAsync('PRAGMA query_only = ON;');
+  } catch (error) {
+    await sqlite.closeAsync();
+    throw error;
+  }
 
-    return {
-        reader: {
-            query: <Row = Record<string, SqlValue>>(
-                sql: string,
-                params: readonly SqlValue[] = [],
-            ) => sqlite.getAllAsync<Row>(sql, [...params]),
-        },
-        close: () => sqlite.closeAsync(),
-    };
+  return {
+    reader: {
+      query: <Row = Record<string, SqlValue>>(
+        sql: string,
+        params: readonly SqlValue[] = [],
+      ) => sqlite.getAllAsync<Row>(sql, [...params]),
+    },
+    close: () => sqlite.closeAsync(),
+  };
 }

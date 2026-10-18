@@ -1,7 +1,7 @@
 import {
-    splitSetCookieHeader,
-    type Fetch,
-    type FetchResponse,
+  splitSetCookieHeader,
+  type Fetch,
+  type FetchResponse,
 } from '@altuu/core';
 import { fetch as expoFetch } from 'expo/fetch';
 
@@ -23,34 +23,34 @@ import { fetch as expoFetch } from 'expo/fetch';
  * (the dev-only /dev/transport-probe screen does it).
  */
 export const fetch: Fetch = async (url, init = {}) => {
-    const response = await expoFetch(url, {
-        method: init.method ?? 'GET',
-        headers: init.headers,
-        body: toBodyInit(init.body),
-        redirect: init.redirect ?? 'follow',
-        signal: init.signal,
-        credentials: 'omit',
-    });
+  const response = await expoFetch(url, {
+    method: init.method ?? 'GET',
+    headers: init.headers,
+    body: toBodyInit(init.body),
+    redirect: init.redirect ?? 'follow',
+    signal: init.signal,
+    credentials: 'omit',
+  });
 
-    return {
-        status: response.status,
-        headers: { get: (name) => response.headers.get(name) },
-        setCookies: () =>
-            response._rawHeaders
-                .filter(([name]) => name.toLowerCase() === 'set-cookie')
-                .flatMap(([, value]) => splitSetCookieHeader(value)),
-        text: () => response.text(),
-        arrayBuffer: () => response.arrayBuffer(),
-    } satisfies FetchResponse;
+  return {
+    status: response.status,
+    headers: { get: (name) => response.headers.get(name) },
+    setCookies: () =>
+      response._rawHeaders
+        .filter(([name]) => name.toLowerCase() === 'set-cookie')
+        .flatMap(([, value]) => splitSetCookieHeader(value)),
+    text: () => response.text(),
+    arrayBuffer: () => response.arrayBuffer(),
+  } satisfies FetchResponse;
 };
 
 /** Copies a Uint8Array onto a plain ArrayBuffer, as BodyInit requires. */
 function toBodyInit(
-    body: string | Uint8Array | null | undefined,
+  body: string | Uint8Array | null | undefined,
 ): string | Uint8Array<ArrayBuffer> | null {
-    if (body === undefined || body === null || typeof body === 'string') {
-        return body ?? null;
-    }
+  if (body === undefined || body === null || typeof body === 'string') {
+    return body ?? null;
+  }
 
-    return new Uint8Array(body);
+  return new Uint8Array(body);
 }

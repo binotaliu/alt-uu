@@ -1,5 +1,5 @@
 {
-    "extends": "../../tsconfig.base.json",
-    "compilerOptions": { "types": ["jest"] },
-    "include": ["src", "mocks"]
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": { "types": ["jest"] },
+  "include": ["src", "mocks"]
 }

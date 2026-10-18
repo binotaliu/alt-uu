@@ -1,8 +1,8 @@
 import type {
-    AltUUDatabase,
-    Clock,
-    RandomBytes,
-    SecureStorage,
+  AltUUDatabase,
+  Clock,
+  RandomBytes,
+  SecureStorage,
 } from '@altuu/core';
 import { clock } from './clock';
 import { openAppDatabase } from './database';
@@ -10,10 +10,10 @@ import { random } from './random';
 import { secureStorage } from './secureStorage';
 
 export interface MobilePlatform {
-    db: AltUUDatabase;
-    secureStorage: SecureStorage;
-    random: RandomBytes;
-    clock: Clock;
+  db: AltUUDatabase;
+  secureStorage: SecureStorage;
+  random: RandomBytes;
+  clock: Clock;
 }
 
 /**
@@ -22,7 +22,7 @@ export interface MobilePlatform {
  * (see the fetch* files in this folder).
  */
 export async function createPlatform(): Promise<MobilePlatform> {
-    return { db: await openAppDatabase(), secureStorage, random, clock };
+  return { db: await openAppDatabase(), secureStorage, random, clock };
 }
 
 export { clock, random, secureStorage, openAppDatabase };

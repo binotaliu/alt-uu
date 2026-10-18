@@ -10,19 +10,19 @@ import { useSessionExpiryStore } from '../services/stores';
  * in the diagnostics log. Renders nothing.
  */
 export function NavigationTracker() {
-    const pathname = usePathname();
-    const runtime = useServiceRuntime();
-    const previous = useRef<string | null>(null);
+  const pathname = usePathname();
+  const runtime = useServiceRuntime();
+  const previous = useRef<string | null>(null);
 
-    useEffect(() => {
-        useSessionExpiryStore.getState().setCurrentPath(pathname);
+  useEffect(() => {
+    useSessionExpiryStore.getState().setCurrentPath(pathname);
 
-        if (previous.current !== null && previous.current !== pathname) {
-            runtime.recordNavigation(pathname, previous.current);
-        }
+    if (previous.current !== null && previous.current !== pathname) {
+      runtime.recordNavigation(pathname, previous.current);
+    }
 
-        previous.current = pathname;
-    }, [pathname, runtime]);
+    previous.current = pathname;
+  }, [pathname, runtime]);
 
-    return null;
+  return null;
 }

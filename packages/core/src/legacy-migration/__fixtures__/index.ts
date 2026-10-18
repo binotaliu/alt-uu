@@ -10,11 +10,11 @@ import type { LegacyDatabaseHandle } from '../types';
  */
 
 function keyFromRange(start: number): string {
-    const bytes = Buffer.from(
-        Array.from({ length: 32 }, (_, index) => start + index),
-    );
+  const bytes = Buffer.from(
+    Array.from({ length: 32 }, (_, index) => start + index),
+  );
 
-    return `base64:${bytes.toString('base64')}`;
+  return `base64:${bytes.toString('base64')}`;
 }
 
 /** APP_KEY used to seed the fixtures (bytes 0x00..0x1f). */
@@ -25,28 +25,28 @@ export const FIXTURE_PREVIOUS_APP_KEY = keyFromRange(0x20);
 export type LegacyFixtureName = 'legacy-current' | 'legacy-v1.0.2';
 
 export function legacyFixturePath(name: LegacyFixtureName): string {
-    return fileURLToPath(new URL(`./${name}.sqlite`, import.meta.url));
+  return fileURLToPath(new URL(`./${name}.sqlite`, import.meta.url));
 }
 
 export function readFixtureBytes(name: LegacyFixtureName): Buffer {
-    return readFileSync(legacyFixturePath(name));
+  return readFileSync(legacyFixturePath(name));
 }
 
 /** Opens a SQLite file read-only, adapted to {@link LegacyDatabaseHandle}. */
 export function openReadOnlyLegacyDatabase(path: string): LegacyDatabaseHandle {
-    const sqlite = new Database(path, { readonly: true, fileMustExist: true });
+  const sqlite = new Database(path, { readonly: true, fileMustExist: true });
 
-    return {
-        reader: {
-            async query<Row = Record<string, SqlValue>>(
-                sql: string,
-                params: readonly SqlValue[] = [],
-            ): Promise<Row[]> {
-                return sqlite.prepare(sql).all(...params) as Row[];
-            },
-        },
-        async close() {
-            sqlite.close();
-        },
-    };
+  return {
+    reader: {
+      async query<Row = Record<string, SqlValue>>(
+        sql: string,
+        params: readonly SqlValue[] = [],
+      ): Promise<Row[]> {
+        return sqlite.prepare(sql).all(...params) as Row[];
+      },
+    },
+    async close() {
+      sqlite.close();
+    },
+  };
 }

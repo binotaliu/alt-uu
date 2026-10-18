@@ -9,21 +9,21 @@ import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', 'src', 'db');
 const journal = JSON.parse(
-    readFileSync(join(root, 'migrations', 'meta', '_journal.json'), 'utf8'),
+  readFileSync(join(root, 'migrations', 'meta', '_journal.json'), 'utf8'),
 );
 
 const migrations = {};
 for (const entry of journal.entries) {
-    const file = readdirSync(join(root, 'migrations')).find(
-        (name) => name === `${entry.tag}.sql`,
-    );
-    if (!file) {
-        throw new Error(`Missing SQL file for ${entry.tag}`);
-    }
-    migrations[`m${String(entry.idx).padStart(4, '0')}`] = readFileSync(
-        join(root, 'migrations', file),
-        'utf8',
-    );
+  const file = readdirSync(join(root, 'migrations')).find(
+    (name) => name === `${entry.tag}.sql`,
+  );
+  if (!file) {
+    throw new Error(`Missing SQL file for ${entry.tag}`);
+  }
+  migrations[`m${String(entry.idx).padStart(4, '0')}`] = readFileSync(
+    join(root, 'migrations', file),
+    'utf8',
+  );
 }
 
 const output = `

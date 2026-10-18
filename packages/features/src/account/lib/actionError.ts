@@ -7,18 +7,18 @@ import { UserFacingHttpError } from '@altuu/core';
  * `ServiceError.cause`.
  */
 export class RejectedActionError extends UserFacingHttpError {
-    readonly raw: unknown;
+  readonly raw: unknown;
 
-    constructor(message: string, raw?: unknown) {
-        super(422, message);
-        this.name = 'RejectedActionError';
-        this.raw = raw;
-    }
+  constructor(message: string, raw?: unknown) {
+    super(422, message);
+    this.name = 'RejectedActionError';
+    this.raw = raw;
+  }
 }
 
 /** Pulls `raw` out of a ServiceError produced from a {@link RejectedActionError}. */
 export function rawOf(error: unknown): unknown {
-    const cause = (error as { cause?: unknown } | null)?.cause;
+  const cause = (error as { cause?: unknown } | null)?.cause;
 
-    return cause instanceof RejectedActionError ? cause.raw : undefined;
+  return cause instanceof RejectedActionError ? cause.raw : undefined;
 }

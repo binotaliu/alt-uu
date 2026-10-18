@@ -3,29 +3,29 @@ import { createAttachmentBridge } from './createAttachmentBridge';
 
 export * from './AttachmentBridge.types';
 export {
-    createAttachmentBridge,
-    createDownloadId,
-    type AttachmentBridge,
+  createAttachmentBridge,
+  createDownloadId,
+  type AttachmentBridge,
 } from './createAttachmentBridge';
 export {
-    createAttachmentBridgeError,
-    isAttachmentBridgeError,
-    type AttachmentBridgeError,
+  createAttachmentBridgeError,
+  isAttachmentBridgeError,
+  type AttachmentBridgeError,
 } from './errors';
 
 const attachmentBridge = createAttachmentBridge(AttachmentBridgeModule);
 
 export const {
-    setWebViewCookies,
-    clearWebViewCookies,
-    addDownloadProgressListener,
-    startDownload,
-    download,
-    cancelDownload,
-    previewFile,
-    saveFile,
-    readLegacyNativePhpAppKey,
-    fileExists,
+  setWebViewCookies,
+  clearWebViewCookies,
+  addDownloadProgressListener,
+  startDownload,
+  download,
+  cancelDownload,
+  previewFile,
+  saveFile,
+  readLegacyNativePhpAppKey,
+  fileExists,
 } = attachmentBridge;
 
 export default attachmentBridge;

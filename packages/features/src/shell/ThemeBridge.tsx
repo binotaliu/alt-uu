@@ -10,20 +10,20 @@ import { useAppPreferences } from '../services/hooks';
  * so `auto` follows the resolved scheme (system, or the forced one).
  */
 export function ThemeBridge({ children }: { children: ReactNode }) {
-    const { appearance, accentColor } = useAppPreferences();
+  const { appearance, accentColor } = useAppPreferences();
 
-    return (
-        <ThemeProvider accent={accentColor} appearance={appearance}>
-            <StatusBar
-                style={
-                    appearance === 'system'
-                        ? 'auto'
-                        : appearance === 'dark'
-                          ? 'light'
-                          : 'dark'
-                }
-            />
-            {children}
-        </ThemeProvider>
-    );
+  return (
+    <ThemeProvider accent={accentColor} appearance={appearance}>
+      <StatusBar
+        style={
+          appearance === 'system'
+            ? 'auto'
+            : appearance === 'dark'
+              ? 'light'
+              : 'dark'
+        }
+      />
+      {children}
+    </ThemeProvider>
+  );
 }

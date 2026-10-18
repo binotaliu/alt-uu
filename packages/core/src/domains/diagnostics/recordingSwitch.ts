@@ -8,19 +8,19 @@
  * too, which is acceptable for short probes.
  */
 export class UpstreamRecordingSwitch {
-    private depth = 0;
+  private depth = 0;
 
-    async withoutRecording<T>(callback: () => Promise<T> | T): Promise<T> {
-        this.depth += 1;
+  async withoutRecording<T>(callback: () => Promise<T> | T): Promise<T> {
+    this.depth += 1;
 
-        try {
-            return await callback();
-        } finally {
-            this.depth -= 1;
-        }
+    try {
+      return await callback();
+    } finally {
+      this.depth -= 1;
     }
+  }
 
-    isSuppressed(): boolean {
-        return this.depth > 0;
-    }
+  isSuppressed(): boolean {
+    return this.depth > 0;
+  }
 }

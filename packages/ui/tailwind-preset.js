@@ -6,31 +6,28 @@
  * override the system scheme (ThemeProvider calls nativewind `colorScheme.set`).
  */
 const shades = [
-    '50',
-    '100',
-    '200',
-    '300',
-    '400',
-    '500',
-    '600',
-    '700',
-    '800',
-    '900',
+  '50',
+  '100',
+  '200',
+  '300',
+  '400',
+  '500',
+  '600',
+  '700',
+  '800',
+  '900',
 ];
 
 /** @type {Partial<import('tailwindcss').Config>} */
 module.exports = {
-    darkMode: 'class',
-    theme: {
-        extend: {
-            colors: {
-                theme: Object.fromEntries(
-                    shades.map((shade) => [
-                        shade,
-                        `var(--color-theme-${shade})`,
-                    ]),
-                ),
-            },
-        },
+  darkMode: 'class',
+  theme: {
+    extend: {
+      colors: {
+        theme: Object.fromEntries(
+          shades.map((shade) => [shade, `var(--color-theme-${shade})`]),
+        ),
+      },
     },
+  },
 };

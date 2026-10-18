@@ -1,7 +1,7 @@
 export { AccountSwitcherButton } from './components/AccountSwitcherButton';
 export {
-    ActivityHeatmap,
-    type ActivityHeatmapProps,
+  ActivityHeatmap,
+  type ActivityHeatmapProps,
 } from './components/ActivityHeatmap';
 export { PremiumBadge } from './components/primitives';
 export { AccountTabScreen } from './screens/AccountTabScreen';
@@ -18,7 +18,7 @@ export { ReauthScreen } from './screens/ReauthScreen';
 export { SettingsScreen } from './screens/SettingsScreen';
 export { SubscriptionScreen } from './screens/SubscriptionScreen';
 export {
-    formatExpiry,
-    useSubscriptionStatus,
-    type SubscriptionStatus,
+  formatExpiry,
+  useSubscriptionStatus,
+  type SubscriptionStatus,
 } from './hooks/useSubscriptionStatus';

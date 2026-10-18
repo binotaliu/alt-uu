@@ -19,12 +19,12 @@ export const viewportFixScript = `(function () {
 })();`;
 
 const cssByPreset: Record<InAppBrowserCssPreset, string> = {
-    homework: homeworkCss,
+  homework: homeworkCss,
 };
 
 /** Adds (or replaces) a `<style>` element carrying `css`. */
 export function createCssInjectionScript(css: string): string {
-    return `(function () {
+  return `(function () {
     try {
         var css = ${JSON.stringify(css)};
         var style = document.getElementById('__altuu_attachment_css__');
@@ -45,13 +45,13 @@ export function createCssInjectionScript(css: string): string {
  * Always ends with `true` (react-native-webview requires it on iOS).
  */
 export function buildBeforeContentLoadedScript(
-    cssPreset: InAppBrowserCssPreset | null,
+  cssPreset: InAppBrowserCssPreset | null,
 ): string {
-    const parts = [viewportFixScript];
+  const parts = [viewportFixScript];
 
-    if (cssPreset !== null) {
-        parts.push(createCssInjectionScript(cssByPreset[cssPreset]));
-    }
+  if (cssPreset !== null) {
+    parts.push(createCssInjectionScript(cssByPreset[cssPreset]));
+  }
 
-    return `${parts.join('\n')}\ntrue;`;
+  return `${parts.join('\n')}\ntrue;`;
 }

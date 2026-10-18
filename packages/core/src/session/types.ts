@@ -8,20 +8,20 @@ export type AccountId = number;
 
 /** Session state persisted per account (legacy `accounts.hungu_session`). */
 export interface HunguSession {
-    baseUrl: string;
-    userAgent: string;
-    /** Cookie name → value, merged from Set-Cookie after every request. */
-    cookies: Record<string, string>;
-    /** Extra fields the legacy session array carried (profile, etc.). */
-    [extra: string]: unknown;
+  baseUrl: string;
+  userAgent: string;
+  /** Cookie name → value, merged from Set-Cookie after every request. */
+  cookies: Record<string, string>;
+  /** Extra fields the legacy session array carried (profile, etc.). */
+  [extra: string]: unknown;
 }
 
 /** Session state persisted per account (legacy `accounts.school_portal_session`). */
 export interface SchoolPortalSession {
-    baseUrl: string;
-    userAgent: string;
-    cookies: Record<string, string>;
-    [extra: string]: unknown;
+  baseUrl: string;
+  userAgent: string;
+  cookies: Record<string, string>;
+  [extra: string]: unknown;
 }
 
 /**
@@ -29,22 +29,22 @@ export interface SchoolPortalSession {
  * currently active account.
  */
 export interface SessionStore<TSession> {
-    get(accountId?: AccountId): Promise<TSession | null>;
-    put(session: TSession, accountId?: AccountId): Promise<void>;
-    clear(accountId?: AccountId): Promise<void>;
+  get(accountId?: AccountId): Promise<TSession | null>;
+  put(session: TSession, accountId?: AccountId): Promise<void>;
+  clear(accountId?: AccountId): Promise<void>;
 }
 
 export interface AccountCredentials {
-    username: string;
-    password: string;
+  username: string;
+  password: string;
 }
 
 export interface CredentialsStore {
-    get(accountId?: AccountId): Promise<AccountCredentials | null>;
-    put(credentials: AccountCredentials, accountId?: AccountId): Promise<void>;
+  get(accountId?: AccountId): Promise<AccountCredentials | null>;
+  put(credentials: AccountCredentials, accountId?: AccountId): Promise<void>;
 }
 
 /** Legacy AccountContext / AccountActiveProfile. */
 export interface ActiveAccountProvider {
-    currentAccountId(): Promise<AccountId | null>;
+  currentAccountId(): Promise<AccountId | null>;
 }

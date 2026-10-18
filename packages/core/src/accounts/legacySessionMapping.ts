@@ -6,32 +6,32 @@
  * each decrypted session through {@link fromLegacySession} before storing it.
  */
 export interface MappedSession {
-    baseUrl: string;
-    userAgent: string;
-    cookies: Record<string, string>;
-    [extra: string]: unknown;
+  baseUrl: string;
+  userAgent: string;
+  cookies: Record<string, string>;
+  [extra: string]: unknown;
 }
 
 export function fromLegacySession(
-    legacy: Record<string, unknown>,
+  legacy: Record<string, unknown>,
 ): MappedSession {
-    const { base_url, ua, cookies, ...extras } = legacy;
+  const { base_url, ua, cookies, ...extras } = legacy;
 
-    return {
-        ...extras,
-        baseUrl: typeof base_url === 'string' ? base_url : '',
-        userAgent: typeof ua === 'string' ? ua : '',
-        cookies:
-            cookies !== null && typeof cookies === 'object'
-                ? (cookies as Record<string, string>)
-                : {},
-    };
+  return {
+    ...extras,
+    baseUrl: typeof base_url === 'string' ? base_url : '',
+    userAgent: typeof ua === 'string' ? ua : '',
+    cookies:
+      cookies !== null && typeof cookies === 'object'
+        ? (cookies as Record<string, string>)
+        : {},
+  };
 }
 
 export function toLegacySession(
-    session: MappedSession,
+  session: MappedSession,
 ): Record<string, unknown> {
-    const { baseUrl, userAgent, cookies, ...extras } = session;
+  const { baseUrl, userAgent, cookies, ...extras } = session;
 
-    return { ...extras, base_url: baseUrl, ua: userAgent, cookies };
+  return { ...extras, base_url: baseUrl, ua: userAgent, cookies };
 }

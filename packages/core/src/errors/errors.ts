@@ -5,10 +5,10 @@ import type { AccountId } from '../session/types';
  * API returned, so UI code ported from the Vue app can keep switching on them.
  */
 export type AltUUErrorCode =
-    | 'external_service_unavailable'
-    | 'session_invalid'
-    | 'http_error'
-    | 'server_error';
+  | 'external_service_unavailable'
+  | 'session_invalid'
+  | 'http_error'
+  | 'server_error';
 
 /**
  * Base class for errors whose `message` is written for the user (zh-Hant).
@@ -16,17 +16,17 @@ export type AltUUErrorCode =
  * with the generic copy from {@link toUserFacingError}.
  */
 export class AltUUError extends Error {
-    readonly code: AltUUErrorCode;
+  readonly code: AltUUErrorCode;
 
-    constructor(
-        message: string,
-        code: AltUUErrorCode,
-        options?: { cause?: unknown },
-    ) {
-        super(message, options);
-        this.name = new.target.name;
-        this.code = code;
-    }
+  constructor(
+    message: string,
+    code: AltUUErrorCode,
+    options?: { cause?: unknown },
+  ) {
+    super(message, options);
+    this.name = new.target.name;
+    this.code = code;
+  }
 }
 
 /**
@@ -35,15 +35,15 @@ export class AltUUError extends Error {
  * raised for every Http client ConnectionException (HTTP 503).
  */
 export class ExternalServiceUnavailableError extends AltUUError {
-    static readonly MESSAGE = '外部服務暫時無法連線，請稍後再試。';
+  static readonly MESSAGE = '外部服務暫時無法連線，請稍後再試。';
 
-    constructor(options?: { cause?: unknown }) {
-        super(
-            ExternalServiceUnavailableError.MESSAGE,
-            'external_service_unavailable',
-            options,
-        );
-    }
+  constructor(options?: { cause?: unknown }) {
+    super(
+      ExternalServiceUnavailableError.MESSAGE,
+      'external_service_unavailable',
+      options,
+    );
+  }
 }
 
 /**
@@ -53,17 +53,17 @@ export class ExternalServiceUnavailableError extends AltUUError {
  * so concurrent callers can all report which account died.
  */
 export class SessionInvalidError extends AltUUError {
-    static readonly MESSAGE = '請先登入課程平台。';
+  static readonly MESSAGE = '請先登入課程平台。';
 
-    readonly failedAccountId: AccountId | null;
+  readonly failedAccountId: AccountId | null;
 
-    constructor(
-        failedAccountId: AccountId | null,
-        options?: { cause?: unknown },
-    ) {
-        super(SessionInvalidError.MESSAGE, 'session_invalid', options);
-        this.failedAccountId = failedAccountId;
-    }
+  constructor(
+    failedAccountId: AccountId | null,
+    options?: { cause?: unknown },
+  ) {
+    super(SessionInvalidError.MESSAGE, 'session_invalid', options);
+    this.failedAccountId = failedAccountId;
+  }
 }
 
 /**
@@ -71,14 +71,10 @@ export class SessionInvalidError extends AltUUError {
  * `abort(403, '不允許存取外部資源')`. `status` is informational.
  */
 export class UserFacingHttpError extends AltUUError {
-    readonly status: number;
+  readonly status: number;
 
-    constructor(
-        status: number,
-        message: string,
-        options?: { cause?: unknown },
-    ) {
-        super(message, 'http_error', options);
-        this.status = status;
-    }
+  constructor(status: number, message: string, options?: { cause?: unknown }) {
+    super(message, 'http_error', options);
+    this.status = status;
+  }
 }

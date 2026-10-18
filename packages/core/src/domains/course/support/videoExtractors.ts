@@ -2,8 +2,8 @@ import { attr, findElements, hasAttr, parseHtml } from './html';
 import { phpTrim } from './phpUrl';
 
 export interface ExtractedVideo {
-    videoUrl: string | null;
-    subtitleUrl: string | null;
+  videoUrl: string | null;
+  subtitleUrl: string | null;
 }
 
 /** Returns null when the page does not use this extractor's format. */
@@ -14,26 +14,26 @@ export type MaterialVideoExtractor = (html: string) => ExtractedVideo | null;
  * `flowplayer("#player", { src: "https://…", subtitles: { tracks: [{ src: "01.vtt" }] } })`.
  */
 export const extractFlowplayerJsConfigVideo: MaterialVideoExtractor = (
-    html,
+  html,
 ) => {
-    if (!/flowplayer\s*\(/i.test(html)) {
-        return null;
-    }
+  if (!/flowplayer\s*\(/i.test(html)) {
+    return null;
+  }
 
-    // Absolute URLs only, which skips relative subtitle paths.
-    const videoUrl =
-        /\bsrc\s*:\s*["'](https?:\/\/[^"']+)["']/.exec(html)?.[1] ?? null;
+  // Absolute URLs only, which skips relative subtitle paths.
+  const videoUrl =
+    /\bsrc\s*:\s*["'](https?:\/\/[^"']+)["']/.exec(html)?.[1] ?? null;
 
-    if (videoUrl === null) {
-        return null;
-    }
+  if (videoUrl === null) {
+    return null;
+  }
 
-    const subtitleUrl =
-        /subtitles\s*:\s*\{[^{}]*tracks\s*:\s*\[\s*\{[^}]*\bsrc\s*:\s*["']([^"']+)["']/.exec(
-            html,
-        )?.[1] ?? null;
+  const subtitleUrl =
+    /subtitles\s*:\s*\{[^{}]*tracks\s*:\s*\[\s*\{[^}]*\bsrc\s*:\s*["']([^"']+)["']/.exec(
+      html,
+    )?.[1] ?? null;
 
-    return { videoUrl, subtitleUrl };
+  return { videoUrl, subtitleUrl };
 };
 
 /**
@@ -41,50 +41,50 @@ export const extractFlowplayerJsConfigVideo: MaterialVideoExtractor = (
  * `<video><source type="application/x-mpegurl" src="…"><track src="01.vtt"></video>`.
  */
 export const extractHtml5SourceVideo: MaterialVideoExtractor = (html) => {
-    const nodes = parseHtml(html);
-    const source = findElements(
-        nodes,
-        (element) =>
-            element.name === 'source' &&
-            hasAttr(element, 'type') &&
-            hasAttr(element, 'src') &&
-            (attr(element, 'type') ?? '').toLowerCase().includes('mpegurl'),
-    )[0];
+  const nodes = parseHtml(html);
+  const source = findElements(
+    nodes,
+    (element) =>
+      element.name === 'source' &&
+      hasAttr(element, 'type') &&
+      hasAttr(element, 'src') &&
+      (attr(element, 'type') ?? '').toLowerCase().includes('mpegurl'),
+  )[0];
 
-    if (source === undefined) {
-        return null;
-    }
+  if (source === undefined) {
+    return null;
+  }
 
-    const videoUrl = phpTrim(attr(source, 'src') ?? '');
+  const videoUrl = phpTrim(attr(source, 'src') ?? '');
 
-    if (videoUrl === '') {
-        return null;
-    }
+  if (videoUrl === '') {
+    return null;
+  }
 
-    const track = findElements(
-        findElements(nodes, (element) => element.name === 'video'),
-        (element) => element.name === 'track' && hasAttr(element, 'src'),
-    )[0];
-    const subtitleUrl =
-        track === undefined ? '' : phpTrim(attr(track, 'src') ?? '');
+  const track = findElements(
+    findElements(nodes, (element) => element.name === 'video'),
+    (element) => element.name === 'track' && hasAttr(element, 'src'),
+  )[0];
+  const subtitleUrl =
+    track === undefined ? '' : phpTrim(attr(track, 'src') ?? '');
 
-    return { videoUrl, subtitleUrl: subtitleUrl !== '' ? subtitleUrl : null };
+  return { videoUrl, subtitleUrl: subtitleUrl !== '' ? subtitleUrl : null };
 };
 
 export const MATERIAL_VIDEO_EXTRACTORS: MaterialVideoExtractor[] = [
-    extractFlowplayerJsConfigVideo,
-    extractHtml5SourceVideo,
+  extractFlowplayerJsConfigVideo,
+  extractHtml5SourceVideo,
 ];
 
 /** First extractor that finds a video wins. */
 export function extractVideo(html: string): ExtractedVideo {
-    for (const extractor of MATERIAL_VIDEO_EXTRACTORS) {
-        const extracted = extractor(html);
+  for (const extractor of MATERIAL_VIDEO_EXTRACTORS) {
+    const extracted = extractor(html);
 
-        if (extracted?.videoUrl != null) {
-            return extracted;
-        }
+    if (extracted?.videoUrl != null) {
+      return extracted;
     }
+  }
 
-    return { videoUrl: null, subtitleUrl: null };
+  return { videoUrl: null, subtitleUrl: null };
 }

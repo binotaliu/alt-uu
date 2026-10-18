@@ -7,23 +7,23 @@ import { accentPalettes, type AccentName } from './palettes';
 export type Appearance = 'system' | 'light' | 'dark';
 
 export function createThemeVars(accent: AccentName = 'warm') {
-    const palette = accentPalettes[accent];
+  const palette = accentPalettes[accent];
 
-    return vars(
-        Object.fromEntries(
-            Object.entries(palette).map(([shade, color]) => [
-                `--color-theme-${shade}`,
-                color,
-            ]),
-        ),
-    );
+  return vars(
+    Object.fromEntries(
+      Object.entries(palette).map(([shade, color]) => [
+        `--color-theme-${shade}`,
+        color,
+      ]),
+    ),
+  );
 }
 
 export interface ThemeProviderProps {
-    accent?: AccentName;
-    /** The Appearance preference; `system` follows the OS. */
-    appearance?: Appearance;
-    children: ReactNode;
+  accent?: AccentName;
+  /** The Appearance preference; `system` follows the OS. */
+  appearance?: Appearance;
+  children: ReactNode;
 }
 
 /**
@@ -31,24 +31,24 @@ export interface ThemeProviderProps {
  * Appearance preference to NativeWind's `dark:` variant.
  */
 export function ThemeProvider({
-    accent = 'warm',
-    appearance = 'system',
-    children,
+  accent = 'warm',
+  appearance = 'system',
+  children,
 }: ThemeProviderProps) {
-    const style = useMemo(() => createThemeVars(accent), [accent]);
+  const style = useMemo(() => createThemeVars(accent), [accent]);
 
-    useEffect(() => {
-        colorScheme.set(appearance);
-    }, [appearance]);
+  useEffect(() => {
+    colorScheme.set(appearance);
+  }, [appearance]);
 
-    return (
-        <View className="flex-1" style={style}>
-            {children}
-        </View>
-    );
+  return (
+    <View className="flex-1" style={style}>
+      {children}
+    </View>
+  );
 }
 
 /** Whether `dark:` styles are currently active. */
 export function useIsDark(): boolean {
-    return useColorScheme().colorScheme === 'dark';
+  return useColorScheme().colorScheme === 'dark';
 }

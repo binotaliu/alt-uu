@@ -3,23 +3,23 @@ import { download, previewFile } from '@altuu/attachment-bridge';
 import { useServiceMutation, useServiceQuery } from '../services';
 
 const IMAGE_EXTENSIONS = new Set([
-    'jpg',
-    'jpeg',
-    'png',
-    'gif',
-    'webp',
-    'bmp',
-    'svg',
-    'heic',
-    'heif',
-    'avif',
+  'jpg',
+  'jpeg',
+  'png',
+  'gif',
+  'webp',
+  'bmp',
+  'svg',
+  'heic',
+  'heif',
+  'avif',
 ]);
 
 function extractExtension(value: string): string | null {
-    const withoutQuery = value.split(/[?#]/, 1)[0] ?? value;
-    const match = /\.([a-z0-9]+)$/i.exec(withoutQuery);
+  const withoutQuery = value.split(/[?#]/, 1)[0] ?? value;
+  const match = /\.([a-z0-9]+)$/i.exec(withoutQuery);
 
-    return match ? match[1].toLowerCase() : null;
+  return match ? match[1].toLowerCase() : null;
 }
 
 /**
@@ -27,14 +27,14 @@ function extractExtension(value: string): string | null {
  * to the URL path (attachments carry no MIME type).
  */
 export function isImageAttachment(
-    filename?: string | null,
-    href?: string | null,
+  filename?: string | null,
+  href?: string | null,
 ): boolean {
-    const extension =
-        (filename ? extractExtension(filename) : null) ??
-        (href ? extractExtension(href) : null);
+  const extension =
+    (filename ? extractExtension(filename) : null) ??
+    (href ? extractExtension(href) : null);
 
-    return extension !== null && IMAGE_EXTENSIONS.has(extension);
+  return extension !== null && IMAGE_EXTENSIONS.has(extension);
 }
 
 /**
@@ -43,41 +43,40 @@ export function isImageAttachment(
  * first, like legacy.
  */
 export function useAttachmentRequest(
-    cid: string,
-    href: string,
-    enabled: boolean,
+  cid: string,
+  href: string,
+  enabled: boolean,
 ) {
-    return useServiceQuery({
-        op: 'attachments.tasks',
-        queryKey: ['discuss', 'attachment-request', cid, href],
-        queryFn: (services) =>
-            services.course.prepareMaterialFetch(href, { cid }),
-        enabled,
-        staleTime: 5 * 60 * 1000,
-        retry: false,
-    });
+  return useServiceQuery({
+    op: 'attachments.tasks',
+    queryKey: ['discuss', 'attachment-request', cid, href],
+    queryFn: (services) => services.course.prepareMaterialFetch(href, { cid }),
+    enabled,
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
 }
 
 export interface OpenAttachmentVariables {
-    href: string;
-    filename: string | null;
+  href: string;
+  filename: string | null;
 }
 
 /** Downloads an attachment with the session and hands it to the OS viewer. */
 export function useOpenAttachment(cid: string) {
-    return useServiceMutation<void, OpenAttachmentVariables>({
-        op: 'attachments.tasks',
-        mutationFn: async ({ href, filename }, services) => {
-            const request = await services.course.prepareMaterialFetch(href, {
-                cid,
-            });
-            const result = await download({
-                url: request.url,
-                headers: request.headers,
-                fileName: filename ?? undefined,
-            });
+  return useServiceMutation<void, OpenAttachmentVariables>({
+    op: 'attachments.tasks',
+    mutationFn: async ({ href, filename }, services) => {
+      const request = await services.course.prepareMaterialFetch(href, {
+        cid,
+      });
+      const result = await download({
+        url: request.url,
+        headers: request.headers,
+        fileName: filename ?? undefined,
+      });
 
-            await previewFile(result.uri, result.mimeType);
-        },
-    });
+      await previewFile(result.uri, result.mimeType);
+    },
+  });
 }

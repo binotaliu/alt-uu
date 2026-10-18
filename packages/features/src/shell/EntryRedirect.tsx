@@ -10,16 +10,16 @@ import { useBootstrapStore } from '../services/stores';
  * background by the launch tasks, so this never waits for the network.
  */
 export function EntryRedirect() {
-    const ready = useBootstrapStore((state) => state.ready);
-    const initialRoute = useBootstrapStore((state) => state.initialRoute);
+  const ready = useBootstrapStore((state) => state.ready);
+  const initialRoute = useBootstrapStore((state) => state.initialRoute);
 
-    if (!ready) {
-        return (
-            <Screen className="items-center justify-center">
-                <ActivityIndicator />
-            </Screen>
-        );
-    }
+  if (!ready) {
+    return (
+      <Screen className="items-center justify-center">
+        <ActivityIndicator />
+      </Screen>
+    );
+  }
 
-    return <Redirect href={initialRoute} />;
+  return <Redirect href={initialRoute} />;
 }

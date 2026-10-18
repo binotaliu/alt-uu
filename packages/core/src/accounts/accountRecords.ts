@@ -11,21 +11,21 @@ export type AccountRow = typeof accounts.$inferSelect;
  * (legacy `resolveAccount`, where `Account::find` skips trashed rows).
  */
 export async function resolveAccountRow(
-    db: AltUUDatabase,
-    activeProfile: AccountActiveProfile,
-    accountId?: AccountId,
+  db: AltUUDatabase,
+  activeProfile: AccountActiveProfile,
+  accountId?: AccountId,
 ): Promise<AccountRow | null> {
-    const resolvedId = accountId ?? (await activeProfile.get());
+  const resolvedId = accountId ?? (await activeProfile.get());
 
-    if (resolvedId === null) {
-        return null;
-    }
+  if (resolvedId === null) {
+    return null;
+  }
 
-    const rows = await db
-        .select()
-        .from(accounts)
-        .where(and(eq(accounts.id, resolvedId), isNull(accounts.deletedAt)))
-        .limit(1);
+  const rows = await db
+    .select()
+    .from(accounts)
+    .where(and(eq(accounts.id, resolvedId), isNull(accounts.deletedAt)))
+    .limit(1);
 
-    return rows[0] ?? null;
+  return rows[0] ?? null;
 }

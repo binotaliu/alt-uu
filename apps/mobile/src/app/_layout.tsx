@@ -8,18 +8,15 @@ import '../global.css';
 void SplashScreen.preventAutoHideAsync();
 
 const hideSplash = () => {
-    void SplashScreen.hideAsync();
+  void SplashScreen.hideAsync();
 };
 
 export default function RootLayout() {
-    return (
-        <AppRoot createServices={createAppServices} onReady={hideSplash}>
-            <Stack screenOptions={{ headerShown: false }}>
-                <Stack.Screen
-                    name="browser"
-                    options={{ presentation: 'modal' }}
-                />
-            </Stack>
-        </AppRoot>
-    );
+  return (
+    <AppRoot createServices={createAppServices} onReady={hideSplash}>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="browser" options={{ presentation: 'modal' }} />
+      </Stack>
+    </AppRoot>
+  );
 }

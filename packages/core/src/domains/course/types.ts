@@ -6,82 +6,82 @@
 
 /** CourseItemViewModel */
 export interface CourseItem {
-    courseId: string;
-    commonCourseId: string | null;
-    semester: string | null;
-    name: string;
-    className: string | null;
-    courseType: string | null;
+  courseId: string;
+  commonCourseId: string | null;
+  semester: string | null;
+  name: string;
+  className: string | null;
+  courseType: string | null;
 }
 
 /** CoursePathInfoViewModel */
 export interface CoursePathInfo {
-    code: number;
-    message: string;
-    courseId: string;
-    baseUrl: string | null;
-    progress: number;
-    pathText: string;
+  code: number;
+  message: string;
+  courseId: string;
+  baseUrl: string | null;
+  progress: number;
+  pathText: string;
 }
 
 /** CourseMaterialNodeViewModel */
 export interface CourseMaterialNode {
-    identifier: string;
-    href: string | null;
-    text: string;
-    readed: boolean;
-    level: number;
-    leaf: boolean;
-    itemDisabled: boolean;
+  identifier: string;
+  href: string | null;
+  text: string;
+  readed: boolean;
+  level: number;
+  leaf: boolean;
+  itemDisabled: boolean;
 }
 
 /** GET /api/courses/{cid}/path */
 export interface CoursePath {
-    pathInfo: CoursePathInfo;
-    materialNodes: CourseMaterialNode[];
+  pathInfo: CoursePathInfo;
+  materialNodes: CourseMaterialNode[];
 }
 
 /** CourseMaterialResourceViewModel */
 export interface CourseMaterialResource {
-    downloadPath: string | null;
-    relativePath: string | null;
-    updateDatetime: number;
-    size: number;
-    metadata: string;
-    filename: string | null;
-    title: string | null;
-    href: string | null;
+  downloadPath: string | null;
+  relativePath: string | null;
+  updateDatetime: number;
+  size: number;
+  metadata: string;
+  filename: string | null;
+  title: string | null;
+  href: string | null;
 }
 
 /** CourseLearningTimeItemViewModel */
 export interface CourseLearningTimeItem {
-    identifier: string;
-    href: string | null;
-    text: string;
-    level: number;
-    itemDisabled: boolean;
-    duration: string | null;
+  identifier: string;
+  href: string | null;
+  text: string;
+  level: number;
+  itemDisabled: boolean;
+  duration: string | null;
 }
 
 /** CourseTasksCountViewModel */
 export interface CourseTasksCount {
-    courseId: string;
-    pendingHomeworks: number;
-    unreadArticles: number;
+  courseId: string;
+  pendingHomeworks: number;
+  unreadArticles: number;
 }
 
 /** CourseHomeworkItemViewModel (also used for self exams). */
 export interface CourseHomeworkItem {
-    title: string;
-    percent: string;
-    type: string;
-    status: string | null;
-    window: string | null;
-    actionUrl: string | null;
-    resultUrl: string | null;
-    source: string;
-    isSubmitted: boolean;
-    resultUnavailableReason: string | null;
+  title: string;
+  percent: string;
+  type: string;
+  status: string | null;
+  window: string | null;
+  actionUrl: string | null;
+  resultUrl: string | null;
+  source: string;
+  isSubmitted: boolean;
+  resultUnavailableReason: string | null;
 }
 
 /**
@@ -89,16 +89,16 @@ export interface CourseHomeworkItem {
  * domain (structurally identical to its `SchoolPortalHomeworkNotice`).
  */
 export interface CourseSchoolPortalHomeworkNotice {
-    title: string;
-    dueDate: string | null;
-    submissionMethod: string | null;
-    downloadUrl: string | null;
+  title: string;
+  dueDate: string | null;
+  submissionMethod: string | null;
+  downloadUrl: string | null;
 }
 
 /** CourseHomeworkListViewModel */
 export interface CourseHomeworkList {
-    homeworkItems: CourseHomeworkItem[];
-    schoolPortalNotices: CourseSchoolPortalHomeworkNotice[];
+  homeworkItems: CourseHomeworkItem[];
+  schoolPortalNotices: CourseSchoolPortalHomeworkNotice[];
 }
 
 /** VideoProvider enum */
@@ -110,8 +110,8 @@ export type VideoProvider = 'native' | 'youtube';
  * request. Replaces the legacy local `/material-proxy/<b64>` URL.
  */
 export interface MaterialFetchDescriptor {
-    url: string;
-    headers: Record<string, string>;
+  url: string;
+  headers: Record<string, string>;
 }
 
 /**
@@ -129,37 +129,37 @@ export interface MaterialFetchDescriptor {
  *   bridge instead.
  */
 export interface ParsedMaterialContent {
-    videoUrl: string | null;
-    subtitleUrl: string | null;
-    downloadUrl: string | null;
-    downloadProxyUrl: null;
-    downloadFileName: string | null;
-    downloadFileExtension: string | null;
-    isPdf: boolean;
-    htmlContent: string | null;
-    videoProvider: VideoProvider;
-    embedVideoUrl: string | null;
-    /** Page URL to use as the WebView base URL (null when there is no HTML). */
-    baseUrl: string | null;
-    download: MaterialFetchDescriptor | null;
-    subtitle: MaterialFetchDescriptor | null;
+  videoUrl: string | null;
+  subtitleUrl: string | null;
+  downloadUrl: string | null;
+  downloadProxyUrl: null;
+  downloadFileName: string | null;
+  downloadFileExtension: string | null;
+  isPdf: boolean;
+  htmlContent: string | null;
+  videoProvider: VideoProvider;
+  embedVideoUrl: string | null;
+  /** Page URL to use as the WebView base URL (null when there is no HTML). */
+  baseUrl: string | null;
+  download: MaterialFetchDescriptor | null;
+  subtitle: MaterialFetchDescriptor | null;
 }
 
 /** GET /api/courses/{cid}/last-seen-material */
 export interface CourseLastSeenMaterial {
-    activityId: string | null;
-    positionSeconds: number | null;
-    mediaDurationSeconds: number | null;
+  activityId: string | null;
+  positionSeconds: number | null;
+  mediaDurationSeconds: number | null;
 }
 
 /** GET /api/courses/{cid}/playback-progress/{activityId} `progress` */
 export interface CoursePlaybackProgress {
-    cid: string;
-    activityId: string;
-    studySeconds: number;
-    positionSeconds: number;
-    mediaDurationSeconds: number | null;
-    hunguUploadSuccess: boolean | null;
-    /** ISO 8601 in UTC (`toIso8601String`), or null. */
-    updatedAt: string | null;
+  cid: string;
+  activityId: string;
+  studySeconds: number;
+  positionSeconds: number;
+  mediaDurationSeconds: number | null;
+  hunguUploadSuccess: boolean | null;
+  /** ISO 8601 in UTC (`toIso8601String`), or null. */
+  updatedAt: string | null;
 }

@@ -10,5 +10,5 @@ export type WebViewHandle = WebView;
  * This is the same component with its real props type.
  */
 export const TypedWebView = WebView as unknown as ComponentType<
-    WebViewProps & { ref?: Ref<WebViewHandle> }
+  WebViewProps & { ref?: Ref<WebViewHandle> }
 >;

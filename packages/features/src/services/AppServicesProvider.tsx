@@ -2,9 +2,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createContext, useContext, useMemo, type ReactNode } from 'react';
 
 import {
-    createServiceRuntime,
-    type RouterLike,
-    type ServiceRuntime,
+  createServiceRuntime,
+  type RouterLike,
+  type ServiceRuntime,
 } from './runtime';
 import type { AppServices } from './types';
 
@@ -16,26 +16,26 @@ const RuntimeContext = createContext<ServiceRuntime | null>(null);
  * so tab switches do not refetch.
  */
 export function createAppQueryClient(): QueryClient {
-    return new QueryClient({
-        defaultOptions: {
-            queries: {
-                retry: false,
-                staleTime: 60_000,
-                gcTime: 10 * 60_000,
-                refetchOnWindowFocus: false,
-            },
-            mutations: { retry: false },
-        },
-    });
+  return new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+        staleTime: 60_000,
+        gcTime: 10 * 60_000,
+        refetchOnWindowFocus: false,
+      },
+      mutations: { retry: false },
+    },
+  });
 }
 
 export interface AppServicesProviderProps {
-    services: AppServices;
-    children: ReactNode;
-    /** Injected in tests; defaults to a fresh client. */
-    queryClient?: QueryClient;
-    /** Injected in tests; defaults to expo-router's imperative router. */
-    router?: RouterLike;
+  services: AppServices;
+  children: ReactNode;
+  /** Injected in tests; defaults to a fresh client. */
+  queryClient?: QueryClient;
+  /** Injected in tests; defaults to expo-router's imperative router. */
+  router?: RouterLike;
 }
 
 /**
@@ -43,44 +43,44 @@ export interface AppServicesProviderProps {
  * screen. Mount once, near the root, after `createAppServices()` resolved.
  */
 export function AppServicesProvider({
-    services,
-    children,
-    queryClient,
-    router,
+  services,
+  children,
+  queryClient,
+  router,
 }: AppServicesProviderProps) {
-    const runtime = useMemo(
-        () =>
-            createServiceRuntime({
-                services,
-                queryClient: queryClient ?? createAppQueryClient(),
-                router,
-            }),
-        [services, queryClient, router],
-    );
+  const runtime = useMemo(
+    () =>
+      createServiceRuntime({
+        services,
+        queryClient: queryClient ?? createAppQueryClient(),
+        router,
+      }),
+    [services, queryClient, router],
+  );
 
-    return (
-        <QueryClientProvider client={runtime.queryClient}>
-            <RuntimeContext.Provider value={runtime}>
-                {children}
-            </RuntimeContext.Provider>
-        </QueryClientProvider>
-    );
+  return (
+    <QueryClientProvider client={runtime.queryClient}>
+      <RuntimeContext.Provider value={runtime}>
+        {children}
+      </RuntimeContext.Provider>
+    </QueryClientProvider>
+  );
 }
 
 /** The runtime behind the hooks: `run`, session expiry, preferences. */
 export function useServiceRuntime(): ServiceRuntime {
-    const runtime = useContext(RuntimeContext);
+  const runtime = useContext(RuntimeContext);
 
-    if (runtime === null) {
-        throw new Error(
-            'useServiceRuntime must be used inside <AppServicesProvider>.',
-        );
-    }
+  if (runtime === null) {
+    throw new Error(
+      'useServiceRuntime must be used inside <AppServicesProvider>.',
+    );
+  }
 
-    return runtime;
+  return runtime;
 }
 
 /** The composed domain services (see {@link AppServices}). */
 export function useAppServices(): AppServices {
-    return useServiceRuntime().services;
+  return useServiceRuntime().services;
 }

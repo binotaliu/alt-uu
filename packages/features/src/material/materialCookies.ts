@@ -8,17 +8,17 @@ import type { AppServices } from '../services/types';
  * that base URL fetches images and stylesheets as the user. Best effort.
  */
 export async function seedHunguWebViewCookies(
-    services: Pick<AppServices, 'storage'>,
-    url: string,
+  services: Pick<AppServices, 'storage'>,
+  url: string,
 ): Promise<void> {
-    try {
-        const session = await services.storage.hunguSessions.get();
-        const cookies = Object.entries(session?.cookies ?? {}).map(
-            ([name, value]) => ({ name, value }),
-        );
+  try {
+    const session = await services.storage.hunguSessions.get();
+    const cookies = Object.entries(session?.cookies ?? {}).map(
+      ([name, value]) => ({ name, value }),
+    );
 
-        await setWebViewCookies(url, cookies);
-    } catch {
-        // Without cookies the page still renders; protected images fail.
-    }
+    await setWebViewCookies(url, cookies);
+  } catch {
+    // Without cookies the page still renders; protected images fail.
+  }
 }

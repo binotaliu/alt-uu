@@ -4,25 +4,25 @@ import type { AppServices } from '../../services/types';
 import { hostOf } from '../../shell/url';
 
 function toBridgeCookies(
-    cookies: Record<string, string>,
-    baseUrl: string,
+  cookies: Record<string, string>,
+  baseUrl: string,
 ): BridgeCookie[] {
-    const domain = hostOf(baseUrl);
+  const domain = hostOf(baseUrl);
 
-    return Object.entries(cookies)
-        .filter(([name, value]) => name !== '' && value !== '')
-        .map(([name, value]) => ({
-            name,
-            value,
-            ...(domain ? { domain } : {}),
-            path: '/',
-        }));
+  return Object.entries(cookies)
+    .filter(([name, value]) => name !== '' && value !== '')
+    .map(([name, value]) => ({
+      name,
+      value,
+      ...(domain ? { domain } : {}),
+      path: '/',
+    }));
 }
 
 export interface BrowserSession {
-    /** Where the HUNGU session cookies belong; null without a session. */
-    baseUrl: string | null;
-    cookies: BridgeCookie[];
+  /** Where the HUNGU session cookies belong; null without a session. */
+  baseUrl: string | null;
+  cookies: BridgeCookie[];
 }
 
 /**
@@ -30,19 +30,19 @@ export interface BrowserSession {
  * Never throws: without a session the page simply loads unauthenticated.
  */
 export async function loadHunguBrowserSession(
-    services: AppServices,
+  services: AppServices,
 ): Promise<BrowserSession> {
-    try {
-        const handoff =
-            await services.hungu.client.materialFetchHandoff('about:blank');
+  try {
+    const handoff =
+      await services.hungu.client.materialFetchHandoff('about:blank');
 
-        return {
-            baseUrl: handoff.baseUrl,
-            cookies: toBridgeCookies(handoff.cookies, handoff.baseUrl),
-        };
-    } catch {
-        return { baseUrl: null, cookies: [] };
-    }
+    return {
+      baseUrl: handoff.baseUrl,
+      cookies: toBridgeCookies(handoff.cookies, handoff.baseUrl),
+    };
+  } catch {
+    return { baseUrl: null, cookies: [] };
+  }
 }
 
 /**
@@ -51,19 +51,19 @@ export async function loadHunguBrowserSession(
  * matches them against each request host itself.
  */
 export async function loadDownloadCookies(
-    services: AppServices,
-    hungu: BrowserSession,
-    url: string,
+  services: AppServices,
+  hungu: BrowserSession,
+  url: string,
 ): Promise<BridgeCookie[]> {
-    const cookies = [...hungu.cookies];
+  const cookies = [...hungu.cookies];
 
-    try {
-        const portal = await services.schoolPortal.proxy.downloadHandoff(url);
+  try {
+    const portal = await services.schoolPortal.proxy.downloadHandoff(url);
 
-        cookies.push(...toBridgeCookies(portal.cookies, portal.baseUrl));
-    } catch {
-        // No school portal session: HUNGU cookies alone.
-    }
+    cookies.push(...toBridgeCookies(portal.cookies, portal.baseUrl));
+  } catch {
+    // No school portal session: HUNGU cookies alone.
+  }
 
-    return cookies;
+  return cookies;
 }

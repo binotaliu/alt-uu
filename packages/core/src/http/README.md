@@ -79,17 +79,17 @@ redirects to `/` when `__DEV__` is false. Run every button once with
 `Fetch: expo` and once with `Fetch: global`:
 
 1. **Redirect probe** (needs httpbin.org or a compatible echo server):
-    - `manual: status=302 … setCookies=1`. With `expo`, the manual redirect and
-      the `Set-Cookie` on the 3xx are both visible. With `global`, expect 200
-      here: RN's fetch cannot stop at the 302.
-    - `server saw:` lists exactly `explicit` and `probe_cookie`. No other
-      cookies means nothing was injected from a native store.
-    - `multi:` has 2 entries. On iOS this checks the folded `Set-Cookie`
-      splitting, including the comma inside `Expires`.
-    - Both `native jar` lines print `{"cookies": {}}`. A non-empty jar means an
-      `omit` request still stored cookies natively. Check this one
-      especially on iOS, where it depends on `httpShouldHandleCookies = false`
-      also suppressing storage.
+   - `manual: status=302 … setCookies=1`. With `expo`, the manual redirect and
+     the `Set-Cookie` on the 3xx are both visible. With `global`, expect 200
+     here: RN's fetch cannot stop at the 302.
+   - `server saw:` lists exactly `explicit` and `probe_cookie`. No other
+     cookies means nothing was injected from a native store.
+   - `multi:` has 2 entries. On iOS this checks the folded `Set-Cookie`
+     splitting, including the comma inside `Expires`.
+   - Both `native jar` lines print `{"cookies": {}}`. A non-empty jar means an
+     `omit` request still stored cookies natively. Check this one
+     especially on iOS, where it depends on `httpShouldHandleCookies = false`
+     also suppressing storage.
 2. **HUNGU login** with a real account: `login code=0`, then `my-profile
 code=0` and `my-course-list code=0`. The log shows the `Cookie` header sent
    on each hop and the `Set-Cookie` received. The probe logs in with

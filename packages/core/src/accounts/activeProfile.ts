@@ -6,29 +6,29 @@ export const ACTIVE_PROFILE_KEY = 'account.active_profile';
 
 /** Port of legacy AccountActiveProfile + AccountContext. */
 export class AccountActiveProfile implements ActiveAccountProvider {
-    constructor(private readonly keyValues: KeyValueStoreRepository) {}
+  constructor(private readonly keyValues: KeyValueStoreRepository) {}
 
-    async get(): Promise<AccountId | null> {
-        const value = await this.keyValues.get(ACTIVE_PROFILE_KEY);
+  async get(): Promise<AccountId | null> {
+    const value = await this.keyValues.get(ACTIVE_PROFILE_KEY);
 
-        if (value === null || value === '') {
-            return null;
-        }
-
-        const accountId = Number.parseInt(value, 10);
-
-        return Number.isNaN(accountId) ? null : accountId;
+    if (value === null || value === '') {
+      return null;
     }
 
-    async set(accountId: AccountId): Promise<void> {
-        await this.keyValues.set(ACTIVE_PROFILE_KEY, String(accountId));
-    }
+    const accountId = Number.parseInt(value, 10);
 
-    async clear(): Promise<void> {
-        await this.keyValues.delete(ACTIVE_PROFILE_KEY);
-    }
+    return Number.isNaN(accountId) ? null : accountId;
+  }
 
-    currentAccountId(): Promise<AccountId | null> {
-        return this.get();
-    }
+  async set(accountId: AccountId): Promise<void> {
+    await this.keyValues.set(ACTIVE_PROFILE_KEY, String(accountId));
+  }
+
+  async clear(): Promise<void> {
+    await this.keyValues.delete(ACTIVE_PROFILE_KEY);
+  }
+
+  currentAccountId(): Promise<AccountId | null> {
+    return this.get();
+  }
 }

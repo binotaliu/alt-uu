@@ -6,7 +6,7 @@ import type { Schema } from './schema';
  * provides the expo-sqlite driver, tests use better-sqlite3 (both 'sync').
  */
 export type AltUUDatabase = BaseSQLiteDatabase<
-    'sync' | 'async',
-    unknown,
-    Schema
+  'sync' | 'async',
+  unknown,
+  Schema
 >;

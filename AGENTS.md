@@ -29,11 +29,11 @@ tools/legacy-fixtures-gen/   scripts that generated the parity fixtures from the
 - `src/db`: drizzle schema, generated migrations (`npm run db:generate -w @altuu/core`), `CacheRepository` (Laravel-like `remember` / `put` / `forget` with TTL) and `KeyValueStoreRepository`. Credentials and sessions are AES-encrypted with a key held in secure storage.
 - `src/accounts`: `createStorageServices` (account manager, active profile, credentials and session stores).
 - `src/domains/<domain>/`: one folder per legacy `src/Domains/*` domain, each with an `index.ts` and a `create<Domain>Services(deps)` factory. Conventions:
-    - Each legacy Action becomes a function or small class with explicit injected deps. No globals, no singletons.
-    - "Endpoints" no longer exist: the service method the UI calls includes the legacy controller logic (validation, composition, error mapping).
-    - Return types mirror the legacy ViewModels / DTOs with the same camelCase field names (`<domain>/types.ts`), so screens keep parity.
-    - Caching uses the legacy keys and TTLs, prefixed with the account id where legacy scoped per account.
-    - Cross-domain needs are narrow interfaces or callbacks defined by the consuming domain and wired in the composition root (`apps/mobile/src/compositionRoot.ts`). Read a factory's deps JSDoc before wiring it. Every HTTP stack gets the diagnostics `upstreamListener` as `onUpstreamCall`.
+  - Each legacy Action becomes a function or small class with explicit injected deps. No globals, no singletons.
+  - "Endpoints" no longer exist: the service method the UI calls includes the legacy controller logic (validation, composition, error mapping).
+  - Return types mirror the legacy ViewModels / DTOs with the same camelCase field names (`<domain>/types.ts`), so screens keep parity.
+  - Caching uses the legacy keys and TTLs, prefixed with the account id where legacy scoped per account.
+  - Cross-domain needs are narrow interfaces or callbacks defined by the consuming domain and wired in the composition root (`apps/mobile/src/compositionRoot.ts`). Read a factory's deps JSDoc before wiring it. Every HTTP stack gets the diagnostics `upstreamListener` as `onUpstreamCall`.
 - `src/legacy-migration`: one-time import of the NativePHP SQLite database on first launch (Laravel `encrypted` casts, per-device APP_KEY read through the attachment bridge). See its `README.md`. The legacy DB is opened read-only and never deleted.
 
 ### `@altuu/features`
@@ -99,7 +99,7 @@ Every change ships with tests. Run the smallest relevant set first, then the who
 
 ## Code style
 
-- TypeScript strict, 4-space indent, single quotes, trailing commas (Prettier; YAML uses 2 spaces). Descriptive names (`isSubscriptionActive`, not `sub()`).
+- TypeScript strict, 2-space indent, single quotes, trailing commas (Prettier). Descriptive names (`isSubscriptionActive`, not `sub()`).
 - Small focused modules. JSDoc only where the why is not obvious; reference the legacy name being ported when it helps (`legacy restoreActiveMediaRoute`).
 - Reuse before writing: check `@altuu/ui`, `packages/features/src/shell` and sibling areas for an existing component or helper.
 - Conventional Commits (`feat(material): ...`), enforced by commitlint. lint-staged runs Prettier and ESLint on commit.

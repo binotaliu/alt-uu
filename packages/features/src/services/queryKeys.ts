@@ -5,9 +5,9 @@
  * targeted.
  */
 export const queryKeys = {
-    accounts: ['accounts'] as const,
-    sessionProfile: ['auth', 'profile'] as const,
-    appConfig: ['app', 'config'] as const,
-    appStatus: ['app', 'status'] as const,
-    entitlement: ['subscription', 'entitlement'] as const,
+  accounts: ['accounts'] as const,
+  sessionProfile: ['auth', 'profile'] as const,
+  appConfig: ['app', 'config'] as const,
+  appStatus: ['app', 'status'] as const,
+  entitlement: ['subscription', 'entitlement'] as const,
 };
