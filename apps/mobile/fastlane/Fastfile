@@ -8,8 +8,10 @@
 require 'fileutils'
 require 'securerandom'
 
-ROOT_DIR = File.expand_path('..', __dir__)
-OUTPUT_DIR = File.join(__dir__, 'build-output')
+# `__dir__` can be relative (".") inside lanes, so resolve it once at load time.
+FASTLANE_DIR = File.expand_path(__dir__)
+ROOT_DIR = File.expand_path('..', FASTLANE_DIR)
+OUTPUT_DIR = File.join(FASTLANE_DIR, 'build-output')
 IOS_BUNDLE_IDENTIFIER = 'org.binota.alt-uu'
 ANDROID_PACKAGE = 'org.binota.alt_uu'
 
@@ -50,7 +52,7 @@ def run_gradle(task, signing_env)
     task: task,
     build_type: 'Release',
     project_dir: File.join(ROOT_DIR, 'android'),
-    flags: "-I '#{File.join(__dir__, 'android-signing.init.gradle')}' --stacktrace"
+    flags: "-I '#{File.join(FASTLANE_DIR, 'android-signing.init.gradle')}' --stacktrace"
   )
 end
 
