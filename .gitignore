@@ -32,3 +32,7 @@ yarn-error.log
 # Agents
 CLAUDE.local.md
 .claude/settings.local.json
+
+# Gradle / Android build output
+build/
+.gradle/
