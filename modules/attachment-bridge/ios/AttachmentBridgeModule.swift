@@ -1,4 +1,5 @@
 import ExpoModulesCore
+import UIKit
 import WebKit
 
 public final class AttachmentBridgeModule: Module {
@@ -85,6 +86,35 @@ public final class AttachmentBridgeModule: Module {
       }
 
       try self.previewPresenter.present(fileURL: fileURL, mimeType: mimeType, from: presenter)
+    }.runOnQueue(.main)
+
+    // HLS has no AVAssetImageGenerator support, so frames come from a hidden AVPlayer's video output.
+    AsyncFunction("captureVideoFrame") { (url: String, seconds: Double, promise: Promise) in
+      guard let videoURL = URL(string: url.trimmingCharacters(in: .whitespacesAndNewlines)),
+            videoURL.host?.isEmpty == false else {
+        throw AttachmentBridgeException.invalidUrl(url)
+      }
+
+      let cacheDirectory = self.appContext?.config.cacheDirectory
+        ?? FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+      let grabber = VideoFrameGrabber(
+        outputDirectory: cacheDirectory.appendingPathComponent("video-frames", isDirectory: true)
+      )
+
+      grabber.grab(url: videoURL, seconds: seconds) { result in
+        _ = grabber // keeps the grabber alive until it finishes
+        switch result {
+        case .success(let fileURL):
+          let size = UIImage(contentsOfFile: fileURL.path)?.size ?? .zero
+          promise.resolve([
+            "uri": fileURL.absoluteString,
+            "width": Double(size.width),
+            "height": Double(size.height),
+          ])
+        case .failure(let error):
+          promise.reject(error)
+        }
+      }
     }.runOnQueue(.main)
 
     // Read-only. The NativePHP app stored its per-install Laravel APP_KEY as a generic password

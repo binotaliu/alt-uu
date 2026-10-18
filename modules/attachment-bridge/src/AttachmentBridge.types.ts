@@ -83,6 +83,14 @@ export type StartedDownload = {
   cancel: () => Promise<boolean>;
 };
 
+export type VideoFrameResult = {
+  /** `file://` JPEG in the app cache dir. */
+  uri: string;
+  /** Pixel size of the image. */
+  width: number;
+  height: number;
+};
+
 export type SaveFileResult = {
   /** `false` when the user dismissed the picker. */
   saved: boolean;
@@ -103,6 +111,7 @@ export const ATTACHMENT_BRIDGE_ERROR_CODES = [
   'ERR_SAVE_IN_PROGRESS',
   'ERR_SAVE_FAILED',
   'ERR_LEGACY_READ_FAILED',
+  'ERR_FRAME_CAPTURE_FAILED',
 ] as const;
 
 export type AttachmentBridgeErrorCode =
@@ -132,6 +141,7 @@ export interface AttachmentBridgeNativeModule {
   ): Promise<SaveFileResult>;
   readLegacyNativePhpAppKey(): Promise<string | null>;
   fileExists(path: string): Promise<boolean>;
+  captureVideoFrame(url: string, seconds: number): Promise<VideoFrameResult>;
   addListener(
     eventName: 'onDownloadProgress',
     listener: (event: DownloadProgressEvent) => void,

@@ -1,6 +1,5 @@
 import { Image } from 'expo-image';
 import * as Sharing from 'expo-sharing';
-import type { VideoThumbnail } from 'expo-video';
 import {
   useCallback,
   useMemo,
@@ -18,9 +17,10 @@ import {
   frameInfoLine,
   watermarkPlacements,
 } from './frameCapture';
+import type { CapturedFrameImage } from './MaterialPlayer';
 
 export interface FrameCaptureJob {
-  thumbnail: VideoThumbnail;
+  thumbnail: CapturedFrameImage;
   seconds: number;
   studentId: string;
   courseName: string;

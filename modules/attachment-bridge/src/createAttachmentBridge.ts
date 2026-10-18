@@ -8,6 +8,7 @@ import type {
   NativeBridgeCookie,
   SaveFileResult,
   StartedDownload,
+  VideoFrameResult,
 } from './AttachmentBridge.types';
 import { normalizeAttachmentBridgeError } from './errors';
 
@@ -70,6 +71,13 @@ export type AttachmentBridge = {
    * path). Rejects with `ERR_INVALID_URL` for anything else.
    */
   fileExists(path: string): Promise<boolean>;
+  /**
+   * Decodes the frame at `seconds` of a remote video, including HLS
+   * (`.m3u8`) streams that `AVAssetImageGenerator` cannot read. iOS only:
+   * rejects elsewhere (the native function is missing) and with
+   * `ERR_FRAME_CAPTURE_FAILED` when no frame arrives.
+   */
+  captureVideoFrame(url: string, seconds: number): Promise<VideoFrameResult>;
 };
 
 let downloadSequence = 0;
@@ -168,5 +176,7 @@ export function createAttachmentBridge(
     readLegacyNativePhpAppKey: () =>
       rethrowNormalized(nativeModule.readLegacyNativePhpAppKey()),
     fileExists: (path) => rethrowNormalized(nativeModule.fileExists(path)),
+    captureVideoFrame: (url, seconds) =>
+      rethrowNormalized(nativeModule.captureVideoFrame(url, seconds)),
   };
 }

@@ -93,6 +93,7 @@ export function createMockAttachmentBridgeNativeModule(): MockAttachmentBridgeNa
     saveFile: jest.fn(),
     readLegacyNativePhpAppKey: jest.fn(),
     fileExists: jest.fn(),
+    captureVideoFrame: jest.fn(),
     addListener: jest.fn(),
     emitDownloadProgress(event: DownloadProgressEvent) {
       listeners.forEach((listener) => listener(event));
@@ -125,6 +126,11 @@ export function createMockAttachmentBridgeNativeModule(): MockAttachmentBridgeNa
         .mockReset()
         .mockImplementation(async () => null);
       mock.fileExists.mockReset().mockImplementation(async () => false);
+      mock.captureVideoFrame.mockReset().mockImplementation(async () => ({
+        uri: 'file:///mock-cache/video-frames/frame.jpg',
+        width: 1280,
+        height: 720,
+      }));
       mock.addListener
         .mockReset()
         .mockImplementation((_eventName, listener) => {
@@ -159,6 +165,7 @@ export const {
   saveFile,
   readLegacyNativePhpAppKey,
   fileExists,
+  captureVideoFrame,
 } = attachmentBridge;
 
 export default attachmentBridge;

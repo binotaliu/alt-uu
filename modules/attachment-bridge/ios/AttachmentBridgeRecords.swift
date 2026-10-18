@@ -52,6 +52,10 @@ internal final class AttachmentBridgeException: Exception, @unchecked Sendable {
     AttachmentBridgeException("ERR_DOWNLOAD_FAILED", reason.map { "無法下載附件：\($0)" } ?? "無法下載附件。")
   }
 
+  static func frameCaptureFailed(_ reason: String?) -> AttachmentBridgeException {
+    AttachmentBridgeException("ERR_FRAME_CAPTURE_FAILED", reason.map { "無法擷取影片畫面：\($0)" } ?? "無法擷取影片畫面。")
+  }
+
   static var fileNotFound: AttachmentBridgeException { AttachmentBridgeException("ERR_FILE_NOT_FOUND", "找不到附件檔案。") }
   static var noViewer: AttachmentBridgeException { AttachmentBridgeException("ERR_NO_VIEWER", "沒有可開啟此檔案類型的檢視器。") }
   static var noPresenter: AttachmentBridgeException { AttachmentBridgeException("ERR_NO_PRESENTER", "無法取得目前的畫面以顯示對話框。") }

@@ -26,6 +26,7 @@ export const {
   saveFile,
   readLegacyNativePhpAppKey,
   fileExists,
+  captureVideoFrame,
 } = attachmentBridge;
 
 export default attachmentBridge;

@@ -1,3 +1,4 @@
+import { captureVideoFrame } from '@altuu/attachment-bridge';
 import { Button, Text } from '@altuu/ui';
 import { useEventListener } from 'expo';
 import * as ScreenOrientation from 'expo-screen-orientation';
@@ -14,9 +15,11 @@ import {
   useImperativeHandle,
   useRef,
   useState,
+  type ComponentRef,
   type Ref,
 } from 'react';
 import { View } from 'react-native';
+import { captureRef } from 'react-native-view-shot';
 
 import { AudioPlayerControls } from './AudioPlayerControls';
 import { usePlaybackRateStore } from './PlaybackRateMenu';
@@ -47,10 +50,14 @@ export interface MaterialPlayerHandle {
   exitFullscreen(): boolean;
   /** The frame on screen, for the watermarked capture. */
   captureFrame(): Promise<{
-    thumbnail: VideoThumbnail;
+    thumbnail: CapturedFrameImage;
     seconds: number;
   } | null>;
 }
+
+/** A decoded thumbnail, or a snapshot file of the video view (HLS fallback). */
+export type CapturedFrameImage =
+  VideoThumbnail | { uri: string; width: number; height: number };
 
 export interface MaterialPlayerProps {
   videoUrl: string;
@@ -113,6 +120,7 @@ export function MaterialPlayer({
     created.play();
   });
   const videoViewRef = useRef<VideoView>(null);
+  const videoFrameRef = useRef<ComponentRef<typeof View>>(null);
   const isFullscreenRef = useRef(false);
   const scrubbingRef = useRef(false);
   const [progress, setProgress] = useState<PlaybackProgress>({
@@ -235,14 +243,49 @@ export function MaterialPlayer({
         }
 
         const seconds = player.currentTime;
-        const [thumbnail] = await player.generateThumbnailsAsync([seconds], {
-          maxWidth: 1920,
+
+        try {
+          const [thumbnail] = await player.generateThumbnailsAsync([seconds], {
+            maxWidth: 1920,
+          });
+
+          if (thumbnail !== undefined) {
+            return { thumbnail, seconds };
+          }
+        } catch {
+          // AVAssetImageGenerator cannot read HLS (.m3u8) streams.
+        }
+
+        try {
+          const frame = await captureVideoFrame(videoUrl, seconds);
+
+          return { thumbnail: frame, seconds };
+        } catch {
+          // Android has no native grabber yet: snapshot the video view.
+        }
+
+        const target = videoFrameRef.current;
+
+        if (!target) {
+          return null;
+        }
+
+        const { width, height } = await new Promise<{
+          width: number;
+          height: number;
+        }>((resolve) =>
+          target.measure((_x, _y, w, h) => resolve({ width: w, height: h })),
+        );
+        const uri = await captureRef(target, {
+          format: 'jpg',
+          quality: 0.9,
+          result: 'tmpfile',
         });
 
-        return thumbnail === undefined ? null : { thumbnail, seconds };
+        return { thumbnail: { uri, width, height }, seconds };
       },
     }),
-    [isAudio, player, reload, seekTo, setRate],
+    [isAudio, player, reload, seekTo, setRate, videoUrl],
   );
 
   const errorBanner = failed ? (
@@ -290,7 +333,11 @@ export function MaterialPlayer({
 
   return (
     <View>
-      <View className="aspect-video w-full overflow-hidden rounded-xl bg-black shadow">
+      <View
+        ref={videoFrameRef}
+        collapsable={false}
+        className="aspect-video w-full overflow-hidden rounded-xl bg-black shadow"
+      >
         <VideoView
           ref={videoViewRef}
           player={player}
