@@ -2,7 +2,7 @@ import { PageHeader, Screen, Text } from '@altuu/ui';
 import { useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams, usePathname } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
 
 import { CourseChips } from './CourseListView';
 import { courseKeys, useCourses, useCourseTasksCount } from './courseQueries';
@@ -102,6 +102,21 @@ export function CourseShowView({
     wasHere.current = here;
   }, [here, activeTab, cid, queryClient]);
 
+  const [refreshingMaterials, setRefreshingMaterials] = useState(false);
+
+  const refreshMaterials = async () => {
+    setRefreshingMaterials(true);
+
+    try {
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: courseKeys.learningTimes(cid) }),
+        queryClient.refetchQueries({ queryKey: courseKeys.lastSeen(cid) }),
+      ]);
+    } finally {
+      setRefreshingMaterials(false);
+    }
+  };
+
   const markOpenedInBrowser = () => {
     refreshOnReturn.current = true;
   };
@@ -178,9 +193,18 @@ export function CourseShowView({
       </View>
 
       <ScrollView
+        testID="course-body-scroll"
         className="flex-1"
         contentContainerClassName="px-3 pb-24"
         keyboardShouldPersistTaps="handled"
+        refreshControl={
+          activeTab === 'materials' ? (
+            <RefreshControl
+              refreshing={refreshingMaterials}
+              onRefresh={() => void refreshMaterials()}
+            />
+          ) : undefined
+        }
       >
         {activeTab === 'materials' ? (
           <CourseMaterialsTab cid={cid} />

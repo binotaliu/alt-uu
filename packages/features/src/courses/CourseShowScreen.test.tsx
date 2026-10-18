@@ -1,4 +1,4 @@
-import { fireEvent, screen } from '@testing-library/react-native';
+import { act, fireEvent, screen } from '@testing-library/react-native';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, Text } from 'react-native';
@@ -116,6 +116,23 @@ describe('CourseShowView', () => {
     await fireEvent.press(await screen.findByText('1-1 極限'));
 
     expect(router.push).toHaveBeenCalledWith('/courses/10/A1');
+  });
+
+  it('refetches the material tree on pull to refresh', async () => {
+    const overrides = services();
+
+    await renderWithServices(<CourseShowView cid="10" />, overrides);
+    await screen.findByText('第一章');
+    expect(overrides.course.getLearningTimes).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      screen
+        .getByTestId('course-body-scroll')
+        .props.refreshControl.props.onRefresh();
+    });
+
+    expect(overrides.course.getLearningTimes).toHaveBeenCalledTimes(2);
+    expect(overrides.course.getLastSeenMaterial).toHaveBeenCalledTimes(2);
   });
 
   it('collapses directories', async () => {
