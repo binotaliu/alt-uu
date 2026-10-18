@@ -1,0 +1,14 @@
+{
+    "source": "Unit/ListCoursesTest.php:50",
+    "phpClass": "AltUU\\Domains\\Course\\Actions\\CourseTypeMatcher",
+    "cases": [
+        {
+            "name": "resolves course type and commonCourseId using CourseTypeMatcher utility",
+            "partial": true,
+            "expected": {
+                "courseType": "語音",
+                "commonCourseId": "1005"
+            }
+        }
+    ]
+}

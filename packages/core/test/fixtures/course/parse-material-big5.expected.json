@@ -1,0 +1,23 @@
+{
+    "source": "Feature/Course/ParseMaterialContentTest.php:373",
+    "phpClass": "AltUU\\Domains\\Course\\Actions\\ParseMaterialContent (via GET /materials/content/parsed)",
+    "note": "Binary file: Big5-encoded body served with a (wrong) charset=utf-8 content-type.",
+    "cases": [
+        {
+            "name": "converts big5 encoded html to utf-8",
+            "input": {
+                "url": "https://example.com/content/big5.html",
+                "upstreamContentType": "text/html; charset=utf-8"
+            },
+            "partial": true,
+            "expected": {
+                "htmlContent": {
+                    "contains": [
+                        "測試 Big5 內容"
+                    ],
+                    "isValidUtf8": true
+                }
+            }
+        }
+    ]
+}

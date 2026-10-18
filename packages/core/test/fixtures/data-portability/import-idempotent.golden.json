@@ -1,0 +1,38 @@
+{
+    "generatedBy": "real PHP legacy app (alt-uu-legacy worktree of main)",
+    "phpClass": "AltUU\\Domains\\DataPortability\\Actions\\ExportAccountData / ImportAccountData / MergeAccountData",
+    "cases": [
+        {
+            "name": "import-idempotent",
+            "input": {
+                "payloadFile": "import-idempotent.json",
+                "times": 2,
+                "localAccount": "s5555555"
+            },
+            "output": {
+                "status": 201,
+                "json": {
+                    "importedAccountsCount": 1,
+                    "skippedUsernames": [],
+                    "importedPlaybackProgressCount": 1,
+                    "importedAccountDailyActivitiesCount": 1
+                },
+                "playbackProgressRows": [
+                    {
+                        "cid": "1003",
+                        "activity_id": "N-3",
+                        "duration_seconds": 50,
+                        "position_seconds": 5.0,
+                        "hungu_upload_success": true
+                    }
+                ],
+                "accountDailyActivityRows": [
+                    {
+                        "activity_date": "2026-07-08",
+                        "total_seconds": 200
+                    }
+                ]
+            }
+        }
+    ]
+}

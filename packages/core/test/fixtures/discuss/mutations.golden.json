@@ -1,0 +1,220 @@
+{
+    "generatedBy": "real PHP legacy app (alt-uu-legacy worktree of main)",
+    "phpClass": "AltUU\\Domains\\Discuss\\Actions\\* (create/update/delete post, like/unlike, whisper CRUD, set read)",
+    "cases": [
+        {
+            "name": "create post",
+            "input": {
+                "method": "POST",
+                "path": "/api/discuss/posts",
+                "body": {
+                    "bid": "B-1",
+                    "subject": "新文章",
+                    "content": "文章內容"
+                }
+            },
+            "output": {
+                "status": 200,
+                "json": {
+                    "code": 0,
+                    "message": "ok",
+                    "data": {
+                        "post_id": "P-1"
+                    }
+                }
+            }
+        },
+        {
+            "name": "update post",
+            "input": {
+                "method": "PATCH",
+                "path": "/api/discuss/posts/P-1",
+                "body": {
+                    "subject": "更新標題",
+                    "content": "更新內容"
+                }
+            },
+            "output": {
+                "status": 200,
+                "json": {
+                    "code": 0,
+                    "message": "ok"
+                }
+            }
+        },
+        {
+            "name": "delete post",
+            "input": {
+                "method": "DELETE",
+                "path": "/api/discuss/posts/P-1"
+            },
+            "output": {
+                "status": 200,
+                "json": {
+                    "code": 0,
+                    "message": "ok"
+                }
+            }
+        },
+        {
+            "name": "like post",
+            "input": {
+                "method": "POST",
+                "path": "/api/discuss/posts/N-1/like",
+                "body": {
+                    "bid": "B-1"
+                }
+            },
+            "output": {
+                "status": 200,
+                "json": {
+                    "code": 0,
+                    "message": "ok"
+                }
+            }
+        },
+        {
+            "name": "unlike post",
+            "input": {
+                "method": "POST",
+                "path": "/api/discuss/posts/N-1/unlike",
+                "body": {
+                    "bid": "B-1"
+                }
+            },
+            "output": {
+                "status": 200,
+                "json": {
+                    "code": 0,
+                    "message": "ok"
+                }
+            }
+        },
+        {
+            "name": "create whisper",
+            "input": {
+                "method": "POST",
+                "path": "/api/discuss/whispers",
+                "body": {
+                    "bid": "B-1",
+                    "nid": "N-1",
+                    "content": "留言"
+                }
+            },
+            "output": {
+                "status": 200,
+                "json": {
+                    "code": 0,
+                    "message": "ok",
+                    "data": {
+                        "list": []
+                    }
+                }
+            }
+        },
+        {
+            "name": "update whisper",
+            "input": {
+                "method": "PATCH",
+                "path": "/api/discuss/whispers/W-1",
+                "body": {
+                    "bid": "B-1",
+                    "nid": "N-1",
+                    "content": "編輯留言"
+                }
+            },
+            "output": {
+                "status": 200,
+                "json": {
+                    "code": 0,
+                    "message": "ok",
+                    "data": {
+                        "list": []
+                    }
+                }
+            }
+        },
+        {
+            "name": "delete whisper",
+            "input": {
+                "method": "DELETE",
+                "path": "/api/discuss/whispers/W-1",
+                "body": {
+                    "bid": "B-1",
+                    "nid": "N-1"
+                }
+            },
+            "output": {
+                "status": 200,
+                "json": {
+                    "code": 0,
+                    "message": "ok",
+                    "data": {
+                        "list": []
+                    }
+                }
+            }
+        },
+        {
+            "name": "set read",
+            "input": {
+                "method": "POST",
+                "path": "/api/discuss/read/P-1"
+            },
+            "output": {
+                "status": 200,
+                "json": {
+                    "code": 0,
+                    "message": "ok"
+                }
+            },
+            "upstreamRequests": [
+                {
+                    "method": "POST",
+                    "url": "https://uu.nou.edu.tw/xmlapi/index.php?action=add-course-post&ticket=ticket-1&ua=test-agent",
+                    "body": "{\"board_id\":\"B-1\",\"subject\":\"\\u65b0\\u6587\\u7ae0\",\"content\":\"\\u6587\\u7ae0\\u5167\\u5bb9\",\"reply_post_id\":\"B-1_\",\"attaches\":[]}"
+                },
+                {
+                    "method": "POST",
+                    "url": "https://uu.nou.edu.tw/xmlapi/index.php?action=mod-course-post&ticket=ticket-1&ua=test-agent",
+                    "body": "{\"post_id\":\"P-1\",\"subject\":\"\\u66f4\\u65b0\\u6a19\\u984c\",\"content\":\"\\u66f4\\u65b0\\u5167\\u5bb9\",\"attaches\":[]}"
+                },
+                {
+                    "method": "GET",
+                    "url": "https://uu.nou.edu.tw/xmlapi/index.php?action=del-course-post&ticket=ticket-1&ua=test-agent&post_id=P-1",
+                    "body": null
+                },
+                {
+                    "method": "POST",
+                    "url": "https://uu.nou.edu.tw/mooc/controllers/forum_ajax.php",
+                    "body": "bid=B-1&nid=N-1&sid=1000110001&action=setPush&firstPush=1"
+                },
+                {
+                    "method": "POST",
+                    "url": "https://uu.nou.edu.tw/mooc/controllers/forum_ajax.php",
+                    "body": "bid=B-1&nid=N-1&sid=1000110001&action=setPush&firstPush=0"
+                },
+                {
+                    "method": "POST",
+                    "url": "https://uu.nou.edu.tw/xmlapi/index.php?action=board-whisper-handler&ticket=ticket-1&ua=test-agent&act=set",
+                    "body": "{\"bid\":\"B-1\",\"nid\":\"N-1\",\"content\":\"\\u7559\\u8a00\"}"
+                },
+                {
+                    "method": "POST",
+                    "url": "https://uu.nou.edu.tw/xmlapi/index.php?action=board-whisper-handler&ticket=ticket-1&ua=test-agent&act=mod",
+                    "body": "{\"bid\":\"B-1\",\"nid\":\"N-1\",\"wid\":\"W-1\",\"content\":\"\\u7de8\\u8f2f\\u7559\\u8a00\"}"
+                },
+                {
+                    "method": "POST",
+                    "url": "https://uu.nou.edu.tw/xmlapi/index.php?action=board-whisper-handler&ticket=ticket-1&ua=test-agent&act=del",
+                    "body": "{\"bid\":\"B-1\",\"nid\":\"N-1\",\"wid\":\"W-1\"}"
+                },
+                {
+                    "method": "GET",
+                    "url": "https://uu.nou.edu.tw/xmlapi/index.php?action=set-forum-read&ticket=ticket-1&ua=test-agent&postid=P-1",
+                    "body": null
+                }
+            ]
+        }
+    ]
+}

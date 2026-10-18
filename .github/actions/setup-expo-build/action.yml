@@ -1,0 +1,179 @@
+name: Setup Expo build environment
+description: >
+  Installs Node/Ruby (and JDK for Android) toolchains, npm and fastlane
+  dependencies, decodes the mobile signing credentials into $RUNNER_TEMP, and
+  exports the build configuration (version, display version, signing settings)
+  as environment variables for expo prebuild and the fastlane lanes.
+
+inputs:
+  platform:
+    description: ios, android or both - decides which credentials are decoded and whether a JDK is installed
+    required: true
+  production-env:
+    description: >
+      Contents of the legacy ALTUU_PRODUCTION_ENV secret. It is NOT written to a
+      .env file; it is only read for the scalar signing settings it already holds
+      (APP_STORE_API_KEY_ID, APP_STORE_API_ISSUER_ID, NATIVEPHP_DEVELOPMENT_TEAM,
+      IOS_DISTRIBUTION_CERTIFICATE_PASSWORD, ANDROID_KEYSTORE_PASSWORD,
+      ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD).
+    required: true
+  app-version:
+    description: Store version name (APP_VERSION, e.g. "1.1.0")
+    required: true
+  display-version:
+    description: Version shown in-app (EXPO_PUBLIC_DISPLAY_VERSION, e.g. "v1.1.0-RC5")
+    required: true
+  build-number:
+    description: Fixed APP_BUILD_NUMBER. Leave empty when a sync_build_number lane will provide it.
+    required: false
+    default: ''
+  ios-certificate-base64:
+    description: Base64-encoded iOS distribution certificate (.p12)
+    required: false
+    default: ''
+  ios-provisioning-profile-base64:
+    description: Base64-encoded iOS provisioning profile (.mobileprovision)
+    required: false
+    default: ''
+  app-store-api-key-base64:
+    description: Base64-encoded App Store Connect API key (.p8)
+    required: false
+    default: ''
+  android-keystore-base64:
+    description: Base64-encoded Android upload keystore
+    required: false
+    default: ''
+  google-service-account-key-base64:
+    description: Base64-encoded Google Play service account key (.json)
+    required: false
+    default: ''
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+        cache: npm
+
+    - name: Setup Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: '3.3'
+
+    - name: Setup Java
+      if: inputs.platform != 'ios'
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: '17'
+
+    - name: Install npm dependencies
+      shell: bash
+      run: npm ci
+
+    - name: Install fastlane
+      shell: bash
+      working-directory: apps/mobile
+      run: |
+        bundle config set --local path vendor/bundle
+        bundle install --jobs 4 --retry 3
+
+    - name: Export build configuration
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        {
+          printf 'APP_VERSION=%s\n' "$APP_VERSION"
+          printf 'EXPO_PUBLIC_DISPLAY_VERSION=%s\n' "$DISPLAY_VERSION"
+          if [ -n "$BUILD_NUMBER" ]; then
+            printf 'APP_BUILD_NUMBER=%s\n' "$BUILD_NUMBER"
+          fi
+          # A production build is a plain x.y.z release tag. Anything else (a
+          # commit-hash suffix from `git describe`, or a pre-release suffix such
+          # as -RC1 / -beta1) is a test build and gets the material source viewer.
+          if ! printf '%s' "$DISPLAY_VERSION" | grep -qE '^v?[0-9]+\.[0-9]+\.[0-9]+$'; then
+            printf 'EXPO_PUBLIC_MATERIAL_SOURCE_VIEWER_ENABLED=true\n'
+          fi
+        } >> "$GITHUB_ENV"
+      env:
+        APP_VERSION: ${{ inputs.app-version }}
+        DISPLAY_VERSION: ${{ inputs.display-version }}
+        BUILD_NUMBER: ${{ inputs.build-number }}
+
+    - name: Export signing settings from production env
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        read_setting() {
+          printf '%s\n' "$PRODUCTION_ENV" | tr -d '\r' \
+            | sed -nE "s/^(export )?$1=(.*)$/\2/p" | tail -n1 \
+            | sed -E "s/^\"(.*)\"$/\1/; s/^'(.*)'$/\1/"
+        }
+
+        export_setting() {
+          local target="$1" source="$2" required="$3" value
+          value=$(read_setting "$source")
+          if [ -z "$value" ]; then
+            if [ "$required" = required ]; then
+              echo "::error::$source is missing from the ALTUU_PRODUCTION_ENV secret."
+              exit 1
+            fi
+            return 0
+          fi
+          echo "::add-mask::$value"
+          printf '%s=%s\n' "$target" "$value" >> "$GITHUB_ENV"
+        }
+
+        if [ "$PLATFORM" != android ]; then
+          export_setting ASC_KEY_ID APP_STORE_API_KEY_ID required
+          export_setting ASC_ISSUER_ID APP_STORE_API_ISSUER_ID required
+          export_setting IOS_CERT_PASSWORD IOS_DISTRIBUTION_CERTIFICATE_PASSWORD optional
+          # Optional: the Fastfile falls back to the provisioning profile's team.
+          export_setting IOS_TEAM_ID NATIVEPHP_DEVELOPMENT_TEAM optional
+        fi
+        if [ "$PLATFORM" != ios ]; then
+          export_setting ANDROID_KEYSTORE_PASSWORD ANDROID_KEYSTORE_PASSWORD required
+          export_setting ANDROID_KEY_ALIAS ANDROID_KEY_ALIAS required
+          export_setting ANDROID_KEY_PASSWORD ANDROID_KEY_PASSWORD required
+        fi
+      env:
+        PLATFORM: ${{ inputs.platform }}
+        PRODUCTION_ENV: ${{ inputs.production-env }}
+
+    - name: Decode signing credentials
+      shell: bash
+      run: |
+        set -euo pipefail
+        dir="$RUNNER_TEMP/credentials"
+        mkdir -p "$dir"
+
+        decode() {
+          local value="$1" path="$2" name="$3"
+          if [ -z "$value" ]; then
+            echo "::error::Missing secret for $name."
+            exit 1
+          fi
+          printf '%s' "$value" | base64 --decode > "$path"
+          printf '%s=%s\n' "$name" "$path" >> "$GITHUB_ENV"
+        }
+
+        if [ "$PLATFORM" != android ]; then
+          decode "$IOS_CERT" "$dir/Apple_Dist.p12" IOS_CERT_PATH
+          decode "$IOS_PROFILE" "$dir/altuu.mobileprovision" IOS_PROFILE_PATH
+          decode "$APP_STORE_KEY" "$dir/AuthKey.p8" ASC_KEY_PATH
+        fi
+        if [ "$PLATFORM" != ios ]; then
+          decode "$ANDROID_KEYSTORE" "$dir/app-release.jks" ANDROID_KEYSTORE_PATH
+          decode "$GOOGLE_SERVICE_KEY" "$dir/google-service-account.json" PLAY_JSON_KEY_PATH
+        fi
+      env:
+        PLATFORM: ${{ inputs.platform }}
+        IOS_CERT: ${{ inputs.ios-certificate-base64 }}
+        IOS_PROFILE: ${{ inputs.ios-provisioning-profile-base64 }}
+        APP_STORE_KEY: ${{ inputs.app-store-api-key-base64 }}
+        ANDROID_KEYSTORE: ${{ inputs.android-keystore-base64 }}
+        GOOGLE_SERVICE_KEY: ${{ inputs.google-service-account-key-base64 }}

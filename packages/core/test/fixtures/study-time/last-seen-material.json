@@ -1,0 +1,35 @@
+{
+    "accounts": [
+        "active",
+        "other"
+    ],
+    "playbackProgressRows": [
+        {
+            "account": "active",
+            "cid": "1001",
+            "activity_id": "N-1",
+            "duration_seconds": 60,
+            "position_seconds": 10,
+            "hungu_upload_success": true,
+            "updated_at": "now - 10 minutes"
+        },
+        {
+            "account": "active",
+            "cid": "1001",
+            "activity_id": "N-2",
+            "duration_seconds": 30,
+            "position_seconds": 5,
+            "media_duration_seconds": 755,
+            "hungu_upload_success": true,
+            "updated_at": "now"
+        },
+        {
+            "account": "other",
+            "cid": "1001",
+            "activity_id": "N-3",
+            "duration_seconds": 999,
+            "position_seconds": 1,
+            "hungu_upload_success": false
+        }
+    ]
+}

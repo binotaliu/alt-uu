@@ -1,0 +1,24 @@
+{
+    "source": "Feature/Course/ParseMaterialContentTest.php:206",
+    "phpClass": "AltUU\\Domains\\Course\\Actions\\ParseMaterialContent (via GET /materials/content/parsed)",
+    "note": "Input file holds the material URL passed as ?url= (no upstream body unless noted).",
+    "cases": [
+        {
+            "name": "classifies an ambiguous extension as a download using a HEAD content-type probe",
+            "input": {
+                "url": "https://example.com/download?id=1",
+                "upstream": "HEAD -> 200 content-type: application/zip (empty body)"
+            },
+            "partial": true,
+            "expected": {
+                "downloadUrl": "https://example.com/download?id=1",
+                "downloadFileExtension": "zip",
+                "isPdf": false,
+                "requests": {
+                    "headSent": true,
+                    "getSent": false
+                }
+            }
+        }
+    ]
+}

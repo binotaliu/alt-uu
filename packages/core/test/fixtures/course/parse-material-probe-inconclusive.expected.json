@@ -1,0 +1,30 @@
+{
+    "source": "Feature/Course/ParseMaterialContentTest.php:228",
+    "phpClass": "AltUU\\Domains\\Course\\Actions\\ParseMaterialContent (via GET /materials/content/parsed)",
+    "note": "Body of the second (GET) response. First (HEAD) response is 204 with no headers.",
+    "cases": [
+        {
+            "name": "falls back to fetching and parsing html when the HEAD probe is inconclusive",
+            "input": {
+                "url": "https://example.com/legacy/page?id=1",
+                "responseSequence": [
+                    "HEAD -> 204, no headers, empty body",
+                    "GET -> 200 text/html; charset=utf-8, this file"
+                ]
+            },
+            "partial": true,
+            "expected": {
+                "downloadUrl": null,
+                "htmlContent": {
+                    "contains": [
+                        "舊版頁面"
+                    ]
+                },
+                "requests": {
+                    "headSent": true,
+                    "getSent": true
+                }
+            }
+        }
+    ]
+}

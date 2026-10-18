@@ -1,0 +1,27 @@
+{
+    "generatedBy": "real PHP legacy app (alt-uu-legacy worktree of main)",
+    "phpClass": "AltUU\\Domains\\Course\\Actions\\GetCourseHomeworks",
+    "cases": [
+        {
+            "name": "homeworks-school-portal-notices",
+            "input": {
+                "method": "GET",
+                "path": "/api/courses/9001/homeworks"
+            },
+            "output": {
+                "status": 200,
+                "json": {
+                    "homeworkItems": [],
+                    "schoolPortalNotices": [
+                        {
+                            "title": "第1次作業",
+                            "dueDate": "繳交日期：2026年08月16日",
+                            "submissionMethod": "依面授教師指定方式繳交",
+                            "downloadUrl": "https://nouapp.nou.edu.tw/device/compliant/qryass/download?type=homework&filename=1153_900001_1&extension=pdf&_b=%5B%5D"
+                        }
+                    ]
+                }
+            }
+        }
+    ]
+}

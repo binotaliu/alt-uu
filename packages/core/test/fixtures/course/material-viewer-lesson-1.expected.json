@@ -1,0 +1,27 @@
+{
+    "source": "Feature/Course/MaterialViewerTest.php:14",
+    "phpClass": "AltUU\\Domains\\Course\\Actions\\ParseMaterialContent",
+    "cases": [
+        {
+            "name": "parses html content and rewrites same-host resources into material proxy URLs",
+            "input": {
+                "url": "https://uu.nou.edu.tw/material/lesson-1.html",
+                "host": "uu.nou.edu.tw"
+            },
+            "partial": true,
+            "expected": {
+                "videoUrl": null,
+                "subtitleUrl": null,
+                "downloadUrl": null,
+                "htmlContent": {
+                    "contains": [
+                        "第一章內容",
+                        {
+                            "proxyOf": "https://uu.nou.edu.tw/images/cover.jpg"
+                        }
+                    ]
+                }
+            }
+        }
+    ]
+}

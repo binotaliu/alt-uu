@@ -1,0 +1,25 @@
+{
+    "source": "Feature/Course/ParseMaterialContentTest.php:273",
+    "phpClass": "AltUU\\Domains\\Course\\Actions\\ParseMaterialContent (via GET /materials/content/parsed)",
+    "note": "Input file holds the material URL passed as ?url= (no upstream body unless noted).",
+    "cases": [
+        {
+            "name": "returns a youtube embed result without fetching the redirector page",
+            "input": {
+                "url": "https://example.com/learn/path/youtubeEmbed.php?v=dQw4w9WgXcQ",
+                "upstream": "no HTTP request must be sent"
+            },
+            "partial": true,
+            "expected": {
+                "videoUrl": null,
+                "videoProvider": "youtube",
+                "embedVideoUrl": {
+                    "staticsBaseUrlConfig": "/youtube-embed.html?v=dQw4w9WgXcQ"
+                },
+                "downloadUrl": null,
+                "htmlContent": "",
+                "noHttpRequestSent": true
+            }
+        }
+    ]
+}

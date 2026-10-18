@@ -1,0 +1,548 @@
+[
+    {
+        "name": "returns nothing when the feed has nothing to show",
+        "feed": {
+            "latest": {
+                "ios": "1.0.0",
+                "android": "1.0.0"
+            },
+            "minSupported": {
+                "ios": "1.0.0",
+                "android": "1.0.0"
+            },
+            "storeUrl": {
+                "ios": "https://apps.apple.com/app/alt-uu",
+                "android": "https://play.google.com/store/apps/details?id=alt.uu"
+            },
+            "announcements": []
+        },
+        "context": {
+            "appVersion": "1.0.0",
+            "platform": "ios",
+            "now": null,
+            "dismissals": []
+        }
+    },
+    {
+        "name": "returns nothing when the feed is unreachable",
+        "feed": null,
+        "feedHttpStatus": 500,
+        "context": {
+            "appVersion": "1.0.0",
+            "platform": "ios",
+            "now": null,
+            "dismissals": []
+        }
+    },
+    {
+        "name": "offers an update when a newer version is out",
+        "feed": {
+            "latest": {
+                "ios": "1.2.0",
+                "android": "1.2.0"
+            },
+            "minSupported": {
+                "ios": "1.0.0",
+                "android": "1.0.0"
+            },
+            "storeUrl": {
+                "ios": "https://apps.apple.com/app/alt-uu",
+                "android": "https://play.google.com/store/apps/details?id=alt.uu"
+            },
+            "announcements": []
+        },
+        "context": {
+            "appVersion": "1.0.0",
+            "platform": "ios",
+            "now": null,
+            "dismissals": []
+        }
+    },
+    {
+        "name": "uses the android entries on android",
+        "feed": {
+            "latest": {
+                "ios": "1.0.0",
+                "android": "1.3.0"
+            },
+            "minSupported": {
+                "ios": "1.0.0",
+                "android": "1.0.0"
+            },
+            "storeUrl": {
+                "ios": "https://apps.apple.com/app/alt-uu",
+                "android": "https://play.google.com/store/apps/details?id=alt.uu"
+            },
+            "announcements": []
+        },
+        "context": {
+            "appVersion": "1.0.0",
+            "platform": "android",
+            "now": null,
+            "dismissals": []
+        }
+    },
+    {
+        "name": "does not offer an update when already on the latest version (1.2.0)",
+        "feed": {
+            "latest": {
+                "ios": "1.2.0",
+                "android": "1.2.0"
+            },
+            "minSupported": {
+                "ios": "1.0.0",
+                "android": "1.0.0"
+            },
+            "storeUrl": {
+                "ios": "https://apps.apple.com/app/alt-uu",
+                "android": "https://play.google.com/store/apps/details?id=alt.uu"
+            },
+            "announcements": []
+        },
+        "context": {
+            "appVersion": "1.2.0",
+            "platform": "ios",
+            "now": null,
+            "dismissals": []
+        }
+    },
+    {
+        "name": "does not offer an update when newer than the latest version (1.3.0)",
+        "feed": {
+            "latest": {
+                "ios": "1.2.0",
+                "android": "1.2.0"
+            },
+            "minSupported": {
+                "ios": "1.0.0",
+                "android": "1.0.0"
+            },
+            "storeUrl": {
+                "ios": "https://apps.apple.com/app/alt-uu",
+                "android": "https://play.google.com/store/apps/details?id=alt.uu"
+            },
+            "announcements": []
+        },
+        "context": {
+            "appVersion": "1.3.0",
+            "platform": "ios",
+            "now": null,
+            "dismissals": []
+        }
+    },
+    {
+        "name": "never offers an update to builds without a release number",
+        "feed": {
+            "latest": {
+                "ios": "9.0.0",
+                "android": "9.0.0"
+            },
+            "minSupported": {
+                "ios": "1.0.0",
+                "android": "1.0.0"
+            },
+            "storeUrl": {
+                "ios": "https://apps.apple.com/app/alt-uu",
+                "android": "https://play.google.com/store/apps/details?id=alt.uu"
+            },
+            "announcements": []
+        },
+        "context": {
+            "appVersion": "DEBUG",
+            "platform": "ios",
+            "now": null,
+            "dismissals": []
+        }
+    },
+    {
+        "name": "drops a store url that is not https",
+        "feed": {
+            "latest": {
+                "ios": "1.2.0"
+            },
+            "minSupported": {
+                "ios": "1.0.0",
+                "android": "1.0.0"
+            },
+            "storeUrl": {
+                "ios": "javascript:alert(1)"
+            },
+            "announcements": []
+        },
+        "context": {
+            "appVersion": "1.0.0",
+            "platform": "ios",
+            "now": null,
+            "dismissals": []
+        }
+    },
+    {
+        "name": "marks an update required below the minimum supported version",
+        "feed": {
+            "latest": {
+                "ios": "1.2.0"
+            },
+            "minSupported": {
+                "ios": "1.1.0"
+            },
+            "storeUrl": {
+                "ios": "https://apps.apple.com/app/alt-uu",
+                "android": "https://play.google.com/store/apps/details?id=alt.uu"
+            },
+            "announcements": []
+        },
+        "context": {
+            "appVersion": "1.0.0",
+            "platform": "ios",
+            "now": null,
+            "dismissals": []
+        }
+    },
+    {
+        "name": "remembers a dismissed update only until the next release (dismissed 1.2.0 -> hidden)",
+        "feed": {
+            "latest": {
+                "ios": "1.2.0"
+            },
+            "minSupported": {
+                "ios": "1.0.0",
+                "android": "1.0.0"
+            },
+            "storeUrl": {
+                "ios": "https://apps.apple.com/app/alt-uu",
+                "android": "https://play.google.com/store/apps/details?id=alt.uu"
+            },
+            "announcements": []
+        },
+        "context": {
+            "appVersion": "1.0.0",
+            "platform": "ios",
+            "now": null,
+            "dismissals": [
+                "update:1.2.0"
+            ]
+        }
+    },
+    {
+        "name": "remembers a dismissed update only until the next release (new release 1.3.0 shows again)",
+        "feed": {
+            "latest": {
+                "ios": "1.3.0"
+            },
+            "minSupported": {
+                "ios": "1.0.0",
+                "android": "1.0.0"
+            },
+            "storeUrl": {
+                "ios": "https://apps.apple.com/app/alt-uu",
+                "android": "https://play.google.com/store/apps/details?id=alt.uu"
+            },
+            "announcements": []
+        },
+        "context": {
+            "appVersion": "1.0.0",
+            "platform": "ios",
+            "now": null,
+            "dismissals": [
+                "update:1.2.0"
+            ],
+            "cacheFlushedBeforeFeed": true
+        }
+    },
+    {
+        "name": "keeps showing a required update after it was dismissed",
+        "feed": {
+            "latest": {
+                "ios": "1.2.0"
+            },
+            "minSupported": {
+                "ios": "1.2.0"
+            },
+            "storeUrl": {
+                "ios": "https://apps.apple.com/app/alt-uu",
+                "android": "https://play.google.com/store/apps/details?id=alt.uu"
+            },
+            "announcements": []
+        },
+        "context": {
+            "appVersion": "1.0.0",
+            "platform": "ios",
+            "now": null,
+            "dismissals": [
+                "update:1.2.0"
+            ]
+        }
+    },
+    {
+        "name": "lists announcements with sensible defaults",
+        "feed": {
+            "latest": {
+                "ios": "1.0.0",
+                "android": "1.0.0"
+            },
+            "minSupported": {
+                "ios": "1.0.0",
+                "android": "1.0.0"
+            },
+            "storeUrl": {
+                "ios": "https://apps.apple.com/app/alt-uu",
+                "android": "https://play.google.com/store/apps/details?id=alt.uu"
+            },
+            "announcements": [
+                {
+                    "id": "video-stall",
+                    "severity": "warning",
+                    "title": "部分影片無法播放",
+                    "body": "我們正在處理中",
+                    "url": "https://alt-uu-statics.pages.dev/changelog.html#video"
+                },
+                {
+                    "id": "plain",
+                    "severity": "bogus",
+                    "title": "簡單公告",
+                    "body": null
+                }
+            ]
+        },
+        "context": {
+            "appVersion": "1.0.0",
+            "platform": "ios",
+            "now": null,
+            "dismissals": []
+        }
+    },
+    {
+        "name": "skips malformed announcements without failing the rest",
+        "feed": {
+            "latest": {
+                "ios": "1.0.0",
+                "android": "1.0.0"
+            },
+            "minSupported": {
+                "ios": "1.0.0",
+                "android": "1.0.0"
+            },
+            "storeUrl": {
+                "ios": "https://apps.apple.com/app/alt-uu",
+                "android": "https://play.google.com/store/apps/details?id=alt.uu"
+            },
+            "announcements": [
+                "not-an-object",
+                {
+                    "id": "",
+                    "severity": "warning",
+                    "title": "部分影片無法播放",
+                    "body": "我們正在處理中"
+                },
+                {
+                    "id": "video-stall",
+                    "severity": "warning",
+                    "title": "",
+                    "body": "我們正在處理中"
+                },
+                {
+                    "id": "good",
+                    "severity": "warning",
+                    "title": "部分影片無法播放",
+                    "body": "我們正在處理中"
+                }
+            ]
+        },
+        "context": {
+            "appVersion": "1.0.0",
+            "platform": "ios",
+            "now": null,
+            "dismissals": []
+        }
+    },
+    {
+        "name": "filters announcements by platform",
+        "feed": {
+            "latest": {
+                "ios": "1.0.0",
+                "android": "1.0.0"
+            },
+            "minSupported": {
+                "ios": "1.0.0",
+                "android": "1.0.0"
+            },
+            "storeUrl": {
+                "ios": "https://apps.apple.com/app/alt-uu",
+                "android": "https://play.google.com/store/apps/details?id=alt.uu"
+            },
+            "announcements": [
+                {
+                    "id": "ios-only",
+                    "severity": "warning",
+                    "title": "部分影片無法播放",
+                    "body": "我們正在處理中",
+                    "platforms": [
+                        "ios"
+                    ]
+                },
+                {
+                    "id": "android-only",
+                    "severity": "warning",
+                    "title": "部分影片無法播放",
+                    "body": "我們正在處理中",
+                    "platforms": [
+                        "android"
+                    ]
+                },
+                {
+                    "id": "everyone",
+                    "severity": "warning",
+                    "title": "部分影片無法播放",
+                    "body": "我們正在處理中",
+                    "platforms": []
+                }
+            ]
+        },
+        "context": {
+            "appVersion": "1.0.0",
+            "platform": "ios",
+            "now": null,
+            "dismissals": []
+        }
+    },
+    {
+        "name": "filters announcements by version range",
+        "feed": {
+            "latest": {
+                "ios": "1.0.0",
+                "android": "1.0.0"
+            },
+            "minSupported": {
+                "ios": "1.0.0",
+                "android": "1.0.0"
+            },
+            "storeUrl": {
+                "ios": "https://apps.apple.com/app/alt-uu",
+                "android": "https://play.google.com/store/apps/details?id=alt.uu"
+            },
+            "announcements": [
+                {
+                    "id": "in-range",
+                    "severity": "warning",
+                    "title": "部分影片無法播放",
+                    "body": "我們正在處理中",
+                    "minVersion": "1.0.0",
+                    "maxVersion": "1.1.0"
+                },
+                {
+                    "id": "too-new-needed",
+                    "severity": "warning",
+                    "title": "部分影片無法播放",
+                    "body": "我們正在處理中",
+                    "minVersion": "1.2.0"
+                },
+                {
+                    "id": "fixed-already",
+                    "severity": "warning",
+                    "title": "部分影片無法播放",
+                    "body": "我們正在處理中",
+                    "maxVersion": "1.0.2"
+                }
+            ]
+        },
+        "context": {
+            "appVersion": "1.1.0",
+            "platform": "ios",
+            "now": null,
+            "dismissals": []
+        }
+    },
+    {
+        "name": "hides expired announcements and those with an unreadable expiry",
+        "feed": {
+            "latest": {
+                "ios": "1.0.0",
+                "android": "1.0.0"
+            },
+            "minSupported": {
+                "ios": "1.0.0",
+                "android": "1.0.0"
+            },
+            "storeUrl": {
+                "ios": "https://apps.apple.com/app/alt-uu",
+                "android": "https://play.google.com/store/apps/details?id=alt.uu"
+            },
+            "announcements": [
+                {
+                    "id": "live",
+                    "severity": "warning",
+                    "title": "部分影片無法播放",
+                    "body": "我們正在處理中",
+                    "expires": "2026-10-15T00:00:00+08:00"
+                },
+                {
+                    "id": "expired",
+                    "severity": "warning",
+                    "title": "部分影片無法播放",
+                    "body": "我們正在處理中",
+                    "expires": "2026-09-30T00:00:00+08:00"
+                },
+                {
+                    "id": "typo",
+                    "severity": "warning",
+                    "title": "部分影片無法播放",
+                    "body": "我們正在處理中",
+                    "expires": "next tuesday-ish"
+                },
+                {
+                    "id": "no-expiry",
+                    "severity": "warning",
+                    "title": "部分影片無法播放",
+                    "body": "我們正在處理中"
+                }
+            ]
+        },
+        "context": {
+            "appVersion": "1.0.0",
+            "platform": "ios",
+            "now": "2026-10-01T00:00:00+08:00",
+            "dismissals": []
+        }
+    },
+    {
+        "name": "hides a dismissed announcement but not one marked non-dismissible",
+        "feed": {
+            "latest": {
+                "ios": "1.0.0",
+                "android": "1.0.0"
+            },
+            "minSupported": {
+                "ios": "1.0.0",
+                "android": "1.0.0"
+            },
+            "storeUrl": {
+                "ios": "https://apps.apple.com/app/alt-uu",
+                "android": "https://play.google.com/store/apps/details?id=alt.uu"
+            },
+            "announcements": [
+                {
+                    "id": "closable",
+                    "severity": "warning",
+                    "title": "部分影片無法播放",
+                    "body": "我們正在處理中"
+                },
+                {
+                    "id": "sticky",
+                    "severity": "warning",
+                    "title": "部分影片無法播放",
+                    "body": "我們正在處理中",
+                    "dismissible": false
+                }
+            ]
+        },
+        "context": {
+            "appVersion": "1.0.0",
+            "platform": "ios",
+            "now": null,
+            "dismissals": [
+                "announcement:closable",
+                "announcement:sticky"
+            ]
+        }
+    }
+]

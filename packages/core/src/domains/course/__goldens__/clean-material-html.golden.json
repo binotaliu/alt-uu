@@ -1,0 +1,347 @@
+{
+  "generatedBy": "real PHP legacy ParseMaterialContent::cleanHtml (alt-uu-legacy worktree), see __generators__/clean-material-html.php",
+  "cases": [
+    {
+      "name": "root-blocks",
+      "url": "https://uu.nou.edu.tw/base/1/content/2/page.html",
+      "html": "<html><body><div>a</div><div>b</div><p>c</p></body></html>",
+      "output": "<div>a</div>\n\n<div>b</div>\n\n<p>c</p>"
+    },
+    {
+      "name": "root-text-then-block",
+      "url": "https://uu.nou.edu.tw/base/1/content/2/page.html",
+      "html": "<html><body>hello <b>world</b><div>block</div>tail</body></html>",
+      "output": "<p>hello <b>world</b></p>\n\n<div>block</div><p>tail</p>"
+    },
+    {
+      "name": "root-double-newline",
+      "url": "https://uu.nou.edu.tw/base/1/content/2/page.html",
+      "html": "<html><body>first para\n\nsecond para\n\n\nthird</body></html>",
+      "output": "<p>first para</p>\n\n<p>second para</p>\n\n<p>\nthird</p>"
+    },
+    {
+      "name": "div-double-newline",
+      "url": "https://uu.nou.edu.tw/base/1/content/2/page.html",
+      "html": "<html><body><div>one\n\ntwo<b>x</b>\n\nthree</div></body></html>",
+      "output": "<div><p>one</p>\n\n<p>two<b>x</b></p>\n\n<p>three</p></div>"
+    },
+    {
+      "name": "div-inline-after-break",
+      "url": "https://uu.nou.edu.tw/base/1/content/2/page.html",
+      "html": "<html><body><div>intro\n\n<b>bold</b> rest<div>blk</div></div></body></html>",
+      "output": "<div><p>intro</p>\n\n<p><b>bold</b> rest</p><div>blk</div></div>"
+    },
+    {
+      "name": "lists",
+      "url": "https://uu.nou.edu.tw/base/1/content/2/page.html",
+      "html": "<html><body><ul>\n<li>one</li>\n<li>two <em>em</em></li>\n<li></li>\n</ul><ol><li>x</li></ol></body></html>",
+      "output": "<ul>\n<li>one</li>\n<li>two <em>em</em></li>\n</ul>\n\n<ol><li>x</li></ol>"
+    },
+    {
+      "name": "table-attrs",
+      "url": "https://uu.nou.edu.tw/base/1/content/2/page.html",
+      "html": "<html><body><table border=\"1\" width=\"100%\"><thead><tr><th colspan=\"2\" style=\"color:red\">H</th></tr></thead><tbody><tr rowspan=\"2\"><td rowspan=\"2\" class=\"c\">a</td><td></td></tr></tbody><tfoot><tr><td>f</td></tr></tfoot></table></body></html>",
+      "output": "<table><thead><tr><th colspan=\"2\">H</th></tr></thead><tfoot><tr><td>f</td></tr></tfoot><tbody><tr rowspan=\"2\"><td rowspan=\"2\">a</td><td></td></tr></tbody></table>"
+    },
+    {
+      "name": "table-caption",
+      "url": "https://uu.nou.edu.tw/base/1/content/2/page.html",
+      "html": "<html><body><table><caption>cap</caption><tr><td>a</td></tr></table></body></html>",
+      "output": "<table><tbody><tr><td>a</td></tr></tbody></table>"
+    },
+    {
+      "name": "inline-block",
+      "url": "https://uu.nou.edu.tw/base/1/content/2/page.html",
+      "html": "<html><body><span>pre<div>inner</div>post</span></body></html>",
+      "output": "<p><span>pre</span></p>\n\n<div>inner</div><p>post</p>"
+    },
+    {
+      "name": "a-variants",
+      "url": "https://uu.nou.edu.tw/base/1/content/2/page.html",
+      "html": "<html><body><p><a href=\"mailto:a@b.c\">mail</a> <a href=\"javascript:alert(1)\">js</a> <a href=\"tel:123\">tel</a> <a href=\"https://other.example/x?a=1&b=2\" title=\"t\">ext</a> <a name=\"anchor\"></a> <a href=\"https://x.example/\">  </a></p></body></html>",
+      "output": "<p><a href=\"mailto:a@b.c\">mail</a> <a>js</a> <a href=\"tel:123\">tel</a> <a href=\"https://other.example/x?a=1&amp;b=2\" title=\"t\" target=\"_blank\" rel=\"noreferrer noopener\">ext</a>  </p>"
+    },
+    {
+      "name": "img-variants",
+      "url": "https://uu.nou.edu.tw/base/1/content/2/page.html",
+      "html": "<html><body><p><img src=\"pic.png\"><img src=\"a.png\" alt=\"a\" width=\"50%\" height=\"2000\"><img alt=\"nosrc\"><img src=\"data:image/png;base64,AAAA\" alt=\"d\"><img src=\"https://cdn.example/x.png\" alt=\"cdn\" width=\"120px\"></p></body></html>",
+      "output": "<p><img src=\"http://localhost/material-proxy/aHR0cHM6Ly91dS5ub3UuZWR1LnR3L2Jhc2UvMS9jb250ZW50LzIvcGljLnBuZw\" alt=\"pic.png\"><img src=\"http://localhost/material-proxy/aHR0cHM6Ly91dS5ub3UuZWR1LnR3L2Jhc2UvMS9jb250ZW50LzIvYS5wbmc\" alt=\"a\" width=\"50%\" height=\"2000\"><img src=\"https://cdn.example/x.png\" alt=\"cdn\" width=\"120\"></p>"
+    },
+    {
+      "name": "iframe-variants",
+      "url": "https://uu.nou.edu.tw/base/1/content/2/page.html",
+      "html": "<html><body><iframe src=\"https://www.youtube.com/embed/abc\" width=\"560\" height=\"315\" frameborder=\"0\" allowfullscreen></iframe><iframe></iframe><iframe src=\"javascript:alert(1)\"></iframe></body></html>",
+      "output": "<p><iframe src=\"https://www.youtube.com/embed/abc\" width=\"560\" height=\"315\" frameborder=\"0\" allowfullscreen></iframe></p>"
+    },
+    {
+      "name": "media",
+      "url": "https://uu.nou.edu.tw/base/1/content/2/page.html",
+      "html": "<html><body><video controls width=\"320\" height=\"240\" poster=\"p.jpg\"><source src=\"movie.mp4\" type=\"video/mp4\">Your browser</video><audio controls src=\"a.mp3\"></audio></body></html>",
+      "output": "<video controls width=\"320\" height=\"240\"><source src=\"http://localhost/material-proxy/aHR0cHM6Ly91dS5ub3UuZWR1LnR3L2Jhc2UvMS9jb250ZW50LzIvbW92aWUubXA0\" type=\"video/mp4\"></video>\n\n"
+    },
+    {
+      "name": "entities",
+      "url": "https://uu.nou.edu.tw/base/1/content/2/page.html",
+      "html": "<html><body><p>a &amp; b &lt; c &gt; d &quot;q&quot; &#39;s&#39; &nbsp;x&copy;</p></body></html>",
+      "output": "<p>a &amp; b &lt; c &gt; d \"q\" 's'  x©</p>"
+    },
+    {
+      "name": "nonascii-url",
+      "url": "https://uu.nou.edu.tw/base/1/content/2/page.html",
+      "html": "<html><body><p><img src=\"images/封面 圖.jpg\" alt=\"x\"><a href=\"files/講義 1.pdf?x=a b#frag 1\">dl</a></p></body></html>",
+      "output": "<p><img src=\"http://localhost/material-proxy/aHR0cHM6Ly91dS5ub3UuZWR1LnR3L2Jhc2UvMS9jb250ZW50LzIvaW1hZ2VzLyVFNSVCMF8lRTlfJUEyJTIwJUU1X18uanBn\" alt=\"x\"><a href=\"https://uu.nou.edu.tw/base/1/content/2/files/%E8%AC_%E7%BE%A9%201.pdf?x=a%20b#frag%201\" target=\"_blank\" rel=\"noreferrer noopener\">dl</a></p>"
+    },
+    {
+      "name": "comments-and-unknown",
+      "url": "https://uu.nou.edu.tw/base/1/content/2/page.html",
+      "html": "<html><body><!-- c --><center><font color=\"red\" face=\"x\">red</font></center><pre>code\n  block</pre><sup>2</sup><h3>Title</h3></body></html>",
+      "output": "<p>redcode\n  block2Title</p>"
+    },
+    {
+      "name": "nested-p",
+      "url": "https://uu.nou.edu.tw/base/1/content/2/page.html",
+      "html": "<html><body><p>outer<p>inner</p></body></html>",
+      "output": "<p>outer</p>\n\n<p>inner</p>"
+    },
+    {
+      "name": "br-and-hr",
+      "url": "https://uu.nou.edu.tw/base/1/content/2/page.html",
+      "html": "<html><body><p>line1<br>line2<br/>line3</p><hr><p>after</p></body></html>",
+      "output": "<p>line1<br>line2<br>line3</p>\n\n<p>after</p>"
+    },
+    {
+      "name": "style-attrs",
+      "url": "https://uu.nou.edu.tw/base/1/content/2/page.html",
+      "html": "<html><body><p style=\"color:red\" class=\"x\" id=\"y\" onclick=\"z()\" align=\"center\">s</p><span style=\"font-weight:bold\">b</span></body></html>",
+      "output": "<p>s</p>\n\n<p><span>b</span></p>"
+    },
+    {
+      "name": "empty-inline",
+      "url": "https://uu.nou.edu.tw/base/1/content/2/page.html",
+      "html": "<html><body><p><span> </span><b></b><i>i</i></p><div><span></span></div></body></html>",
+      "output": "<p><i>i</i></p>\n\n"
+    },
+    {
+      "name": "nbsp-only",
+      "url": "https://uu.nou.edu.tw/base/1/content/2/page.html",
+      "html": "<html><body><p>&nbsp;</p><span>&nbsp;</span></body></html>",
+      "output": "<p><span> </span></p>"
+    },
+    {
+      "name": "root-whitespace-inline",
+      "url": "https://uu.nou.edu.tw/base/1/content/2/page.html",
+      "html": "<html><body><div>x</div>\n<b>bold</b>\n<i>it</i></body></html>",
+      "output": "<div>x</div><p>\n<b>bold</b>\n<i>it</i></p>"
+    },
+    {
+      "name": "li-double-newline",
+      "url": "https://uu.nou.edu.tw/base/1/content/2/page.html",
+      "html": "<html><body><ul><li>a\n\nb</li></ul></body></html>",
+      "output": "<ul><li><p>a</p>\n\n<p>b</p></li></ul>"
+    },
+    {
+      "name": "u-strong-em",
+      "url": "https://uu.nou.edu.tw/base/1/content/2/page.html",
+      "html": "<html><body><u>u</u><strong>s</strong><em>e</em></body></html>",
+      "output": "<p><u>u</u><strong>s</strong><em>e</em></p>"
+    },
+    {
+      "name": "td-double-newline",
+      "url": "https://uu.nou.edu.tw/base/1/content/2/page.html",
+      "html": "<html><body><table><tr><td>a\n\nb</td></tr></table></body></html>",
+      "output": "<table><tbody><tr><td><p>a</p>\n\n<p>b</p></td></tr></tbody></table>"
+    },
+    {
+      "name": "deep-nesting",
+      "url": "https://uu.nou.edu.tw/base/1/content/2/page.html",
+      "html": "<html><body><div><div><div><span>deep</span></div></div></div></body></html>",
+      "output": "<div><div><div><span>deep</span></div></div></div>"
+    },
+    {
+      "name": "headings-in-div",
+      "url": "https://uu.nou.edu.tw/base/1/content/2/page.html",
+      "html": "<html><body><div><h1>H1</h1>\n<p>p</p>\n<h4>H4</h4></div></body></html>",
+      "output": "<div>H1\n<p>p</p>\nH4</div>"
+    },
+    {
+      "name": "font-in-p",
+      "url": "https://uu.nou.edu.tw/base/1/content/2/page.html",
+      "html": "<html><body><p><font size=\"3\">t1</font><font size=\"3\">t2</font></p></body></html>",
+      "output": "<p>t1t2</p>"
+    },
+    {
+      "name": "block-in-a",
+      "url": "https://uu.nou.edu.tw/base/1/content/2/page.html",
+      "html": "<html><body><a href=\"https://x.example/\"><div>blk</div></a></body></html>",
+      "output": "<p><a href=\"https://x.example/\" target=\"_blank\" rel=\"noreferrer noopener\"></a></p>\n\n<div><a href=\"https://x.example/\" target=\"_blank\" rel=\"noreferrer noopener\">blk</a></div><a href=\"https://x.example/\" target=\"_blank\" rel=\"noreferrer noopener\"></a>"
+    },
+    {
+      "name": "b-in-b",
+      "url": "https://uu.nou.edu.tw/base/1/content/2/page.html",
+      "html": "<html><body><b>1<b>2</b>3</b></body></html>",
+      "output": "<p><b>1<b>2</b>3</b></p>"
+    },
+    {
+      "name": "form-input",
+      "url": "https://uu.nou.edu.tw/base/1/content/2/page.html",
+      "html": "<html><body><form><input type=\"text\" value=\"v\"><button>btn</button><select><option>o</option></select><textarea>ta</textarea></form></body></html>",
+      "output": "<p>btnota</p>"
+    },
+    {
+      "name": "object-embed",
+      "url": "https://uu.nou.edu.tw/base/1/content/2/page.html",
+      "html": "<html><body><object data=\"x.swf\"><embed src=\"x.swf\"></object>tail</body></html>",
+      "output": "<p>tail</p>"
+    },
+    {
+      "name": "relative-dots",
+      "url": "https://uu.nou.edu.tw/base/1/content/2/page.html",
+      "html": "<html><body><p><a href=\"../../a/./b/../c.html?q=1\">r</a><a href=\"//cdn.example/y\">pr</a><a href=\"?page=2\">q</a></p></body></html>",
+      "output": "<p><a href=\"https://uu.nou.edu.tw/base/1/a/c.html?q=1\" target=\"_blank\" rel=\"noreferrer noopener\">r</a><a href=\"https://cdn.example/y\" target=\"_blank\" rel=\"noreferrer noopener\">pr</a><a href=\"https://uu.nou.edu.tw/base/1/content/2/page.html?page=2\" target=\"_blank\" rel=\"noreferrer noopener\">q</a></p>"
+    },
+    {
+      "name": "ul-text",
+      "url": "https://uu.nou.edu.tw/base/1/content/2/page.html",
+      "html": "<html><body><ul>text<li>a</li></ul></body></html>",
+      "output": "<ul><li>text</li><li>a</li></ul>"
+    },
+    {
+      "name": "dl",
+      "url": "https://uu.nou.edu.tw/base/1/content/2/page.html",
+      "html": "<html><body><dl><dt>t</dt><dd>d</dd></dl></body></html>",
+      "output": "<p>td</p>"
+    },
+    {
+      "name": "span-in-root-with-newlines",
+      "url": "https://uu.nou.edu.tw/base/1/content/2/page.html",
+      "html": "<html><body>line\n\n<span>s</span>\n\nend</body></html>",
+      "output": "<p>line</p>\n\n<p><span>s</span></p>\n\n<p>end</p>"
+    },
+    {
+      "name": "mixed-case-tags",
+      "url": "https://uu.nou.edu.tw/base/1/content/2/page.html",
+      "html": "<html><body><P>Upper<BR>case</P><DIV ALIGN=\"left\">d</DIV></body></html>",
+      "output": "<p>Upper<br>case</p>\n\n<div>d</div>"
+    },
+    {
+      "name": "br-root",
+      "url": "https://uu.nou.edu.tw/base/1/content/2/page.html",
+      "html": "<html><body>a<br>b</body></html>",
+      "output": "<p>a<br>b</p>"
+    },
+    {
+      "name": "img-only-root",
+      "url": "https://uu.nou.edu.tw/base/1/content/2/page.html",
+      "html": "<html><body><img src=\"x.png\" alt=\"x\"></body></html>",
+      "output": "<p><img src=\"http://localhost/material-proxy/aHR0cHM6Ly91dS5ub3UuZWR1LnR3L2Jhc2UvMS9jb250ZW50LzIveC5wbmc\" alt=\"x\"></p>"
+    },
+    {
+      "name": "text-only-ws-root",
+      "url": "https://uu.nou.edu.tw/base/1/content/2/page.html",
+      "html": "<html><body>   \n  </body></html>",
+      "output": ""
+    },
+    {
+      "name": "table-in-p",
+      "url": "https://uu.nou.edu.tw/base/1/content/2/page.html",
+      "html": "<html><body><p>before<table><tr><td>t</td></tr></table>after</p></body></html>",
+      "output": "<p>before</p>\n\n<table><tbody><tr><td>t</td></tr></tbody></table><p>after</p>"
+    },
+    {
+      "name": "div-text-block-text",
+      "url": "https://uu.nou.edu.tw/base/1/content/2/page.html",
+      "html": "<html><body><div>t1<div>b</div>t2</div></body></html>",
+      "output": "<div>t1<div>b</div>t2</div>"
+    },
+    {
+      "name": "strike-s-del",
+      "url": "https://uu.nou.edu.tw/base/1/content/2/page.html",
+      "html": "<html><body><s>s</s><strike>st</strike><del>d</del><ins>i</ins><small>sm</small><big>bg</big><code>c</code><abbr>a</abbr><q>q</q><cite>c</cite><blockquote>bq</blockquote></body></html>",
+      "output": "<p>sstdismbgcaqcbq</p>"
+    },
+    {
+      "name": "colon-in-text",
+      "url": "https://uu.nou.edu.tw/base/1/content/2/page.html",
+      "html": "<html><body><p>Time: 10:00 &amp;&amp; <b>bold</b>&gt;</p></body></html>",
+      "output": "<p>Time: 10:00 &amp;&amp; <b>bold</b>&gt;</p>"
+    },
+    {
+      "name": "quote-attr",
+      "url": "https://uu.nou.edu.tw/base/1/content/2/page.html",
+      "html": "<html><body><p><a href=\"https://x.example/?a=&quot;b&quot;&amp;c=1\" title=\"he said &quot;hi&quot; &amp; &lt;\">q</a></p></body></html>",
+      "output": "<p><a href=\"https://x.example/?a=\" title=\"he said &quot;hi&quot; &amp; &lt;\" target=\"_blank\" rel=\"noreferrer noopener\">q</a></p>"
+    },
+    {
+      "name": "iframe-relative",
+      "url": "https://uu.nou.edu.tw/base/1/content/2/page.html",
+      "html": "<html><body><iframe src=\"/media/player.html\" width=\"100%\" height=\"400\"></iframe></body></html>",
+      "output": "<p><iframe src=\"http://localhost/material-proxy/aHR0cHM6Ly91dS5ub3UuZWR1LnR3L21lZGlhL3BsYXllci5odG1s\" width=\"100%\" height=\"400\"></iframe></p>"
+    },
+    {
+      "name": "list-empty-mid",
+      "url": "https://uu.nou.edu.tw/base/1/content/2/page.html",
+      "html": "<html><body><ul>\n<li>one</li>\n<li></li>\n<li>two</li>\n</ul></body></html>",
+      "output": "<ul>\n<li>one</li>\n<li>two</li>\n</ul>"
+    },
+    {
+      "name": "div-empty-mid",
+      "url": "https://uu.nou.edu.tw/base/1/content/2/page.html",
+      "html": "<html><body><div>\n<b>one</b>\n<span></span>\n<i>two</i>\n</div></body></html>",
+      "output": "<div>\n<b>one</b>\n\n<i>two</i>\n</div>"
+    },
+    {
+      "name": "div-empty-block-mid",
+      "url": "https://uu.nou.edu.tw/base/1/content/2/page.html",
+      "html": "<html><body><div>\n<p>one</p>\n<div></div>\n<p>two</p>\n</div></body></html>",
+      "output": "<div>\n<p>one</p>\n\n<p>two</p>\n</div>"
+    },
+    {
+      "name": "root-empty-first",
+      "url": "https://uu.nou.edu.tw/base/1/content/2/page.html",
+      "html": "<html><body><div></div><div>x</div></body></html>",
+      "output": "<div>x</div>"
+    },
+    {
+      "name": "root-becomes-empty",
+      "url": "https://uu.nou.edu.tw/base/1/content/2/page.html",
+      "html": "<html><body><div><span></span></div><div>x</div></body></html>",
+      "output": "<div>x</div>"
+    },
+    {
+      "name": "video-text",
+      "url": "https://uu.nou.edu.tw/base/1/content/2/page.html",
+      "html": "<html><body><video controls src=\"v.mp4\">fallback <b>text</b></video></body></html>",
+      "output": "<video controls src=\"http://localhost/material-proxy/aHR0cHM6Ly91dS5ub3UuZWR1LnR3L2Jhc2UvMS9jb250ZW50LzIvdi5tcDQ\"><b>text</b></video>"
+    },
+    {
+      "name": "span-div-span",
+      "url": "https://uu.nou.edu.tw/base/1/content/2/page.html",
+      "html": "<html><body><div>a<span>b<div>c</div>d</span>e</div></body></html>",
+      "output": "<div>a<span>b</span><div>c</div>de</div>"
+    },
+    {
+      "name": "img-noalt-query",
+      "url": "https://uu.nou.edu.tw/base/1/content/2/page.html",
+      "html": "<html><body><p><img src=\"https://cdn.example/dir/pic.png?x=1\"></p></body></html>",
+      "output": "<p><img src=\"https://cdn.example/dir/pic.png?x=1\" alt=\"pic.png?x=1\"></p>"
+    },
+    {
+      "name": "table-ws",
+      "url": "https://uu.nou.edu.tw/base/1/content/2/page.html",
+      "html": "<html><body><table>\n<tr>\n<td>a</td>\n</tr>\n</table></body></html>",
+      "output": "<table>\n<tbody><tr>\n<td>a</td>\n</tr>\n</tbody></table>"
+    },
+    {
+      "name": "ws-text-nested",
+      "url": "https://uu.nou.edu.tw/base/1/content/2/page.html",
+      "html": "<html><body><div>\n  <div>\n    text\n  </div>\n</div></body></html>",
+      "output": "<div>\n  <div>\n    text\n  </div>\n</div>"
+    },
+    {
+      "name": "text-root-ws-block",
+      "url": "https://uu.nou.edu.tw/base/1/content/2/page.html",
+      "html": "<html><body>  <div>a</div>  <div>b</div>  </body></html>",
+      "output": "<div>a</div>  <div>b</div>"
+    }
+  ]
+}

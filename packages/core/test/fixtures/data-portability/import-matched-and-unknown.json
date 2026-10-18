@@ -1,0 +1,31 @@
+{
+    "accounts": {
+        "s4444444": 999,
+        "unknown-user": 111
+    },
+    "playbackProgress": [
+        {
+            "username": "s4444444",
+            "cid": "1002",
+            "activityId": "N-2",
+            "durationSeconds": 300,
+            "positionSeconds": 10.5,
+            "hunguUploadSuccess": false
+        },
+        {
+            "username": "unknown-user",
+            "cid": "9999",
+            "activityId": "N-9",
+            "durationSeconds": 100,
+            "positionSeconds": 1,
+            "hunguUploadSuccess": null
+        }
+    ],
+    "accountDailyActivities": [
+        {
+            "username": "s4444444",
+            "activityDate": "2026-07-09",
+            "totalSeconds": 600
+        }
+    ]
+}

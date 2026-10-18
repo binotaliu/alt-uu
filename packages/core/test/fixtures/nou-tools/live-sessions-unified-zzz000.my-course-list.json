@@ -1,0 +1,12 @@
+{
+    "code": 0,
+    "message": "success",
+    "data": {
+        "list": [
+            {
+                "course_id": "3001",
+                "title": "(114上)教育心理學-ZZZ003班"
+            }
+        ]
+    }
+}

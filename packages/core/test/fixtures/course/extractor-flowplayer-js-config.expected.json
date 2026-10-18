@@ -1,0 +1,13 @@
+{
+    "source": "Unit/FlowplayerJsConfigVideoExtractorTest.php:5",
+    "phpClass": "AltUU\\Domains\\Course\\Support\\VideoExtractors\\FlowplayerJsConfigVideoExtractor",
+    "cases": [
+        {
+            "name": "it extracts video and subtitle urls from a flowplayer js config",
+            "expected": {
+                "videoUrl": "https://example.com/video/playlist.m3u8",
+                "subtitleUrl": "01.vtt"
+            }
+        }
+    ]
+}

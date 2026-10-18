@@ -1,0 +1,28 @@
+{
+    "generatedBy": "real PHP legacy app (alt-uu-legacy worktree of main)",
+    "phpClass": "AltUU\\Domains\\Discuss\\Actions\\ListBoards (via GET /api/discuss/boards?cid=1001)",
+    "cases": [
+        {
+            "name": "boards-list",
+            "input": {
+                "method": "GET",
+                "path": "/api/discuss/boards?cid=1001"
+            },
+            "output": {
+                "status": 200,
+                "json": {
+                    "courseId": "1001",
+                    "boards": [
+                        {
+                            "boardId": "B-1",
+                            "boardName": "課程討論",
+                            "allowPost": true,
+                            "hasNewPost": true,
+                            "subjectCount": 3
+                        }
+                    ]
+                }
+            }
+        }
+    ]
+}

@@ -1,0 +1,23 @@
+{
+    "code": 0,
+    "message": "success",
+    "data": {
+        "list": [
+            {
+                "floor": 1,
+                "subject": "Hello",
+                "content": "<p>Body</p>",
+                "attachment": [
+                    {
+                        "filename": "file1.pdf",
+                        "href": "https://example.com/file1.pdf"
+                    },
+                    {
+                        "name": "file2.docx",
+                        "url": "https://example.com/file2.docx"
+                    }
+                ]
+            }
+        ]
+    }
+}

@@ -1,0 +1,25 @@
+{
+    "id": 1234,
+    "name": "管理學導論",
+    "term": "2025A",
+    "previousExams": [],
+    "classes": [
+        {
+            "id": 5566,
+            "code": "ZZZ001",
+            "type": "morning",
+            "typeLabel": "上午班",
+            "startTime": "09:00:00+08:00",
+            "endTime": "10:50:00+08:00",
+            "teacherName": "測試教師甲",
+            "link": "https://meet.example.com/abc-defg-hij",
+            "sessions": [
+                {
+                    "date": "2025-10-12",
+                    "startTime": "09:00:00+08:00",
+                    "endTime": "10:50:00+08:00"
+                }
+            ]
+        }
+    ]
+}

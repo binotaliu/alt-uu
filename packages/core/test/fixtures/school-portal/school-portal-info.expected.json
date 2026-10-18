@@ -1,0 +1,47 @@
+{
+    "source": "Feature/Course/CourseSchoolPortalInfoApiTest.php:34",
+    "phpClass": "AltUU\\Domains\\SchoolPortal\\Actions\\GetCourseClassSessionInfo + GetCourseExamInfo (via GET /api/courses/{cid}/school-portal-info)",
+    "note": "Upstream qryper (.qryper.html) and qryexm (.qryexm.html); my-course-list payload: course 9001 \"(115上)假課程甲\".",
+    "cases": [
+        {
+            "name": "returns class session and exam info for a matching course",
+            "input": {
+                "cid": "9001",
+                "courseListPayload": {
+                    "code": 0,
+                    "data": {
+                        "list": [
+                            {
+                                "course_id": "9001",
+                                "title": "(115上)假課程甲"
+                            }
+                        ]
+                    }
+                }
+            },
+            "partial": true,
+            "expected": {
+                "classSessionInfo.teacher": "假老師",
+                "classSessionInfo.classTime": "1900~2050",
+                "examInfo.schedules[0].category": "期中考(正考)",
+                "examInfo.schedules[0].date": "2026年11月07日(星期六)"
+            }
+        },
+        {
+            "name": "returns nulls when the course is not found",
+            "input": {
+                "cid": "does-not-exist",
+                "courseListPayload": {
+                    "code": 0,
+                    "data": {
+                        "list": []
+                    }
+                }
+            },
+            "expected": {
+                "classSessionInfo": null,
+                "examInfo": null
+            }
+        }
+    ]
+}

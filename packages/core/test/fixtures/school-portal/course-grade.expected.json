@@ -1,0 +1,48 @@
+{
+    "source": "Feature/Course/CourseGradeApiTest.php:34",
+    "phpClass": "AltUU\\Domains\\SchoolPortal\\Actions\\GetCourseSemesterGrade (via GET /api/courses/{cid}/grades)",
+    "note": "Upstream qryscore page; my-course-list payload: course 9001 \"(114下)假課程甲\".",
+    "cases": [
+        {
+            "name": "returns the matching school portal grade for a course",
+            "input": {
+                "cid": "9001",
+                "courseListPayload": {
+                    "code": 0,
+                    "data": {
+                        "list": [
+                            {
+                                "course_id": "9001",
+                                "title": "(114下)假課程甲"
+                            }
+                        ]
+                    }
+                }
+            },
+            "partial": true,
+            "expected": {
+                "grade.courseName": "假課程甲",
+                "grade.semesterLabel": "114學年下學期",
+                "grade.credits": "3",
+                "grade.midtermScore": "70",
+                "grade.finalScore": "無資料"
+            }
+        },
+        {
+            "name": "returns a null grade when the course is not found",
+            "input": {
+                "cid": "does-not-exist",
+                "courseListPayload": {
+                    "code": 0,
+                    "data": {
+                        "list": []
+                    }
+                }
+            },
+            "partial": true,
+            "expected": {
+                "grade": null
+            }
+        }
+    ]
+}

@@ -1,0 +1,41 @@
+{
+    "generatedBy": "real PHP legacy app (alt-uu-legacy worktree of main)",
+    "phpClass": "AltUU\\Domains\\Course\\Actions\\GetNouToolsCourseData (+ NouTools live sessions/calendar actions)",
+    "cases": [
+        {
+            "name": "live-sessions-unified-zzz000",
+            "input": {
+                "method": "GET",
+                "path": "/api/nou-tools/live-sessions"
+            },
+            "output": {
+                "status": 200,
+                "json": [
+                    {
+                        "accountId": 1,
+                        "accountLabel": "測試",
+                        "courseId": "3001",
+                        "courseName": "教育心理學",
+                        "semester": "114上",
+                        "className": "ZZZ003班",
+                        "classCode": "ZZZ000",
+                        "type": "in_person",
+                        "typeLabel": "統一面授",
+                        "teacherName": "測試教師乙",
+                        "link": "https://meet.example.com/unified-room",
+                        "backupClassroomUrl": null,
+                        "startTime": "19:00:00+08:00",
+                        "endTime": "21:00:00+08:00",
+                        "sessions": [
+                            {
+                                "date": "2025-10-05",
+                                "startTime": "19:00:00+08:00",
+                                "endTime": "21:00:00+08:00"
+                            }
+                        ]
+                    }
+                ]
+            }
+        }
+    ]
+}

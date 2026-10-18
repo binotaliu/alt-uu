@@ -1,0 +1,28 @@
+{
+    "source": "Feature/Discuss/DiscussApiTest.php:61",
+    "phpClass": "AltUU\\Domains\\Discuss\\Actions\\ListPosts (via GET /api/discuss/posts)",
+    "note": "Upstream get-board-reply-list (.replies.json) and board-whisper-handler (.whispers.json, requested with nid=N-POST-1). Post content is HTML-sanitized, whisper content is returned verbatim.",
+    "cases": [
+        {
+            "name": "fetches thread posts and whispers from dedicated endpoint and sanitizes content",
+            "input": {
+                "query": "cid=1001&bid=B-1&nid=N-99"
+            },
+            "partial": true,
+            "expected": {
+                "courseId": "1001",
+                "boardId": "B-1",
+                "nodeId": "N-99",
+                "posts[0]": {
+                    "content": "<p>hello</p>",
+                    "push": 3,
+                    "liked": true,
+                    "whisperCount": 1,
+                    "node": "N-POST-1",
+                    "whispers[0].content": "<script>alert(1)</script>hi"
+                },
+                "responseMissingKey": "whispers"
+            }
+        }
+    ]
+}

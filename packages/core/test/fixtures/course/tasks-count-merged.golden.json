@@ -1,0 +1,33 @@
+{
+    "generatedBy": "real PHP legacy app (alt-uu-legacy worktree of main)",
+    "phpClass": "AltUU\\Domains\\Course\\Actions\\GetCourseTasksCount",
+    "cases": [
+        {
+            "name": "tasks-count-merged",
+            "input": {
+                "method": "GET",
+                "path": "/api/courses/tasks-count"
+            },
+            "output": {
+                "status": 200,
+                "json": [
+                    {
+                        "courseId": "10050559",
+                        "pendingHomeworks": 1,
+                        "unreadArticles": 0
+                    },
+                    {
+                        "courseId": "10048231",
+                        "pendingHomeworks": 2,
+                        "unreadArticles": 5
+                    },
+                    {
+                        "courseId": "10099999",
+                        "pendingHomeworks": 0,
+                        "unreadArticles": 3
+                    }
+                ]
+            }
+        }
+    ]
+}

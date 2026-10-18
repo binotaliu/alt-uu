@@ -1,0 +1,378 @@
+{
+    "generatedBy": "real PHP legacy app (alt-uu-legacy worktree of main)",
+    "phpClass": "App\\Services\\Diagnostics\\DiagnosticRedactor",
+    "cases": [
+        {
+            "name": "drops secret-bearing key: password",
+            "input": {
+                "op": "redact",
+                "salt": "test-salt",
+                "input": {
+                    "password": "super-secret-value"
+                }
+            },
+            "output": {
+                "password": "[已遮蔽]"
+            }
+        },
+        {
+            "name": "drops secret-bearing key: ticket",
+            "input": {
+                "op": "redact",
+                "salt": "test-salt",
+                "input": {
+                    "ticket": "super-secret-value"
+                }
+            },
+            "output": {
+                "ticket": "[已遮蔽]"
+            }
+        },
+        {
+            "name": "drops secret-bearing key: session_idx",
+            "input": {
+                "op": "redact",
+                "salt": "test-salt",
+                "input": {
+                    "session_idx": "super-secret-value"
+                }
+            },
+            "output": {
+                "session_idx": "[已遮蔽]"
+            }
+        },
+        {
+            "name": "drops secret-bearing key: cookies",
+            "input": {
+                "op": "redact",
+                "salt": "test-salt",
+                "input": {
+                    "cookies": "super-secret-value"
+                }
+            },
+            "output": {
+                "cookies": "[已遮蔽]"
+            }
+        },
+        {
+            "name": "drops secret-bearing key: Set-Cookie",
+            "input": {
+                "op": "redact",
+                "salt": "test-salt",
+                "input": {
+                    "Set-Cookie": "super-secret-value"
+                }
+            },
+            "output": {
+                "Set-Cookie": "[已遮蔽]"
+            }
+        },
+        {
+            "name": "drops secret-bearing key: authorization",
+            "input": {
+                "op": "redact",
+                "salt": "test-salt",
+                "input": {
+                    "authorization": "super-secret-value"
+                }
+            },
+            "output": {
+                "authorization": "[已遮蔽]"
+            }
+        },
+        {
+            "name": "drops secret-bearing key: access_token",
+            "input": {
+                "op": "redact",
+                "salt": "test-salt",
+                "input": {
+                    "access_token": "super-secret-value"
+                }
+            },
+            "output": {
+                "access_token": "[已遮蔽]"
+            }
+        },
+        {
+            "name": "drops secret-bearing key: refreshToken",
+            "input": {
+                "op": "redact",
+                "salt": "test-salt",
+                "input": {
+                    "refreshToken": "super-secret-value"
+                }
+            },
+            "output": {
+                "refreshToken": "[已遮蔽]"
+            }
+        },
+        {
+            "name": "drops secret-bearing key: apiKey",
+            "input": {
+                "op": "redact",
+                "salt": "test-salt",
+                "input": {
+                    "apiKey": "super-secret-value"
+                }
+            },
+            "output": {
+                "apiKey": "[已遮蔽]"
+            }
+        },
+        {
+            "name": "drops secret-bearing key: signedPayload",
+            "input": {
+                "op": "redact",
+                "salt": "test-salt",
+                "input": {
+                    "signedPayload": "super-secret-value"
+                }
+            },
+            "output": {
+                "signedPayload": "[已遮蔽]"
+            }
+        },
+        {
+            "name": "drops secret-bearing key: receipt",
+            "input": {
+                "op": "redact",
+                "salt": "test-salt",
+                "input": {
+                    "receipt": "super-secret-value"
+                }
+            },
+            "output": {
+                "receipt": "[已遮蔽]"
+            }
+        },
+        {
+            "name": "drops secret-bearing key: APP_KEY",
+            "input": {
+                "op": "redact",
+                "salt": "test-salt",
+                "input": {
+                    "APP_KEY": "super-secret-value"
+                }
+            },
+            "output": {
+                "APP_KEY": "[已遮蔽]"
+            }
+        },
+        {
+            "name": "pseudonymizes personal identifier key: username",
+            "input": {
+                "op": "redact",
+                "salt": "test-salt",
+                "input": {
+                    "username": "u1001"
+                }
+            },
+            "output": {
+                "username": "user#7786"
+            }
+        },
+        {
+            "name": "pseudonymizes personal identifier key: studentId",
+            "input": {
+                "op": "redact",
+                "salt": "test-salt",
+                "input": {
+                    "studentId": "u1001"
+                }
+            },
+            "output": {
+                "studentId": "user#7786"
+            }
+        },
+        {
+            "name": "pseudonymizes personal identifier key: displayName",
+            "input": {
+                "op": "redact",
+                "salt": "test-salt",
+                "input": {
+                    "displayName": "u1001"
+                }
+            },
+            "output": {
+                "displayName": "user#7786"
+            }
+        },
+        {
+            "name": "pseudonymizes personal identifier key: nickname",
+            "input": {
+                "op": "redact",
+                "salt": "test-salt",
+                "input": {
+                    "nickname": "u1001"
+                }
+            },
+            "output": {
+                "nickname": "user#7786"
+            }
+        },
+        {
+            "name": "pseudonymizes personal identifier key: email",
+            "input": {
+                "op": "redact",
+                "salt": "test-salt",
+                "input": {
+                    "email": "u1001"
+                }
+            },
+            "output": {
+                "email": "user#7786"
+            }
+        },
+        {
+            "name": "keeps our own local account id",
+            "input": {
+                "op": "redact",
+                "salt": "test-salt",
+                "input": {
+                    "accountId": 42,
+                    "account_id": 7
+                }
+            },
+            "output": {
+                "accountId": 42,
+                "account_id": 7
+            }
+        },
+        {
+            "name": "produces a stable handle for the same identifier",
+            "input": {
+                "op": "pseudonymizeStable",
+                "salt": "test-salt",
+                "input": [
+                    "u1001",
+                    "u1001",
+                    "U1001"
+                ]
+            },
+            "output": [
+                "user#7786",
+                "user#7786",
+                "user#7786"
+            ]
+        },
+        {
+            "name": "produces different handles across installs",
+            "input": {
+                "op": "pseudonymizeSalts",
+                "salt": "test-salt",
+                "input": {
+                    "value": "u1001",
+                    "saltA": "salt-a",
+                    "saltB": "salt-b"
+                }
+            },
+            "output": [
+                "user#e27e",
+                "user#50bb"
+            ]
+        },
+        {
+            "name": "redacts nested structures recursively",
+            "input": {
+                "op": "redact",
+                "salt": "test-salt",
+                "input": {
+                    "session": {
+                        "ticket": "abc123",
+                        "profile": {
+                            "username": "u1001",
+                            "displayName": "測試教師甲"
+                        },
+                        "cookies": {
+                            "WM": "deadbeef"
+                        }
+                    },
+                    "status": 500
+                }
+            },
+            "output": {
+                "session": {
+                    "ticket": "[已遮蔽]",
+                    "profile": {
+                        "username": "user#7786",
+                        "displayName": "user#91e9"
+                    },
+                    "cookies": "[已遮蔽]"
+                },
+                "status": 500
+            }
+        },
+        {
+            "name": "sweeps secrets out of free-text response bodies",
+            "input": {
+                "op": "redactText",
+                "salt": "test-salt",
+                "input": "{\"code\":403,\"ticket\":\"abc123xyz\",\"username\":\"u1001\",\"message\":\"access denied\"}"
+            },
+            "output": "{\"code\":403,\"ticket\":\"[已遮蔽]\",\"username\":\"user#7786\",\"message\":\"access denied\"}"
+        },
+        {
+            "name": "pseudonymizes account handles anywhere in free text",
+            "input": {
+                "op": "redactText",
+                "salt": "test-salt",
+                "input": "Login failed for u123456 after 3 attempts"
+            },
+            "output": "Login failed for user#dcdb after 3 attempts"
+        },
+        {
+            "name": "pseudonymizes bare e-mail addresses in free text",
+            "input": {
+                "op": "redactText",
+                "salt": "test-salt",
+                "input": "contact student@nou.edu.tw for details"
+            },
+            "output": "contact user#140b for details"
+        },
+        {
+            "name": "strips credential query parameters from urls but keeps the diagnostic part",
+            "input": {
+                "op": "redactUrl",
+                "salt": "test-salt",
+                "input": "https://uu.nou.edu.tw/xmlapi/index.php?action=getCourseList&ticket=SECRET123&ua=Mozilla&page=2"
+            },
+            "output": "https://uu.nou.edu.tw/xmlapi/index.php?action=getCourseList&ticket=[已遮蔽]&ua=[已遮蔽]&page=2"
+        },
+        {
+            "name": "leaves an ordinary message untouched",
+            "input": {
+                "op": "redactText",
+                "salt": "test-salt",
+                "input": "讀取作業列表失敗。"
+            },
+            "output": "讀取作業列表失敗。"
+        },
+        {
+            "name": "redactSecrets drops credentials from html source but leaves identifiers and structure alone",
+            "input": {
+                "op": "redactSecrets",
+                "salt": "test-salt",
+                "input": "<meta name=\"viewport\" content=\"width=1\"><a href=\"https://uu.nou.edu.tw/x?ticket=abc123&page=2\">u</a><script>var cfg = {\"password\":\"hunter2\"};</script> user u1001 mail@example.com"
+            },
+            "output": "<meta name=\"viewport\" content=\"width=1\"><a href=\"https://uu.nou.edu.tw/x?ticket=[已遮蔽]&page=2\">u</a><script>var cfg = {\"password\":\"[已遮蔽]\"};</script> user u1001 mail@example.com"
+        },
+        {
+            "name": "redactSecrets returns empty text unchanged",
+            "input": {
+                "op": "redactSecrets",
+                "salt": "test-salt",
+                "input": ""
+            },
+            "output": ""
+        },
+        {
+            "name": "redactText masks a credential in a URL query string inside free text",
+            "input": {
+                "op": "redactText",
+                "salt": "test-salt",
+                "input": "<a href=\"https://uu.nou.edu.tw/learn/x.php?ticket=abc123&page=2&session_idx=idx9\">go</a>"
+            },
+            "output": "<a href=\"https://uu.nou.edu.tw/learn/x.php?ticket=[已遮蔽]&page=2&session_idx=[已遮蔽]\">go</a>"
+        }
+    ]
+}

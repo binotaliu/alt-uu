@@ -1,0 +1,45 @@
+{
+  "name": "@altuu/features",
+  "version": "0.0.0",
+  "private": true,
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "jest"
+  },
+  "dependencies": {
+    "@altuu/core": "*",
+    "@altuu/ui": "*",
+    "@tanstack/react-query": "^5.104.3",
+    "expo-document-picker": "~58.0.4",
+    "expo-file-system": "~58.0.9",
+    "zustand": "^5.0.15"
+  },
+  "devDependencies": {
+    "@react-native/jest-preset": "^0.88.0",
+    "@testing-library/react-native": "^14.1.0",
+    "@types/jest": "^29.5.14",
+    "jest": "^29.7.0",
+    "jest-expo": "^58.0.11",
+    "react-test-renderer": "^19.3.0"
+  },
+  "peerDependencies": {
+    "@altuu/attachment-bridge": "*",
+    "expo-clipboard": "*",
+    "expo-image": "*",
+    "expo-network": "*",
+    "expo-router": "*",
+    "expo-screen-orientation": "*",
+    "expo-sharing": "*",
+    "expo-status-bar": "*",
+    "expo-video": "*",
+    "nativewind": "*",
+    "react": "*",
+    "react-native": "*",
+    "react-native-safe-area-context": "*",
+    "react-native-svg": "*",
+    "react-native-view-shot": "*",
+    "react-native-webview": "*"
+  }
+}

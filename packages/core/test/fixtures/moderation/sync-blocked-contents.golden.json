@@ -1,0 +1,26 @@
+{
+    "generatedBy": "real PHP legacy app (alt-uu-legacy worktree of main)",
+    "phpClass": "AltUU\\Domains\\Moderation\\Actions\\SyncBlockedContents",
+    "cases": [
+        {
+            "name": "sync-blocked-contents",
+            "input": {
+                "method": "POST",
+                "path": "/api/moderation/sync"
+            },
+            "output": {
+                "status": 200,
+                "json": {
+                    "ok": true
+                }
+            },
+            "upstreamRequests": [
+                {
+                    "method": "GET",
+                    "url": "https://alt-uu.binota.org/api/moderation/blocked-contents?site_hash=1b04f287644330e02cab8e616c5a657a24e0a759081235d2739612924eb73680",
+                    "body": null
+                }
+            ]
+        }
+    ]
+}

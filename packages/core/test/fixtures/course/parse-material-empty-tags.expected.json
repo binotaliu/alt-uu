@@ -1,0 +1,31 @@
+{
+    "source": "Unit/ParseMaterialContentTest.php:17",
+    "phpClass": "AltUU\\Domains\\Course\\Actions\\ParseMaterialContent (via GET /materials/content/parsed)",
+    "note": "Unit test mocks probeContentType -> text/html then fetchMaterialContent; URL has no extension.",
+    "cases": [
+        {
+            "name": "it removes empty heading and paragraph tags with no attributes",
+            "input": {
+                "url": "https://example.com/page",
+                "host": "example.com",
+                "responseSequence": [
+                    "HEAD probe -> 200 text/html; charset=utf-8",
+                    "GET -> this file"
+                ]
+            },
+            "partial": true,
+            "expected": {
+                "htmlContent": {
+                    "notContains": [
+                        "<h1>",
+                        "<p></p>",
+                        "<h2>"
+                    ],
+                    "contains": [
+                        "Visible"
+                    ]
+                }
+            }
+        }
+    ]
+}

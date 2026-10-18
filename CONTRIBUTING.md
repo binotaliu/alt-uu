@@ -9,7 +9,7 @@
 ## 2. 提交議題（Issues）
 
 - 在提出 Issue 前，先搜尋現有議題以避免重複。
-- 清楚描述你遇到的問題或建議，附上重現步驟、相關日誌與環境資訊（PHP、Laravel、Node 版本等）。
+- 清楚描述你遇到的問題或建議，附上重現步驟、相關日誌（App 內「診斷記錄」可分享）與環境資訊（App 版本、iOS／Android 版本、裝置型號等）。
 
 ## 3. Pull Request 指南
 
@@ -21,25 +21,22 @@
 
 ## 4. 本機開發與測試
 
-建議先依照 README 的快速開法設定本機環境。常用指令：
+建議先依照 README 的「開發 / Development」設定本機環境。常用指令：
 
 ```bash
-composer install
-composer setup
+npm ci
+npm run lint
+npm run typecheck
+npm test
 ```
 
-格式化與測試：
-
-```bash
-npm run format
-./vendor/bin/pint
-composer test
-```
+在模擬器或裝置上執行（於 `apps/mobile`）：`npx expo run:ios` 或 `npx expo run:android`。
 
 ## 5. 程式風格與檢查
 
-- PHP：請遵循專案的 Pint 設定，提交前執行 `vendor/bin/pint`。
-- TypeScript/CSS/Blade：請使用專案設定的格式化工具（`npm run format`）。
+- TypeScript：請使用專案設定的 Prettier 與 ESLint（`npm run format`、`npm run lint`），提交時 lint-staged 會自動執行。
+- `packages/core` 必須維持純 TypeScript，不可引用 React、React Native 或 Expo。
+- 介面文字請使用繁體中文，且不使用「查看」，請改用「檢視」。
 
 ## 6. 安全性回報
 

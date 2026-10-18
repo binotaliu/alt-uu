@@ -1,0 +1,470 @@
+{
+    "source": "Unit/Diagnostics/DiagnosticRedactorTest.php:12-150",
+    "phpClass": "App\\Services\\Diagnostics\\DiagnosticRedactor",
+    "note": "op = redact(array) | redactText | redactUrl | redactSecrets | pseudonymizeStable | pseudonymizeSalts. Salt \"test-salt\" unless given. REDACTED constant = \"[已遮蔽]\". Golden holds the exact PHP output (including pseudonym handles for salt \"test-salt\").",
+    "cases": [
+        {
+            "name": "drops secret-bearing key: password",
+            "input": {
+                "op": "redact",
+                "salt": "test-salt",
+                "input": {
+                    "password": "super-secret-value"
+                }
+            },
+            "expected": {
+                "password": "[已遮蔽]",
+                "valueNotContains": "super-secret-value"
+            }
+        },
+        {
+            "name": "drops secret-bearing key: ticket",
+            "input": {
+                "op": "redact",
+                "salt": "test-salt",
+                "input": {
+                    "ticket": "super-secret-value"
+                }
+            },
+            "expected": {
+                "ticket": "[已遮蔽]",
+                "valueNotContains": "super-secret-value"
+            }
+        },
+        {
+            "name": "drops secret-bearing key: session_idx",
+            "input": {
+                "op": "redact",
+                "salt": "test-salt",
+                "input": {
+                    "session_idx": "super-secret-value"
+                }
+            },
+            "expected": {
+                "session_idx": "[已遮蔽]",
+                "valueNotContains": "super-secret-value"
+            }
+        },
+        {
+            "name": "drops secret-bearing key: cookies",
+            "input": {
+                "op": "redact",
+                "salt": "test-salt",
+                "input": {
+                    "cookies": "super-secret-value"
+                }
+            },
+            "expected": {
+                "cookies": "[已遮蔽]",
+                "valueNotContains": "super-secret-value"
+            }
+        },
+        {
+            "name": "drops secret-bearing key: Set-Cookie",
+            "input": {
+                "op": "redact",
+                "salt": "test-salt",
+                "input": {
+                    "Set-Cookie": "super-secret-value"
+                }
+            },
+            "expected": {
+                "Set-Cookie": "[已遮蔽]",
+                "valueNotContains": "super-secret-value"
+            }
+        },
+        {
+            "name": "drops secret-bearing key: authorization",
+            "input": {
+                "op": "redact",
+                "salt": "test-salt",
+                "input": {
+                    "authorization": "super-secret-value"
+                }
+            },
+            "expected": {
+                "authorization": "[已遮蔽]",
+                "valueNotContains": "super-secret-value"
+            }
+        },
+        {
+            "name": "drops secret-bearing key: access_token",
+            "input": {
+                "op": "redact",
+                "salt": "test-salt",
+                "input": {
+                    "access_token": "super-secret-value"
+                }
+            },
+            "expected": {
+                "access_token": "[已遮蔽]",
+                "valueNotContains": "super-secret-value"
+            }
+        },
+        {
+            "name": "drops secret-bearing key: refreshToken",
+            "input": {
+                "op": "redact",
+                "salt": "test-salt",
+                "input": {
+                    "refreshToken": "super-secret-value"
+                }
+            },
+            "expected": {
+                "refreshToken": "[已遮蔽]",
+                "valueNotContains": "super-secret-value"
+            }
+        },
+        {
+            "name": "drops secret-bearing key: apiKey",
+            "input": {
+                "op": "redact",
+                "salt": "test-salt",
+                "input": {
+                    "apiKey": "super-secret-value"
+                }
+            },
+            "expected": {
+                "apiKey": "[已遮蔽]",
+                "valueNotContains": "super-secret-value"
+            }
+        },
+        {
+            "name": "drops secret-bearing key: signedPayload",
+            "input": {
+                "op": "redact",
+                "salt": "test-salt",
+                "input": {
+                    "signedPayload": "super-secret-value"
+                }
+            },
+            "expected": {
+                "signedPayload": "[已遮蔽]",
+                "valueNotContains": "super-secret-value"
+            }
+        },
+        {
+            "name": "drops secret-bearing key: receipt",
+            "input": {
+                "op": "redact",
+                "salt": "test-salt",
+                "input": {
+                    "receipt": "super-secret-value"
+                }
+            },
+            "expected": {
+                "receipt": "[已遮蔽]",
+                "valueNotContains": "super-secret-value"
+            }
+        },
+        {
+            "name": "drops secret-bearing key: APP_KEY",
+            "input": {
+                "op": "redact",
+                "salt": "test-salt",
+                "input": {
+                    "APP_KEY": "super-secret-value"
+                }
+            },
+            "expected": {
+                "APP_KEY": "[已遮蔽]",
+                "valueNotContains": "super-secret-value"
+            }
+        },
+        {
+            "name": "pseudonymizes personal identifier key: username",
+            "input": {
+                "op": "redact",
+                "salt": "test-salt",
+                "input": {
+                    "username": "u1001"
+                }
+            },
+            "expected": {
+                "username": {
+                    "startsWith": "user#",
+                    "notContains": "u1001"
+                }
+            }
+        },
+        {
+            "name": "pseudonymizes personal identifier key: studentId",
+            "input": {
+                "op": "redact",
+                "salt": "test-salt",
+                "input": {
+                    "studentId": "u1001"
+                }
+            },
+            "expected": {
+                "studentId": {
+                    "startsWith": "user#",
+                    "notContains": "u1001"
+                }
+            }
+        },
+        {
+            "name": "pseudonymizes personal identifier key: displayName",
+            "input": {
+                "op": "redact",
+                "salt": "test-salt",
+                "input": {
+                    "displayName": "u1001"
+                }
+            },
+            "expected": {
+                "displayName": {
+                    "startsWith": "user#",
+                    "notContains": "u1001"
+                }
+            }
+        },
+        {
+            "name": "pseudonymizes personal identifier key: nickname",
+            "input": {
+                "op": "redact",
+                "salt": "test-salt",
+                "input": {
+                    "nickname": "u1001"
+                }
+            },
+            "expected": {
+                "nickname": {
+                    "startsWith": "user#",
+                    "notContains": "u1001"
+                }
+            }
+        },
+        {
+            "name": "pseudonymizes personal identifier key: email",
+            "input": {
+                "op": "redact",
+                "salt": "test-salt",
+                "input": {
+                    "email": "u1001"
+                }
+            },
+            "expected": {
+                "email": {
+                    "startsWith": "user#",
+                    "notContains": "u1001"
+                }
+            }
+        },
+        {
+            "name": "keeps our own local account id",
+            "input": {
+                "op": "redact",
+                "salt": "test-salt",
+                "input": {
+                    "accountId": 42,
+                    "account_id": 7
+                }
+            },
+            "expected": {
+                "accountId": 42,
+                "account_id": 7
+            }
+        },
+        {
+            "name": "produces a stable handle for the same identifier",
+            "input": {
+                "op": "pseudonymizeStable",
+                "salt": "test-salt",
+                "input": [
+                    "u1001",
+                    "u1001",
+                    "U1001"
+                ]
+            },
+            "expected": {
+                "equalHandles": [
+                    [
+                        0,
+                        1
+                    ],
+                    [
+                        2,
+                        1
+                    ]
+                ],
+                "note": "pseudonymize(\"u1001\") twice equal; \"U1001\" equals \"u1001\" (case-insensitive)"
+            }
+        },
+        {
+            "name": "produces different handles across installs",
+            "input": {
+                "op": "pseudonymizeSalts",
+                "salt": "test-salt",
+                "input": {
+                    "value": "u1001",
+                    "saltA": "salt-a",
+                    "saltB": "salt-b"
+                }
+            },
+            "expected": {
+                "handlesDiffer": true
+            }
+        },
+        {
+            "name": "redacts nested structures recursively",
+            "input": {
+                "op": "redact",
+                "salt": "test-salt",
+                "input": {
+                    "session": {
+                        "ticket": "abc123",
+                        "profile": {
+                            "username": "u1001",
+                            "displayName": "測試教師甲"
+                        },
+                        "cookies": {
+                            "WM": "deadbeef"
+                        }
+                    },
+                    "status": 500
+                }
+            },
+            "expected": {
+                "session.ticket": "[已遮蔽]",
+                "session.cookies": "[已遮蔽]",
+                "session.profile.username": {
+                    "startsWith": "user#"
+                },
+                "session.profile.displayName": {
+                    "startsWith": "user#"
+                },
+                "status": 500
+            }
+        },
+        {
+            "name": "sweeps secrets out of free-text response bodies",
+            "input": {
+                "op": "redactText",
+                "salt": "test-salt",
+                "input": "{\"code\":403,\"ticket\":\"abc123xyz\",\"username\":\"u1001\",\"message\":\"access denied\"}"
+            },
+            "expected": {
+                "notContains": [
+                    "abc123xyz",
+                    "u1001"
+                ],
+                "contains": [
+                    "access denied",
+                    "403"
+                ]
+            }
+        },
+        {
+            "name": "pseudonymizes account handles anywhere in free text",
+            "input": {
+                "op": "redactText",
+                "salt": "test-salt",
+                "input": "Login failed for u123456 after 3 attempts"
+            },
+            "expected": {
+                "notContains": [
+                    "u123456"
+                ],
+                "contains": [
+                    "user#",
+                    "after 3 attempts"
+                ]
+            }
+        },
+        {
+            "name": "pseudonymizes bare e-mail addresses in free text",
+            "input": {
+                "op": "redactText",
+                "salt": "test-salt",
+                "input": "contact student@nou.edu.tw for details"
+            },
+            "expected": {
+                "notContains": [
+                    "student@nou.edu.tw"
+                ],
+                "contains": [
+                    "user#"
+                ]
+            }
+        },
+        {
+            "name": "strips credential query parameters from urls but keeps the diagnostic part",
+            "input": {
+                "op": "redactUrl",
+                "salt": "test-salt",
+                "input": "https://uu.nou.edu.tw/xmlapi/index.php?action=getCourseList&ticket=SECRET123&ua=Mozilla&page=2"
+            },
+            "expected": {
+                "notContains": [
+                    "SECRET123"
+                ],
+                "contains": [
+                    "uu.nou.edu.tw/xmlapi/index.php",
+                    "action=getCourseList",
+                    "page=2"
+                ]
+            }
+        },
+        {
+            "name": "leaves an ordinary message untouched",
+            "input": {
+                "op": "redactText",
+                "salt": "test-salt",
+                "input": "讀取作業列表失敗。"
+            },
+            "expected": {
+                "equals": "讀取作業列表失敗。"
+            }
+        },
+        {
+            "name": "redactSecrets drops credentials from html source but leaves identifiers and structure alone",
+            "input": {
+                "op": "redactSecrets",
+                "salt": "test-salt",
+                "input": "<meta name=\"viewport\" content=\"width=1\"><a href=\"https://uu.nou.edu.tw/x?ticket=abc123&page=2\">u</a><script>var cfg = {\"password\":\"hunter2\"};</script> user u1001 mail@example.com"
+            },
+            "expected": {
+                "contains": [
+                    "<meta name=\"viewport\"",
+                    "page=2",
+                    "u1001",
+                    "mail@example.com"
+                ],
+                "notContains": [
+                    "abc123",
+                    "hunter2"
+                ]
+            }
+        },
+        {
+            "name": "redactSecrets returns empty text unchanged",
+            "input": {
+                "op": "redactSecrets",
+                "salt": "test-salt",
+                "input": ""
+            },
+            "expected": {
+                "equals": ""
+            }
+        },
+        {
+            "name": "redactText masks a credential in a URL query string inside free text",
+            "input": {
+                "op": "redactText",
+                "salt": "test-salt",
+                "input": "<a href=\"https://uu.nou.edu.tw/learn/x.php?ticket=abc123&page=2&session_idx=idx9\">go</a>"
+            },
+            "expected": {
+                "contains": [
+                    "page=2",
+                    "uu.nou.edu.tw/learn/x.php"
+                ],
+                "notContains": [
+                    "abc123",
+                    "idx9"
+                ]
+            }
+        }
+    ]
+}

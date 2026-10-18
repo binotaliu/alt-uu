@@ -1,0 +1,18 @@
+# Legacy tests/Browser/Auth/{OnboardingPageTest,LoginPageTest}: onboarding,
+# login with a real account, course list and account tab show the profile.
+appId: ${MAESTRO_APP_ID}
+name: Login
+tags:
+  - auth
+---
+- runFlow: subflows/fresh-login.yaml
+- assertVisible:
+    id: tab-index
+- tapOn:
+    id: tab-account
+- extendedWaitUntil:
+    visible:
+      text: '(?i).*${MAESTRO_USERNAME}.*'
+    timeout: 30000
+- assertVisible:
+    id: account-manage-accounts

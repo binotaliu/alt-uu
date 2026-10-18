@@ -1,0 +1,30 @@
+{
+    "source": "Unit/UUProxyClientTest.php:12",
+    "phpClass": "App\\Services\\UUProxyClient::request (reauthentication handler)",
+    "note": "Http::fakeSequence: first reply 403 {code:401}; second 200 {code:0,data:{ok:true}}. request(\"my-course-list\").",
+    "cases": [
+        {
+            "name": "retries request once after 403 when reauthentication succeeds",
+            "input": {
+                "reauthHandlerReturns": true,
+                "responses": 2
+            },
+            "expected": {
+                "reauthAttempted": true,
+                "result.payload.code": 0,
+                "result.payload.data.ok": true
+            }
+        },
+        {
+            "name": "does not retry after 403 when reauthentication fails",
+            "input": {
+                "reauthHandlerReturns": false,
+                "responses": 1
+            },
+            "expected": {
+                "reauthAttempted": true,
+                "result.payload.code": 401
+            }
+        }
+    ]
+}

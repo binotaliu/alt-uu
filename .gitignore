@@ -1,28 +1,21 @@
-/.phpunit.cache
-/bootstrap/ssr
 /node_modules
-/public/build
-/public/ios-hot
-/public/hot
-/public/storage
-/tests/Browser/Screenshots
-/storage/*.key
-/storage/pail
-/resources/js/actions
-/resources/js/routes
-/resources/js/wayfinder
-/vendor
+node_modules/
+dist/
+coverage/
+.expo/
+
+# Generated native projects (created by `expo prebuild`)
+/apps/mobile/ios
+/apps/mobile/android
+
 .DS_Store
 .env
-.env.backup
-.env.production
-.phpactor.json
-.phpunit.result.cache
-Homestead.json
-Homestead.yaml
+.env.*
+!.env.example
 npm-debug.log
 yarn-error.log
-/auth.json
+*.tsbuildinfo
+
 /.fleet
 /.idea
 /.nova
@@ -31,7 +24,15 @@ yarn-error.log
 
 # Credential files (keystores, private keys, etc.)
 /credentials/
+*.jks
+*.p12
+*.p8
+*.mobileprovision
 
 # Agents
 CLAUDE.local.md
 .claude/settings.local.json
+
+# Gradle / Android build output
+build/
+.gradle/

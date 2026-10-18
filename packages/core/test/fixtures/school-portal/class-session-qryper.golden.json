@@ -1,0 +1,47 @@
+{
+    "generatedBy": "real PHP legacy app (alt-uu-legacy worktree of main)",
+    "phpClass": "AltUU\\Domains\\SchoolPortal\\Actions\\GetCourseClassSessionInfo",
+    "cases": [
+        {
+            "name": "returns the matching course class session info, stripping the session-type suffix",
+            "input": {
+                "course": {
+                    "courseId": "9001",
+                    "semester": "115上",
+                    "name": "假課程甲"
+                }
+            },
+            "output": {
+                "courseName": "假課程甲",
+                "semesterLabel": "115學年上學期",
+                "classDates": "第1次 2026/09/22 第2次 2026/10/20",
+                "classType": "網路面授",
+                "classCode": "ZZZ001",
+                "teacher": "假老師",
+                "classTime": "1900~2050"
+            }
+        },
+        {
+            "name": "returns null when no course matches",
+            "input": {
+                "course": {
+                    "courseId": "9002",
+                    "semester": "115上",
+                    "name": "不存在的課程"
+                }
+            },
+            "output": null
+        },
+        {
+            "name": "returns null when the term does not match",
+            "input": {
+                "course": {
+                    "courseId": "9001",
+                    "semester": "114下",
+                    "name": "假課程甲"
+                }
+            },
+            "output": null
+        }
+    ]
+}

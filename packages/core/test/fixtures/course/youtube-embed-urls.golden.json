@@ -1,0 +1,139 @@
+{
+    "generatedBy": "real PHP legacy app (alt-uu-legacy worktree of main)",
+    "phpClass": "AltUU\\Domains\\Course\\Support\\YoutubeEmbedUrlParser::extractVideoId",
+    "cases": [
+        {
+            "name": "embed redirector",
+            "input": {
+                "url": "https://uu.nou.edu.tw/learn/path/youtubeEmbed.php?v=dQw4w9WgXcQ"
+            },
+            "output": "dQw4w9WgXcQ"
+        },
+        {
+            "name": "short link",
+            "input": {
+                "url": "https://youtu.be/dQw4w9WgXcQ?si=xxxxxx"
+            },
+            "output": "dQw4w9WgXcQ"
+        },
+        {
+            "name": "watch",
+            "input": {
+                "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=10s"
+            },
+            "output": "dQw4w9WgXcQ"
+        },
+        {
+            "name": "mobile watch",
+            "input": {
+                "url": "https://m.youtube.com/watch?feature=share&v=dQw4w9WgXcQ"
+            },
+            "output": "dQw4w9WgXcQ"
+        },
+        {
+            "name": "embed",
+            "input": {
+                "url": "https://www.youtube.com/embed/dQw4w9WgXcQ"
+            },
+            "output": "dQw4w9WgXcQ"
+        },
+        {
+            "name": "shorts",
+            "input": {
+                "url": "https://youtube.com/shorts/dQw4w9WgXcQ"
+            },
+            "output": "dQw4w9WgXcQ"
+        },
+        {
+            "name": "live",
+            "input": {
+                "url": "https://www.youtube.com/live/dQw4w9WgXcQ?si=abc"
+            },
+            "output": "dQw4w9WgXcQ"
+        },
+        {
+            "name": "nocookie embed",
+            "input": {
+                "url": "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ"
+            },
+            "output": "dQw4w9WgXcQ"
+        },
+        {
+            "name": "lms prefixed short link",
+            "input": {
+                "url": "https://uu.nou.edu.tw/base/100001/content/999999/https://youtu.be/dQw4w9WgXcQ?si=xxxxxx"
+            },
+            "output": "dQw4w9WgXcQ"
+        },
+        {
+            "name": "lms prefixed watch",
+            "input": {
+                "url": "https://uu.nou.edu.tw/base/100001/content/999999/https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+            },
+            "output": "dQw4w9WgXcQ"
+        },
+        {
+            "name": "lms prefixed with collapsed slashes",
+            "input": {
+                "url": "https://uu.nou.edu.tw/base/100001/content/999999/https:/youtu.be/dQw4w9WgXcQ"
+            },
+            "output": "dQw4w9WgXcQ"
+        },
+        {
+            "name": "non-embed uu url",
+            "input": {
+                "url": "https://uu.nou.edu.tw/base/10001/content/101279/introduce.htm"
+            },
+            "output": null
+        },
+        {
+            "name": "redirector without v",
+            "input": {
+                "url": "https://uu.nou.edu.tw/learn/path/youtubeEmbed.php"
+            },
+            "output": null
+        },
+        {
+            "name": "redirector with invalid v",
+            "input": {
+                "url": "https://uu.nou.edu.tw/learn/path/youtubeEmbed.php?v=%3Cscript%3E"
+            },
+            "output": null
+        },
+        {
+            "name": "channel page",
+            "input": {
+                "url": "https://www.youtube.com/@someone"
+            },
+            "output": null
+        },
+        {
+            "name": "watch without id",
+            "input": {
+                "url": "https://www.youtube.com/watch"
+            },
+            "output": null
+        },
+        {
+            "name": "lookalike host",
+            "input": {
+                "url": "https://youtube.com.evil.example/watch?v=dQw4w9WgXcQ"
+            },
+            "output": null
+        },
+        {
+            "name": "lms prefixed non-youtube",
+            "input": {
+                "url": "https://uu.nou.edu.tw/base/100001/content/999999/https://example.com/watch?v=dQw4w9WgXcQ"
+            },
+            "output": null
+        },
+        {
+            "name": "invalid id",
+            "input": {
+                "url": "https://youtu.be/%3Cscript%3E"
+            },
+            "output": null
+        }
+    ]
+}

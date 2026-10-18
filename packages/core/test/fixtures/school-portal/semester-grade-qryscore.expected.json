@@ -1,0 +1,63 @@
+{
+    "source": "Feature/SchoolPortal/GetCourseSemesterGradeTest.php:15",
+    "phpClass": "AltUU\\Domains\\SchoolPortal\\Actions\\GetCourseSemesterGrade",
+    "note": "Upstream GET /device/compliant/qryscore/index with an EMPTY qryscore2 body (as fakeSchoolPortalGradesPage default).",
+    "cases": [
+        {
+            "name": "returns the matching course grade",
+            "input": {
+                "course": {
+                    "courseId": "9001",
+                    "semester": "114下",
+                    "name": "假課程甲"
+                }
+            },
+            "partial": true,
+            "expected": {
+                "semesterLabel": "114學年下學期",
+                "credits": "3",
+                "firstRegularScore": "缺",
+                "participationScore": "90",
+                "midtermScore": "70",
+                "finalScore": "無資料"
+            }
+        },
+        {
+            "name": "matches a course name containing punctuation and a colon",
+            "input": {
+                "course": {
+                    "courseId": "9002",
+                    "semester": "114下",
+                    "name": "假課程：附標點符號（其一～其二）"
+                }
+            },
+            "partial": true,
+            "expected": {
+                "credits": "2",
+                "midtermScore": "78"
+            }
+        },
+        {
+            "name": "returns null when no course matches",
+            "input": {
+                "course": {
+                    "courseId": "9003",
+                    "semester": "114下",
+                    "name": "不存在的課程"
+                }
+            },
+            "expected": null
+        },
+        {
+            "name": "returns null when the term does not match",
+            "input": {
+                "course": {
+                    "courseId": "9001",
+                    "semester": "115暑",
+                    "name": "假課程甲"
+                }
+            },
+            "expected": null
+        }
+    ]
+}

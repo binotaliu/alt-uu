@@ -1,0 +1,41 @@
+{
+    "generatedBy": "real PHP legacy app (alt-uu-legacy worktree of main)",
+    "phpClass": "AltUU\\Domains\\Course\\Actions\\GetNouToolsCourseData (+ NouTools live sessions/calendar actions)",
+    "cases": [
+        {
+            "name": "live-sessions-undivided-no-suffix",
+            "input": {
+                "method": "GET",
+                "path": "/api/nou-tools/live-sessions"
+            },
+            "output": {
+                "status": 200,
+                "json": [
+                    {
+                        "accountId": 1,
+                        "accountLabel": "測試",
+                        "courseId": "2002",
+                        "courseName": "通識課程",
+                        "semester": "115暑",
+                        "className": "不分班",
+                        "classCode": "不分班",
+                        "type": "full_remote",
+                        "typeLabel": "不分班",
+                        "teacherName": "測試教師丙",
+                        "link": "https://meet.example.com/undivided-room",
+                        "backupClassroomUrl": "https://meet.example.com/backup-room",
+                        "startTime": "19:00:00+08:00",
+                        "endTime": "21:00:00+08:00",
+                        "sessions": [
+                            {
+                                "date": "2026-07-20",
+                                "startTime": "19:00:00+08:00",
+                                "endTime": "21:00:00+08:00"
+                            }
+                        ]
+                    }
+                ]
+            }
+        }
+    ]
+}

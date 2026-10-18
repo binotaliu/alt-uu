@@ -1,0 +1,31 @@
+{
+    "generatedBy": "real PHP legacy app (alt-uu-legacy worktree of main)",
+    "phpClass": "AltUU\\Domains\\Course\\Actions\\ParseMaterialContent (via GET /materials/content/parsed)",
+    "cases": [
+        {
+            "name": "parse-material-video-html5-flowplayer",
+            "input": {
+                "url": "https://example.com/page.html",
+                "sessionBaseUrl": "https://example.com"
+            },
+            "output": {
+                "status": 200,
+                "json": {
+                    "videoUrl": "https://media.example.com/vod/_definst_/900001/01/01.mp4/playlist.m3u8",
+                    "subtitleUrl": null,
+                    "downloadUrl": null,
+                    "downloadProxyUrl": null,
+                    "downloadFileName": null,
+                    "downloadFileExtension": null,
+                    "isPdf": false,
+                    "htmlContent": "<div>\n    測試影片內容\n    </div>",
+                    "videoProvider": "native",
+                    "embedVideoUrl": null
+                },
+                "upstreamRequests": [
+                    "GET https://example.com/page.html"
+                ]
+            }
+        }
+    ]
+}

@@ -1,0 +1,83 @@
+{
+    "generatedBy": "real PHP legacy app (alt-uu-legacy worktree of main)",
+    "phpClass": "AltUU\\Domains\\SchoolPortal\\Actions\\GetCourseSemesterGrade",
+    "cases": [
+        {
+            "name": "falls back to the historical grades page for a past semester not on the current-semester page",
+            "input": {
+                "course": {
+                    "courseId": "9004",
+                    "semester": "114下",
+                    "name": "假課程乙"
+                }
+            },
+            "output": {
+                "courseName": "假課程乙",
+                "semesterLabel": "114下學期",
+                "credits": "5",
+                "firstRegularScore": null,
+                "secondRegularScore": null,
+                "participationScore": null,
+                "regularAverage": null,
+                "midtermScore": null,
+                "finalScore": null,
+                "semesterGrade": "85"
+            }
+        },
+        {
+            "name": "prefers the current-semester page over the historical page when both have a match",
+            "input": {
+                "course": {
+                    "courseId": "9001",
+                    "semester": "114下",
+                    "name": "假課程甲"
+                }
+            },
+            "output": {
+                "courseName": "假課程甲",
+                "semesterLabel": "114學年下學期",
+                "credits": "3",
+                "firstRegularScore": "缺",
+                "secondRegularScore": "缺",
+                "participationScore": "90",
+                "regularAverage": "30",
+                "midtermScore": "70",
+                "finalScore": "無資料",
+                "semesterGrade": "無資料"
+            }
+        },
+        {
+            "name": "returns null when the course is absent from both the current and historical pages",
+            "input": {
+                "course": {
+                    "courseId": "9005",
+                    "semester": "114上",
+                    "name": "不存在的課程"
+                }
+            },
+            "output": null
+        },
+        {
+            "name": "splits a historical course line on the last colon when the course name itself contains one",
+            "input": {
+                "course": {
+                    "courseId": "9006",
+                    "semester": "114下",
+                    "name": "假課程丙：附副標題（測試）"
+                }
+            },
+            "output": {
+                "courseName": "假課程丙：附副標題（測試）",
+                "semesterLabel": "114下學期",
+                "credits": "2",
+                "firstRegularScore": null,
+                "secondRegularScore": null,
+                "participationScore": null,
+                "regularAverage": null,
+                "midtermScore": null,
+                "finalScore": null,
+                "semesterGrade": "73"
+            }
+        }
+    ]
+}

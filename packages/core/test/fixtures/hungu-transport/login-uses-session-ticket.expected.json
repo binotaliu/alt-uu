@@ -1,0 +1,23 @@
+{
+    "source": "Feature/Auth/AuthFlowTest.php:136",
+    "phpClass": "App\\Services\\UUSessionAuthenticator",
+    "note": "config hungu.reviewer_base_url = https://uu.nou.edu.tw/xmlapi/index.php; username \"reviewer\".",
+    "cases": [
+        {
+            "name": "uses session ticket when fetching profile after login",
+            "input": {
+                "username": "reviewer",
+                "password": "secret"
+            },
+            "expected": {
+                "response": {
+                    "ok": true
+                },
+                "myProfileRequestQuery": {
+                    "ticket": "ticket-from-session-data",
+                    "notTicket": "idx-should-not-be-used"
+                }
+            }
+        }
+    ]
+}

@@ -1,0 +1,31 @@
+{
+    "generatedBy": "real PHP legacy app (alt-uu-legacy worktree of main)",
+    "phpClass": "AltUU\\Domains\\Course\\Actions\\ParseMaterialContent",
+    "cases": [
+        {
+            "name": "material-viewer-lesson-1",
+            "input": {
+                "url": "https://uu.nou.edu.tw/material/lesson-1.html",
+                "sessionBaseUrl": "https://uu.nou.edu.tw"
+            },
+            "output": {
+                "status": 200,
+                "json": {
+                    "videoUrl": null,
+                    "subtitleUrl": null,
+                    "downloadUrl": null,
+                    "downloadProxyUrl": null,
+                    "downloadFileName": null,
+                    "downloadFileExtension": null,
+                    "isPdf": false,
+                    "htmlContent": "<p>第一章內容<img src=\"http://localhost/material-proxy/aHR0cHM6Ly91dS5ub3UuZWR1LnR3L2ltYWdlcy9jb3Zlci5qcGc\" alt=\"cover\"></p>",
+                    "videoProvider": "native",
+                    "embedVideoUrl": null
+                },
+                "upstreamRequests": [
+                    "GET https://uu.nou.edu.tw/material/lesson-1.html"
+                ]
+            }
+        }
+    ]
+}

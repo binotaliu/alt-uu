@@ -1,0 +1,16 @@
+{
+    "source": "Feature/StudyTime/StudyTimeTest.php:206",
+    "phpClass": "AltUU\\Domains\\StudyTime (POST /study-time, playback progress)",
+    "cases": [
+        {
+            "name": "uses updated hungu cookies for subsequent proxy calls in the same request",
+            "expected": {
+                "response": {
+                    "ok": true
+                },
+                "uploadRequestCookieHeaderContains": "WM=rotated-cookie",
+                "uploadRequestCookieHeaderNotContains": "WM=stale-cookie"
+            }
+        }
+    ]
+}

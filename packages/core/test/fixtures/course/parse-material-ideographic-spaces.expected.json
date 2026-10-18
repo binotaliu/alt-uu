@@ -1,0 +1,30 @@
+{
+    "source": "Unit/ParseMaterialContentTest.php:48",
+    "phpClass": "AltUU\\Domains\\Course\\Actions\\ParseMaterialContent (via GET /materials/content/parsed)",
+    "cases": [
+        {
+            "name": "it removes tags containing only ideographic or non-breaking spaces",
+            "input": {
+                "url": "https://example.com/page",
+                "host": "example.com",
+                "responseSequence": [
+                    "HEAD probe -> 200 text/html; charset=utf-8",
+                    "GET -> this file"
+                ]
+            },
+            "partial": true,
+            "expected": {
+                "htmlContent": {
+                    "notContains": [
+                        "<h1>",
+                        "<h2>",
+                        "<p>　　      </p>"
+                    ],
+                    "contains": [
+                        "保留這段文字"
+                    ]
+                }
+            }
+        }
+    ]
+}

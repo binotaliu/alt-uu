@@ -1,0 +1,41 @@
+{
+    "source": "Feature/Course/CourseSelfExamsApiTest.php:9",
+    "phpClass": "AltUU\\Domains\\Course\\Actions\\GetCourseSelfExams",
+    "note": "Legacy test interpolates random exam ids; pinned here to e100001+2+token-AAAA1111 and e100002+1+token-BBBB2222. Upstream GET /learn/exam/co_self_exam_list.php (after go-course).",
+    "cases": [
+        {
+            "name": "maps self exams with nested retake button and view result urls",
+            "input": {
+                "cid": "4242"
+            },
+            "partial": true,
+            "expected": {
+                "0": {
+                    "title": "示範自我測驗 A",
+                    "actionUrl": "https://uu.nou.edu.tw/learn/exam/exam_start.php?e100001+2+token-AAAA1111+0",
+                    "resultUrl": "https://uu.nou.edu.tw/learn/exam/view_result.php?e100001+2+token-AAAA1111",
+                    "isSubmitted": true,
+                    "resultUnavailableReason": null
+                },
+                "1": {
+                    "title": "示範自我測驗 B",
+                    "actionUrl": "https://uu.nou.edu.tw/learn/exam/exam_start.php?e100002+1+token-BBBB2222+0",
+                    "resultUrl": null,
+                    "isSubmitted": false,
+                    "resultUnavailableReason": "繳交後公布"
+                },
+                "2": {
+                    "title": "示範自我測驗 C",
+                    "resultUrl": null,
+                    "isSubmitted": true,
+                    "resultUnavailableReason": "關閉後公布"
+                },
+                "count": 3,
+                "requests": [
+                    "go-course with cid=4242",
+                    "GET https://uu.nou.edu.tw/learn/exam/co_self_exam_list.php"
+                ]
+            }
+        }
+    ]
+}

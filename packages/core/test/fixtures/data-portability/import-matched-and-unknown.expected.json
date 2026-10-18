@@ -1,0 +1,29 @@
+{
+    "source": "Feature/DataPortability/DataExportImportTest.php:114",
+    "phpClass": "AltUU\\Domains\\DataPortability\\Actions\\ExportAccountData / ImportAccountData / MergeAccountData",
+    "note": "POST /api/data-export/import body. Local account s4444444 exists; \"unknown-user\" does not. Golden = the PHP response.",
+    "cases": [
+        {
+            "name": "imports matched accounts and skips usernames with no local account",
+            "input": {
+                "localAccounts": [
+                    "s4444444"
+                ],
+                "subscription": "active"
+            },
+            "expected": {
+                "importedAccountsCount": 1,
+                "skippedUsernames": [
+                    "unknown-user"
+                ],
+                "importedPlaybackProgressCount": 1,
+                "importedAccountDailyActivitiesCount": 1,
+                "db": {
+                    "playback_progress(account s4444444, cid 1002)": 1,
+                    "playback_progress(cid 9999)": 0,
+                    "account_daily_activities(2026-07-09).total_seconds": 600
+                }
+            }
+        }
+    ]
+}

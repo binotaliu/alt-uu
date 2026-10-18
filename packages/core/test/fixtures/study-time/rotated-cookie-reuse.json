@@ -1,0 +1,39 @@
+{
+    "request": {
+        "cid": "1001",
+        "activityId": "N-1",
+        "url": "https://uu.nou.edu.tw/material/lesson-1.html",
+        "seconds": 120
+    },
+    "session": {
+        "base_url": "https://uu.nou.edu.tw",
+        "ua": "test-agent",
+        "ticket": "ticket-1",
+        "session_idx": "idx-1",
+        "cookies": {
+            "WM": "stale-cookie"
+        }
+    },
+    "upstream": {
+        "get-server-time": {
+            "status": 200,
+            "headers": {
+                "Set-Cookie": "WM=rotated-cookie; path=/"
+            },
+            "body": {
+                "code": 0,
+                "message": "success",
+                "data": {
+                    "server_time": "2026-03-14 10:00:00"
+                }
+            }
+        },
+        "set-read-node-history": {
+            "code": 0,
+            "message": "success",
+            "data": {
+                "seconds": 120
+            }
+        }
+    }
+}

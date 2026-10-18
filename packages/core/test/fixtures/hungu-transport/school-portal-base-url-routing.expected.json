@@ -1,0 +1,54 @@
+{
+    "source": "Unit/SchoolPortalProxyClientTest.php:20",
+    "phpClass": "App\\Services\\SchoolPortalProxyClient",
+    "cases": [
+        {
+            "name": "routes login for a reviewer-prefixed username to the reviewer base url",
+            "input": {
+                "call": "login('reviewer2', 'anypass')"
+            },
+            "expected": {
+                "requestPrefix": "https://alt-uu-staging.binota.org",
+                "neverSentTo": "https://nouapp.nou.edu.tw"
+            }
+        },
+        {
+            "name": "routes login for a non-reviewer username to the real base url",
+            "input": {
+                "call": "login('student123', 'anypass')"
+            },
+            "expected": {
+                "requestPrefix": "https://nouapp.nou.edu.tw",
+                "neverSentTo": "https://alt-uu-staging.binota.org"
+            }
+        },
+        {
+            "name": "routes the first fetch (no existing session) to the reviewer base url when remembered credentials belong to the reviewer",
+            "input": {
+                "call": "fetchHtmlPage('/device/compliant/qryscore/index')",
+                "portalSession": null,
+                "rememberedCredentials": {
+                    "username": "reviewer",
+                    "password": "p"
+                }
+            },
+            "expected": {
+                "requestPrefix": "https://alt-uu-staging.binota.org"
+            }
+        },
+        {
+            "name": "routes the first fetch (no existing session) to the real base url when remembered credentials are not the reviewer",
+            "input": {
+                "call": "fetchHtmlPage('/device/compliant/qryscore/index')",
+                "portalSession": null,
+                "rememberedCredentials": {
+                    "username": "student123",
+                    "password": "p"
+                }
+            },
+            "expected": {
+                "requestPrefix": "https://nouapp.nou.edu.tw"
+            }
+        }
+    ]
+}

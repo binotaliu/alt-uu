@@ -1,0 +1,31 @@
+{
+    "source": "Unit/UUSessionAuthenticatorTest.php:17",
+    "phpClass": "App\\Services\\UUSessionAuthenticator::attemptRememberedLogin",
+    "note": "No payload; behavioural contract.",
+    "cases": [
+        {
+            "name": "syncs current course when reauthentication succeeds",
+            "input": {
+                "activeAccountId": 42,
+                "rememberedCredentials": {
+                    "username": "u",
+                    "password": "p"
+                },
+                "attemptLogin": {
+                    "ok": true,
+                    "message": ""
+                },
+                "sessionCurrentCourse": {
+                    "hungu.current_course_id.42": "10050266"
+                }
+            },
+            "expected": {
+                "result": true,
+                "syncCurrentCourseCalledWith": {
+                    "cid": "10050266",
+                    "force": true
+                }
+            }
+        }
+    ]
+}

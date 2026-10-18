@@ -1,0 +1,128 @@
+{
+    "calls": [
+        {
+            "name": "create post",
+            "method": "POST",
+            "path": "/api/discuss/posts",
+            "json": {
+                "bid": "B-1",
+                "subject": "新文章",
+                "content": "文章內容"
+            }
+        },
+        {
+            "name": "update post",
+            "method": "PATCH",
+            "path": "/api/discuss/posts/P-1",
+            "json": {
+                "subject": "更新標題",
+                "content": "更新內容"
+            }
+        },
+        {
+            "name": "delete post",
+            "method": "DELETE",
+            "path": "/api/discuss/posts/P-1"
+        },
+        {
+            "name": "like post",
+            "method": "POST",
+            "path": "/api/discuss/posts/N-1/like",
+            "json": {
+                "bid": "B-1"
+            }
+        },
+        {
+            "name": "unlike post",
+            "method": "POST",
+            "path": "/api/discuss/posts/N-1/unlike",
+            "json": {
+                "bid": "B-1"
+            }
+        },
+        {
+            "name": "create whisper",
+            "method": "POST",
+            "path": "/api/discuss/whispers",
+            "json": {
+                "bid": "B-1",
+                "nid": "N-1",
+                "content": "留言"
+            }
+        },
+        {
+            "name": "update whisper",
+            "method": "PATCH",
+            "path": "/api/discuss/whispers/W-1",
+            "json": {
+                "bid": "B-1",
+                "nid": "N-1",
+                "content": "編輯留言"
+            }
+        },
+        {
+            "name": "delete whisper",
+            "method": "DELETE",
+            "path": "/api/discuss/whispers/W-1",
+            "json": {
+                "bid": "B-1",
+                "nid": "N-1"
+            }
+        },
+        {
+            "name": "set read",
+            "method": "POST",
+            "path": "/api/discuss/read/P-1"
+        }
+    ],
+    "upstreamResponses": [
+        {
+            "match": "https://uu.nou.edu.tw/xmlapi/index.php?action=add-course-post*",
+            "json": {
+                "code": 0,
+                "message": "ok",
+                "data": {
+                    "post_id": "P-1"
+                }
+            }
+        },
+        {
+            "match": "https://uu.nou.edu.tw/xmlapi/index.php?action=mod-course-post*",
+            "json": {
+                "code": 0,
+                "message": "ok"
+            }
+        },
+        {
+            "match": "https://uu.nou.edu.tw/xmlapi/index.php?action=del-course-post*",
+            "json": {
+                "code": 0,
+                "message": "ok"
+            }
+        },
+        {
+            "match": "https://uu.nou.edu.tw/mooc/controllers/forum_ajax.php*",
+            "json": {
+                "code": 0,
+                "message": "ok"
+            }
+        },
+        {
+            "match": "https://uu.nou.edu.tw/xmlapi/index.php?action=board-whisper-handler*",
+            "json": {
+                "code": 0,
+                "message": "ok",
+                "data": {
+                    "list": []
+                }
+            }
+        },
+        {
+            "match": "https://uu.nou.edu.tw/xmlapi/index.php?action=set-forum-read*",
+            "json": {
+                "code": 0,
+                "message": "ok"
+            }
+        }
+    ]
+}

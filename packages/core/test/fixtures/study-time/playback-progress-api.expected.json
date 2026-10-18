@@ -1,0 +1,28 @@
+{
+    "source": "Feature/StudyTime/StudyTimeTest.php:266",
+    "phpClass": "AltUU\\Domains\\StudyTime (POST /study-time, playback progress)",
+    "cases": [
+        {
+            "name": "returns playback progress via API endpoint",
+            "input": {
+                "request": "GET /api/playback-progress/1001/N-1"
+            },
+            "partial": true,
+            "expected": {
+                "progress": {
+                    "cid": "1001",
+                    "activityId": "N-1",
+                    "studySeconds": 120,
+                    "positionSeconds": 42.5,
+                    "hunguUploadSuccess": true
+                },
+                "progressMissingKeys": [
+                    "activity_id",
+                    "duration_seconds",
+                    "position_seconds",
+                    "hungu_upload_success"
+                ]
+            }
+        }
+    ]
+}

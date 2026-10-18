@@ -1,0 +1,12 @@
+{
+    "code": 0,
+    "message": "success",
+    "data": {
+        "list": [
+            {
+                "course_id": "2001",
+                "title": "(114上)會計學：入門-YYY001班"
+            }
+        ]
+    }
+}

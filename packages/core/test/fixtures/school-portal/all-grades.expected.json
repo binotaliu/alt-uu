@@ -1,0 +1,34 @@
+{
+    "source": "Feature/Course/AllCourseGradesApiTest.php:34",
+    "phpClass": "AltUU\\Domains\\SchoolPortal\\Actions\\GetAllCourseGrades (via GET /api/grades)",
+    "note": "Upstream qryscore (.qryscore.html) and qryscore2 (.qryscore2.html) pages.",
+    "cases": [
+        {
+            "name": "returns every grade the portal has, most recent semester first, deduping the current semester",
+            "partial": true,
+            "expected": {
+                "gradesCount": 2,
+                "grades[0]": {
+                    "courseName": "假課程乙",
+                    "semesterLabel": "115暑期"
+                },
+                "grades[1]": {
+                    "courseName": "假課程甲",
+                    "semesterLabel": "114學年下學期",
+                    "midtermScore": "70"
+                }
+            }
+        },
+        {
+            "name": "returns an empty list when the portal has no grades",
+            "input": {
+                "qryscoreStatus": 500,
+                "qryscore2Status": 500,
+                "body": ""
+            },
+            "expected": {
+                "grades": []
+            }
+        }
+    ]
+}

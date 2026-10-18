@@ -1,0 +1,24 @@
+{
+    "code": 0,
+    "message": "success",
+    "data": {
+        "list": [
+            {
+                "download_path": "/base/10001/content/101279/files/handout.pdf",
+                "relative_path": "files/handout.pdf",
+                "update_datetime": 1760000000,
+                "size": 123456,
+                "metadata": "pdf",
+                "filename": "handout.pdf",
+                "title": "講義",
+                "href": "https://uu.nou.edu.tw/base/10001/content/101279/files/handout.pdf"
+            },
+            {
+                "filename": "slides.zip",
+                "size": "2048",
+                "update_datetime": "1760000100"
+            },
+            "not-an-object"
+        ]
+    }
+}

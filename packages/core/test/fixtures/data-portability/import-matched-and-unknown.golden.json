@@ -1,0 +1,40 @@
+{
+    "generatedBy": "real PHP legacy app (alt-uu-legacy worktree of main)",
+    "phpClass": "AltUU\\Domains\\DataPortability\\Actions\\ExportAccountData / ImportAccountData / MergeAccountData",
+    "cases": [
+        {
+            "name": "import-matched-and-unknown",
+            "input": {
+                "payloadFile": "import-matched-and-unknown.json",
+                "times": 1,
+                "localAccount": "s4444444"
+            },
+            "output": {
+                "status": 201,
+                "json": {
+                    "importedAccountsCount": 1,
+                    "skippedUsernames": [
+                        "unknown-user"
+                    ],
+                    "importedPlaybackProgressCount": 1,
+                    "importedAccountDailyActivitiesCount": 1
+                },
+                "playbackProgressRows": [
+                    {
+                        "cid": "1002",
+                        "activity_id": "N-2",
+                        "duration_seconds": 300,
+                        "position_seconds": 10.5,
+                        "hungu_upload_success": false
+                    }
+                ],
+                "accountDailyActivityRows": [
+                    {
+                        "activity_date": "2026-07-09",
+                        "total_seconds": 600
+                    }
+                ]
+            }
+        }
+    ]
+}

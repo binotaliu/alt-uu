@@ -1,0 +1,30 @@
+{
+    "generatedBy": "real PHP legacy app (alt-uu-legacy worktree of main)",
+    "phpClass": "AltUU\\Domains\\SchoolPortal\\Actions\\GetCourseSemesterGrade (via GET /api/courses/{cid}/grades)",
+    "cases": [
+        {
+            "name": "course-grade",
+            "input": {
+                "method": "GET",
+                "path": "/api/courses/9001/grades"
+            },
+            "output": {
+                "status": 200,
+                "json": {
+                    "grade": {
+                        "courseName": "假課程甲",
+                        "semesterLabel": "114學年下學期",
+                        "credits": "3",
+                        "firstRegularScore": "缺",
+                        "secondRegularScore": "缺",
+                        "participationScore": "90",
+                        "regularAverage": "30",
+                        "midtermScore": "70",
+                        "finalScore": "無資料",
+                        "semesterGrade": "無資料"
+                    }
+                }
+            }
+        }
+    ]
+}

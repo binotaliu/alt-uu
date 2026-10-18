@@ -1,0 +1,31 @@
+{
+    "generatedBy": "real PHP legacy app (alt-uu-legacy worktree of main)",
+    "phpClass": "AltUU\\Domains\\Course\\Actions\\ParseMaterialContent",
+    "cases": [
+        {
+            "name": "material-viewer-lesson-2-flowplayer",
+            "input": {
+                "url": "https://uu.nou.edu.tw/material/lesson-2.html",
+                "sessionBaseUrl": "https://uu.nou.edu.tw"
+            },
+            "output": {
+                "status": 200,
+                "json": {
+                    "videoUrl": "https://media.example.com/videos/lesson-2.mp4",
+                    "subtitleUrl": "http://localhost/material-proxy/aHR0cHM6Ly91dS5ub3UuZWR1LnR3L3N1YnMvbGVzc29uLTIudnR0",
+                    "downloadUrl": null,
+                    "downloadProxyUrl": null,
+                    "downloadFileName": null,
+                    "downloadFileExtension": null,
+                    "isPdf": false,
+                    "htmlContent": "",
+                    "videoProvider": "native",
+                    "embedVideoUrl": null
+                },
+                "upstreamRequests": [
+                    "GET https://uu.nou.edu.tw/material/lesson-2.html"
+                ]
+            }
+        }
+    ]
+}

@@ -1,0 +1,72 @@
+{
+    "generatedBy": "real PHP legacy app (alt-uu-legacy worktree of main)",
+    "phpClass": "AltUU\\Domains\\SchoolPortal\\Actions\\GetCourseSemesterGrade",
+    "cases": [
+        {
+            "name": "returns the matching course grade",
+            "input": {
+                "course": {
+                    "courseId": "9001",
+                    "semester": "114下",
+                    "name": "假課程甲"
+                }
+            },
+            "output": {
+                "courseName": "假課程甲",
+                "semesterLabel": "114學年下學期",
+                "credits": "3",
+                "firstRegularScore": "缺",
+                "secondRegularScore": "缺",
+                "participationScore": "90",
+                "regularAverage": "30",
+                "midtermScore": "70",
+                "finalScore": "無資料",
+                "semesterGrade": "無資料"
+            }
+        },
+        {
+            "name": "matches a course name containing punctuation and a colon",
+            "input": {
+                "course": {
+                    "courseId": "9002",
+                    "semester": "114下",
+                    "name": "假課程：附標點符號（其一～其二）"
+                }
+            },
+            "output": {
+                "courseName": "假課程：附標點符號（其一～其二）",
+                "semesterLabel": "114學年下學期",
+                "credits": "2",
+                "firstRegularScore": "缺",
+                "secondRegularScore": "缺",
+                "participationScore": "100",
+                "regularAverage": "33",
+                "midtermScore": "78",
+                "finalScore": "無資料",
+                "semesterGrade": "無資料"
+            }
+        },
+        {
+            "name": "returns null when no course matches",
+            "input": {
+                "course": {
+                    "courseId": "9003",
+                    "semester": "114下",
+                    "name": "不存在的課程"
+                }
+            },
+            "output": null
+        },
+        {
+            "name": "returns null when the term does not match",
+            "input": {
+                "course": {
+                    "courseId": "9001",
+                    "semester": "115暑",
+                    "name": "假課程甲"
+                }
+            },
+            "output": null
+        }
+    ]
+}

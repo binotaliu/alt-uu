@@ -1,0 +1,24 @@
+{
+    "accounts": [
+        "active",
+        "other"
+    ],
+    "playbackProgressRows": [
+        {
+            "account": "active",
+            "cid": "1001",
+            "activity_id": "N-1",
+            "duration_seconds": 120,
+            "position_seconds": 42.5,
+            "hungu_upload_success": true
+        },
+        {
+            "account": "other",
+            "cid": "1001",
+            "activity_id": "N-1",
+            "duration_seconds": 999,
+            "position_seconds": 1,
+            "hungu_upload_success": false
+        }
+    ]
+}

@@ -1,0 +1,10 @@
+{
+    "source": "Unit/FlowplayerJsConfigVideoExtractorTest.php:32",
+    "phpClass": "AltUU\\Domains\\Course\\Support\\VideoExtractors\\FlowplayerJsConfigVideoExtractor",
+    "cases": [
+        {
+            "name": "it returns null when flowplayer is called without an absolute src",
+            "expected": null
+        }
+    ]
+}

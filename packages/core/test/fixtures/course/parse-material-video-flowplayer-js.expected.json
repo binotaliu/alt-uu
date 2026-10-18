@@ -1,0 +1,42 @@
+{
+    "source": "Feature/Course/ParseMaterialContentTest.php:31",
+    "phpClass": "AltUU\\Domains\\Course\\Actions\\ParseMaterialContent (via GET /materials/content/parsed)",
+    "cases": [
+        {
+            "name": "returns video url and cleaned html for video content",
+            "input": {
+                "url": "https://example.com/page.html",
+                "upstreamContentType": "text/html; charset=utf-8"
+            },
+            "partial": true,
+            "expected": {
+                "videoUrl": "https://example.com/video/playlist.m3u8",
+                "subtitleUrl": {
+                    "proxyOf": "https://example.com/01.vtt"
+                },
+                "downloadUrl": null,
+                "responseKeys": [
+                    "videoUrl",
+                    "subtitleUrl",
+                    "downloadUrl",
+                    "downloadProxyUrl",
+                    "downloadFileName",
+                    "downloadFileExtension",
+                    "isPdf",
+                    "htmlContent"
+                ],
+                "htmlContent": {
+                    "notContains": [
+                        "<script",
+                        "flowplayer",
+                        "id=\"player\""
+                    ],
+                    "contains": [
+                        "測試影片內容"
+                    ]
+                },
+                "noHeadRequestSent": true
+            }
+        }
+    ]
+}

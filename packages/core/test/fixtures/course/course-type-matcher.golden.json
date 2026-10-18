@@ -1,0 +1,26 @@
+{
+    "generatedBy": "real PHP legacy app (alt-uu-legacy worktree of main)",
+    "phpClass": "AltUU\\Domains\\Course\\Actions\\CourseTypeMatcher",
+    "cases": [
+        {
+            "name": "course-type-matcher",
+            "input": {
+                "course": {
+                    "course_id": "1005",
+                    "title": "(114下)行動學習導論-語音APP",
+                    "course_type": ""
+                },
+                "courseTypesByTitleKey": {
+                    "114下|行動學習導論": {
+                        "courseType": "語音",
+                        "commonCourseId": "1005"
+                    }
+                }
+            },
+            "output": {
+                "courseType": "語音",
+                "commonCourseId": "1005"
+            }
+        }
+    ]
+}

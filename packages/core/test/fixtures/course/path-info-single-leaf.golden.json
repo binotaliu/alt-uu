@@ -1,0 +1,37 @@
+{
+    "generatedBy": "real PHP legacy app (alt-uu-legacy worktree of main)",
+    "phpClass": "AltUU\\Domains\\Course\\Actions\\GetCoursePathInfo",
+    "cases": [
+        {
+            "name": "path-info-single-leaf",
+            "input": {
+                "method": "GET",
+                "path": "/api/courses/10050559/path"
+            },
+            "output": {
+                "status": 200,
+                "json": {
+                    "pathInfo": {
+                        "code": 0,
+                        "message": "success",
+                        "courseId": "10050559",
+                        "baseUrl": "https://uu.nou.edu.tw",
+                        "progress": 0,
+                        "pathText": "課程內容"
+                    },
+                    "materialNodes": [
+                        {
+                            "identifier": "node1",
+                            "href": "https://uu.nou.edu.tw/learn/content1.html",
+                            "text": "第一課：導論",
+                            "readed": false,
+                            "level": 0,
+                            "leaf": true,
+                            "itemDisabled": false
+                        }
+                    ]
+                }
+            }
+        }
+    ]
+}

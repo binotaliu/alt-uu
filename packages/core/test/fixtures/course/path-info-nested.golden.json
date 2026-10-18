@@ -1,0 +1,64 @@
+{
+    "generatedBy": "real PHP legacy app (alt-uu-legacy worktree of main)",
+    "phpClass": "AltUU\\Domains\\Course\\Actions\\GetCoursePathInfo",
+    "cases": [
+        {
+            "name": "path-info-nested",
+            "input": {
+                "method": "GET",
+                "path": "/api/courses/9001/path"
+            },
+            "output": {
+                "status": 200,
+                "json": {
+                    "pathInfo": {
+                        "code": 0,
+                        "message": "success",
+                        "courseId": "",
+                        "baseUrl": null,
+                        "progress": 0,
+                        "pathText": ""
+                    },
+                    "materialNodes": [
+                        {
+                            "identifier": "A1",
+                            "href": null,
+                            "text": "第一章",
+                            "readed": false,
+                            "level": 0,
+                            "leaf": false,
+                            "itemDisabled": true
+                        },
+                        {
+                            "identifier": "A2",
+                            "href": "https://uu.nou.edu.tw/material/lesson-1.html?ticket=abc123&x=1",
+                            "text": "1-1 課程簡介",
+                            "readed": false,
+                            "level": 1,
+                            "leaf": true,
+                            "itemDisabled": false
+                        },
+                        {
+                            "identifier": "A3",
+                            "href": "https://example.com/elsewhere.html",
+                            "text": "1-2 外部連結",
+                            "readed": false,
+                            "level": 1,
+                            "leaf": true,
+                            "itemDisabled": false
+                        },
+                        {
+                            "identifier": "B1",
+                            "href": "https://uu.nou.edu.tw/material/handout.pdf",
+                            "text": "講義",
+                            "readed": false,
+                            "level": 0,
+                            "leaf": true,
+                            "itemDisabled": false
+                        }
+                    ]
+                }
+            }
+        }
+    ]
+}

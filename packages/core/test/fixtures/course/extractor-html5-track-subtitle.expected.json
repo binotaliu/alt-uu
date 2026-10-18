@@ -1,0 +1,13 @@
+{
+    "source": "Unit/Html5SourceVideoExtractorTest.php:21",
+    "phpClass": "AltUU\\Domains\\Course\\Support\\VideoExtractors\\Html5SourceVideoExtractor",
+    "cases": [
+        {
+            "name": "it picks up a track subtitle when present",
+            "expected": {
+                "videoUrl": "https://example.com/playlist.m3u8",
+                "subtitleUrl": "01.vtt"
+            }
+        }
+    ]
+}

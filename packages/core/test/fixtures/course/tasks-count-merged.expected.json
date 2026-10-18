@@ -1,0 +1,27 @@
+{
+    "source": "Feature/Course/CourseTasksCountApiTest.php:9",
+    "phpClass": "AltUU\\Domains\\Course\\Actions\\GetCourseTasksCount",
+    "note": "Upstream GET /learn/my_homework.php (.homework.html) and /learn/my_forum.php (.forum.html).",
+    "cases": [
+        {
+            "name": "returns merged pending homeworks and unread articles counts",
+            "expected": [
+                {
+                    "courseId": "10050559",
+                    "pendingHomeworks": 1,
+                    "unreadArticles": 0
+                },
+                {
+                    "courseId": "10048231",
+                    "pendingHomeworks": 2,
+                    "unreadArticles": 5
+                },
+                {
+                    "courseId": "10099999",
+                    "pendingHomeworks": 0,
+                    "unreadArticles": 3
+                }
+            ]
+        }
+    ]
+}

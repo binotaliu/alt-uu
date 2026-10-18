@@ -1,0 +1,10 @@
+{
+    "config": {
+        "school_portal.base_url": "https://nouapp.nou.edu.tw",
+        "school_portal.reviewer_username": "reviewer",
+        "school_portal.reviewer_base_url": "https://alt-uu-staging.binota.org"
+    },
+    "loginResponseHeaders": {
+        "Set-Cookie": "sid=abc"
+    }
+}

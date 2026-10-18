@@ -1,0 +1,20 @@
+{
+    "code": 0,
+    "message": "success",
+    "data": {
+        "course_id": "10050559",
+        "base_url": "https://uu.nou.edu.tw",
+        "path": {
+            "text": "課程內容",
+            "item": [
+                {
+                    "identifier": "node1",
+                    "href": "https://uu.nou.edu.tw/learn/content1.html",
+                    "text": "第一課：導論",
+                    "leaf": true,
+                    "itemDisabled": false
+                }
+            ]
+        }
+    }
+}

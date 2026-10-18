@@ -1,0 +1,52 @@
+{
+    "source": "Feature/SchoolPortal/GetSchoolPortalHomeworkNoticesTest.php:14",
+    "phpClass": "AltUU\\Domains\\SchoolPortal\\Actions\\GetSchoolPortalHomeworkNotices",
+    "note": "Upstream GET /device/compliant/qryass/index. Action returns a collection; expected is the items() array.",
+    "cases": [
+        {
+            "name": "matches homework notices for the correct course and term",
+            "input": {
+                "course": {
+                    "courseId": "9001",
+                    "semester": "115暑",
+                    "name": "假課程乙"
+                }
+            },
+            "partial": true,
+            "expected": {
+                "0": {
+                    "title": "第1次作業",
+                    "submissionMethod": "依面授教師指定方式繳交",
+                    "dueDate": "繳交日期：2026年08月16日",
+                    "downloadUrl": "https://nouapp.nou.edu.tw/device/compliant/qryass/download?type=homework&filename=1153_900001_1&extension=pdf&_b=%5B%5D"
+                },
+                "count": 2,
+                "1.downloadUrl": {
+                    "contains": "filename=1153_900001_2"
+                }
+            }
+        },
+        {
+            "name": "returns no notices when the term does not match",
+            "input": {
+                "course": {
+                    "courseId": "9001",
+                    "semester": "114下",
+                    "name": "假課程乙"
+                }
+            },
+            "expected": []
+        },
+        {
+            "name": "returns no notices when the course name does not match",
+            "input": {
+                "course": {
+                    "courseId": "9001",
+                    "semester": "115暑",
+                    "name": "完全不相關的課程"
+                }
+            },
+            "expected": []
+        }
+    ]
+}

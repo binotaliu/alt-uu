@@ -1,0 +1,101 @@
+{
+    "generatedBy": "real PHP legacy app (alt-uu-legacy worktree of main)",
+    "phpClass": "AltUU\\Domains\\Course\\Actions\\GetNouToolsCourseData (+ NouTools live sessions/calendar actions)",
+    "cases": [
+        {
+            "name": "live-sessions",
+            "input": {
+                "method": "GET",
+                "path": "/api/nou-tools/live-sessions"
+            },
+            "output": {
+                "status": 200,
+                "json": [
+                    {
+                        "accountId": 1,
+                        "accountLabel": "測試",
+                        "courseId": "1001",
+                        "courseName": "管理學：導論",
+                        "semester": "114上",
+                        "className": "ZZZ001班",
+                        "classCode": "ZZZ001",
+                        "type": "morning",
+                        "typeLabel": "上午班",
+                        "teacherName": "測試教師甲",
+                        "link": "https://meet.example.com/abc-defg-hij",
+                        "backupClassroomUrl": null,
+                        "startTime": "09:00:00+08:00",
+                        "endTime": "10:50:00+08:00",
+                        "sessions": [
+                            {
+                                "date": "2025-10-12",
+                                "startTime": "09:00:00+08:00",
+                                "endTime": "10:50:00+08:00"
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "name": "school-calendar",
+            "input": {
+                "method": "GET",
+                "path": "/api/nou-tools/school-calendar"
+            },
+            "output": {
+                "status": 200,
+                "json": [
+                    {
+                        "name": "期中考",
+                        "startDate": "2025-11-15",
+                        "endDate": "2025-11-16",
+                        "isCountdown": true
+                    }
+                ]
+            }
+        },
+        {
+            "name": "nou-tools-info",
+            "input": {
+                "method": "GET",
+                "path": "/api/courses/1001/nou-tools-info"
+            },
+            "output": {
+                "status": 200,
+                "json": {
+                    "course": {
+                        "courseId": "1001",
+                        "courseName": "管理學：導論",
+                        "className": "ZZZ001班",
+                        "nouToolsCourseId": 1234,
+                        "descriptionUrl": "https://example.com/course/1234",
+                        "creditType": "必修",
+                        "credits": 3,
+                        "department": "假學系",
+                        "nature": "專業科目",
+                        "midtermDate": "2025-11-15",
+                        "finalDate": "2026-01-10",
+                        "examTimeStart": "09:00:00+08:00",
+                        "examTimeEnd": "10:30:00+08:00",
+                        "textbook": {
+                            "bookTitle": "管理學概論",
+                            "edition": "第三版",
+                            "priceInfo": "NT$450",
+                            "referenceUrl": "https://example.com/book/123"
+                        },
+                        "previousExams": [
+                            {
+                                "term": "2024B",
+                                "midtermReferencePrimary": "https://example.com/exams/midterm-a.pdf",
+                                "midtermReferenceSecondary": null,
+                                "finalReferencePrimary": "https://example.com/exams/final-a.pdf",
+                                "finalReferenceSecondary": null
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+    ]
+}

@@ -1,0 +1,54 @@
+{
+    "generatedBy": "real PHP legacy app (alt-uu-legacy worktree of main)",
+    "phpClass": "AltUU\\Domains\\Course\\Actions\\GetCourseSelfExams",
+    "cases": [
+        {
+            "name": "self-exams-list",
+            "input": {
+                "method": "GET",
+                "path": "/api/courses/4242/self-exams"
+            },
+            "output": {
+                "status": 200,
+                "json": [
+                    {
+                        "title": "示範自我測驗 A",
+                        "percent": "",
+                        "type": "self-exam",
+                        "status": "進行測驗",
+                        "window": "從 即日起 到 無限期",
+                        "actionUrl": "https://uu.nou.edu.tw/learn/exam/exam_start.php?e100001+2+token-AAAA1111+0",
+                        "resultUrl": "https://uu.nou.edu.tw/learn/exam/view_result.php?e100001+2+token-AAAA1111",
+                        "source": "self-exam",
+                        "isSubmitted": true,
+                        "resultUnavailableReason": null
+                    },
+                    {
+                        "title": "示範自我測驗 B",
+                        "percent": "",
+                        "type": "self-exam",
+                        "status": "進行測驗",
+                        "window": "從 即日起 到 無限期",
+                        "actionUrl": "https://uu.nou.edu.tw/learn/exam/exam_start.php?e100002+1+token-BBBB2222+0",
+                        "resultUrl": null,
+                        "source": "self-exam",
+                        "isSubmitted": false,
+                        "resultUnavailableReason": "繳交後公布"
+                    },
+                    {
+                        "title": "示範自我測驗 C",
+                        "percent": "",
+                        "type": "self-exam",
+                        "status": "進行測驗",
+                        "window": "從 即日起 到 無限期",
+                        "actionUrl": null,
+                        "resultUrl": null,
+                        "source": "self-exam",
+                        "isSubmitted": true,
+                        "resultUnavailableReason": "關閉後公布"
+                    }
+                ]
+            }
+        }
+    ]
+}

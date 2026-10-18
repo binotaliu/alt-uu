@@ -1,0 +1,48 @@
+{
+    "generatedBy": "real PHP legacy app (alt-uu-legacy worktree of main)",
+    "phpClass": "AltUU\\Domains\\Discuss\\Actions\\ListPosts",
+    "cases": [
+        {
+            "name": "posts-attachments",
+            "input": {
+                "method": "GET",
+                "path": "/api/discuss/posts?cid=1001&bid=B-1&nid=N-9"
+            },
+            "output": {
+                "status": 200,
+                "json": {
+                    "courseId": "1001",
+                    "boardId": "B-1",
+                    "nodeId": "N-9",
+                    "posts": [
+                        {
+                            "floor": 1,
+                            "node": null,
+                            "subject": "Hello",
+                            "content": "<p>Body</p>",
+                            "poster": null,
+                            "realname": null,
+                            "postDate": null,
+                            "push": 0,
+                            "liked": false,
+                            "whisperCount": 0,
+                            "whispers": [],
+                            "attachments": [
+                                {
+                                    "filename": "file1.pdf",
+                                    "href": "https://example.com/file1.pdf"
+                                },
+                                {
+                                    "filename": "file2.docx",
+                                    "href": "https://example.com/file2.docx"
+                                }
+                            ],
+                            "isBlocked": false,
+                            "blockedReason": null
+                        }
+                    ]
+                }
+            }
+        }
+    ]
+}

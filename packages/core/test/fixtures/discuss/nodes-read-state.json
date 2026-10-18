@@ -1,0 +1,24 @@
+{
+    "code": 0,
+    "message": "success",
+    "data": {
+        "list": [
+            {
+                "node": "N-1",
+                "subject": "Test 1",
+                "read": false,
+                "realname": "Tester",
+                "reply": 3,
+                "push": 10
+            },
+            {
+                "node": "N-2",
+                "subject": "Test 2",
+                "read": true,
+                "realname": "Tester",
+                "reply": 1,
+                "push": 0
+            }
+        ]
+    }
+}

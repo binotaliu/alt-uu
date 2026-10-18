@@ -1,0 +1,26 @@
+{
+    "id": 5678,
+    "name": "通識課程",
+    "term": "2026C",
+    "previousExams": [],
+    "classes": [
+        {
+            "id": 9001,
+            "code": "不分班",
+            "type": "full_remote",
+            "typeLabel": "不分班",
+            "startTime": "19:00:00+08:00",
+            "endTime": "21:00:00+08:00",
+            "teacherName": "測試教師丙",
+            "link": "https://meet.example.com/undivided-room",
+            "sessions": [
+                {
+                    "date": "2026-07-20",
+                    "startTime": "19:00:00+08:00",
+                    "endTime": "21:00:00+08:00"
+                }
+            ],
+            "backupClassroomUrl": "https://meet.example.com/backup-room"
+        }
+    ]
+}

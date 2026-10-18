@@ -1,0 +1,38 @@
+{
+    "generatedBy": "real PHP legacy app (alt-uu-legacy worktree of main)",
+    "phpClass": "AltUU\\Domains\\Course\\Actions\\GetNodeResources",
+    "cases": [
+        {
+            "name": "node-resources-list",
+            "input": {
+                "method": "GET",
+                "path": "/api/courses/9001/nodes/A2/resources"
+            },
+            "output": {
+                "status": 200,
+                "json": [
+                    {
+                        "downloadPath": "/base/10001/content/101279/files/handout.pdf",
+                        "relativePath": "files/handout.pdf",
+                        "updateDatetime": 1760000000,
+                        "size": 123456,
+                        "metadata": "pdf",
+                        "filename": "handout.pdf",
+                        "title": "講義",
+                        "href": "https://uu.nou.edu.tw/base/10001/content/101279/files/handout.pdf"
+                    },
+                    {
+                        "downloadPath": null,
+                        "relativePath": null,
+                        "updateDatetime": 1760000100,
+                        "size": 2048,
+                        "metadata": "",
+                        "filename": "slides.zip",
+                        "title": null,
+                        "href": null
+                    }
+                ]
+            }
+        }
+    ]
+}

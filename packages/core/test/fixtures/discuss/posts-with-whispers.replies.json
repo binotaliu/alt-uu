@@ -1,0 +1,19 @@
+{
+    "code": 0,
+    "message": "success",
+    "data": {
+        "list": [
+            {
+                "floor": 1,
+                "node": "N-POST-1",
+                "realname": "測試",
+                "content": "<script>alert(1)</script>hello",
+                "post_date": "2024-01-01",
+                "push": 3,
+                "hit": 1,
+                "whispercnt": 1,
+                "i_pushed": 1
+            }
+        ]
+    }
+}

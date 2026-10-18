@@ -1,0 +1,33 @@
+{
+    "source": "Feature/Course/ExamAgendaApiTest.php:34",
+    "phpClass": "AltUU\\Domains\\SchoolPortal\\Actions\\GetExamAgenda (via GET /api/exam-agenda)",
+    "note": "Upstream qryexm page. 假課程丙 正考 has no time (note only) and 假課程甲 補考 is not 正考, so both are excluded.",
+    "cases": [
+        {
+            "name": "returns only 正考 exams with a scheduled time, ordered by time ascending",
+            "partial": true,
+            "expected": {
+                "itemsCount": 2,
+                "items[0]": {
+                    "courseName": "假課程乙",
+                    "time": "0900~1040第2節",
+                    "room": "41Z102"
+                },
+                "items[1]": {
+                    "courseName": "假課程甲",
+                    "time": "1500~1610第5節"
+                }
+            }
+        },
+        {
+            "name": "returns an empty list when the portal has no exam info",
+            "input": {
+                "qryexmStatus": 500,
+                "body": ""
+            },
+            "expected": {
+                "items": []
+            }
+        }
+    ]
+}

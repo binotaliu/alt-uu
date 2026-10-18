@@ -1,0 +1,236 @@
+# Alt UU release lanes. Run from apps/mobile via `bundle exec fastlane <platform> <lane>`.
+#
+# Expected flow in CI (see .github/workflows/mobile-release.yml):
+#   1. `sync_build_number` (publish jobs only) -> APP_BUILD_NUMBER
+#   2. `npx expo prebuild --platform <p> --clean` with APP_VERSION / APP_BUILD_NUMBER set
+#   3. `build_*` / `upload_*` lanes
+
+require 'fileutils'
+require 'securerandom'
+
+ROOT_DIR = File.expand_path('..', __dir__)
+OUTPUT_DIR = File.join(__dir__, 'build-output')
+IOS_BUNDLE_IDENTIFIER = 'org.binota.alt-uu'
+ANDROID_PACKAGE = 'org.binota.alt_uu'
+
+# Appends key=value to $GITHUB_OUTPUT when running inside GitHub Actions.
+def write_github_output(key, value)
+  path = ENV['GITHUB_OUTPUT']
+  File.open(path, 'a') { |file| file.puts("#{key}=#{value}") } if path && !path.empty?
+end
+
+def require_env(*names)
+  missing = names.select { |name| ENV[name].to_s.empty? }
+  UI.user_error!("Missing required environment variables: #{missing.join(', ')}") unless missing.empty?
+end
+
+def asc_api_key
+  require_env('ASC_KEY_ID', 'ASC_ISSUER_ID', 'ASC_KEY_PATH')
+  app_store_connect_api_key(
+    key_id: ENV['ASC_KEY_ID'],
+    issuer_id: ENV['ASC_ISSUER_ID'],
+    key_filepath: ENV['ASC_KEY_PATH'],
+    in_house: false
+  )
+end
+
+PLAY_TRACKS = %w[internal alpha beta production].freeze
+
+def play_json_key
+  require_env('PLAY_JSON_KEY_PATH')
+  ENV['PLAY_JSON_KEY_PATH']
+end
+
+def run_gradle(task, signing_env)
+  UI.user_error!('No android/ project found; run `expo prebuild --platform android` first.') unless Dir.exist?(File.join(ROOT_DIR, 'android'))
+  signing_env.each { |key, value| ENV[key] = value.to_s }
+  require_env('ALTUU_ANDROID_STORE_FILE', 'ALTUU_ANDROID_STORE_PASSWORD', 'ALTUU_ANDROID_KEY_ALIAS', 'ALTUU_ANDROID_KEY_PASSWORD')
+
+  gradle(
+    task: task,
+    build_type: 'Release',
+    project_dir: File.join(ROOT_DIR, 'android'),
+    flags: "-I '#{File.join(__dir__, 'android-signing.init.gradle')}' --stacktrace"
+  )
+end
+
+platform :ios do
+  desc 'Resolve the next iOS build number (App Store Connect latest + 1 + JUMP_BY).'
+  lane :sync_build_number do
+    require_env('APP_VERSION')
+    api_key = asc_api_key
+    jump_by = ENV['JUMP_BY'].to_s.strip.to_i
+
+    # Both lookups only cover builds of this exact version string; a version
+    # App Store Connect has never seen yields 0, so JUMP_BY alone sets the floor.
+    known = [
+      latest_testflight_build_number(version: ENV['APP_VERSION'], api_key: api_key, initial_build_number: 0),
+      app_store_build_number(version: ENV['APP_VERSION'], live: false, api_key: api_key, initial_build_number: 0)
+    ].map(&:to_i).max
+
+    build_number = known + 1 + jump_by
+    UI.message("App Store Connect latest for #{ENV['APP_VERSION']}: #{known}; jump_by: #{jump_by}; using #{build_number}")
+    write_github_output('build_number', build_number)
+    build_number
+  end
+
+  desc 'Import the distribution certificate and provisioning profile into a temporary keychain.'
+  lane :setup_signing do
+    require_env('IOS_CERT_PATH', 'IOS_PROFILE_PATH')
+
+    keychain_name = 'altuu-ci.keychain'
+    keychain_password = SecureRandom.hex(16)
+    create_keychain(
+      name: keychain_name,
+      password: keychain_password,
+      default_keychain: true,
+      unlock: true,
+      timeout: 3600,
+      lock_when_sleeps: false
+    )
+    import_certificate(
+      certificate_path: ENV['IOS_CERT_PATH'],
+      certificate_password: ENV['IOS_CERT_PASSWORD'].to_s,
+      keychain_name: keychain_name,
+      keychain_password: keychain_password,
+      log_output: false
+    )
+
+    profile_xml = sh("security cms -D -i '#{ENV['IOS_PROFILE_PATH']}'", log: false)
+    profile = Plist.parse_xml(profile_xml)
+    profiles_dir = File.expand_path('~/Library/MobileDevice/Provisioning Profiles')
+    FileUtils.mkdir_p(profiles_dir)
+    FileUtils.cp(ENV['IOS_PROFILE_PATH'], File.join(profiles_dir, "#{profile['UUID']}.mobileprovision"))
+
+    ENV['IOS_PROFILE_NAME'] = profile['Name']
+    ENV['IOS_TEAM_ID'] = profile['TeamIdentifier'].first if ENV['IOS_TEAM_ID'].to_s.empty?
+    UI.message("Installed profile '#{profile['Name']}' for team #{ENV['IOS_TEAM_ID']}")
+  end
+
+  desc 'Archive and export a signed app-store .ipa from the prebuilt ios/ project.'
+  lane :build_ipa do
+    setup_signing
+
+    workspace = Dir[File.join(ROOT_DIR, 'ios', '*.xcworkspace')].first
+    UI.user_error!('No ios/*.xcworkspace found; run `expo prebuild --platform ios` first.') unless workspace
+    scheme = File.basename(workspace, '.xcworkspace')
+    identity = ENV['IOS_CODE_SIGN_IDENTITY'].to_s.empty? ? 'Apple Distribution' : ENV['IOS_CODE_SIGN_IDENTITY']
+
+    # Only the app target gets manual signing; Pods keep their defaults.
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      path: File.join(ROOT_DIR, 'ios', "#{scheme}.xcodeproj"),
+      team_id: ENV['IOS_TEAM_ID'],
+      targets: [scheme],
+      code_sign_identity: identity,
+      profile_name: ENV['IOS_PROFILE_NAME'],
+      bundle_identifier: IOS_BUNDLE_IDENTIFIER,
+      build_configurations: ['Release']
+    )
+
+    FileUtils.mkdir_p(OUTPUT_DIR)
+    build_app(
+      workspace: workspace,
+      scheme: scheme,
+      configuration: 'Release',
+      export_method: 'app-store',
+      output_directory: OUTPUT_DIR,
+      output_name: 'alt-uu.ipa',
+      export_options: {
+        method: 'app-store',
+        teamID: ENV['IOS_TEAM_ID'],
+        signingStyle: 'manual',
+        signingCertificate: identity,
+        provisioningProfiles: { IOS_BUNDLE_IDENTIFIER => ENV['IOS_PROFILE_NAME'] }
+      }
+    )
+  end
+
+  desc 'Upload the built .ipa to App Store Connect (TestFlight processing).'
+  lane :upload_ipa do
+    ipa = File.join(OUTPUT_DIR, 'alt-uu.ipa')
+    UI.user_error!("No .ipa at #{ipa}; run build_ipa first.") unless File.exist?(ipa)
+
+    upload_to_testflight(
+      api_key: asc_api_key,
+      ipa: ipa,
+      skip_waiting_for_build_processing: true,
+      skip_submission: true
+    )
+  end
+
+  desc 'Build and upload to App Store Connect.'
+  lane :release do
+    build_ipa
+    upload_ipa
+  end
+end
+
+platform :android do
+  desc 'Resolve the next Android versionCode (highest across every Play track + 1).'
+  lane :sync_build_number do
+    json_key = play_json_key
+    errors = 0
+    codes = PLAY_TRACKS.flat_map do |track|
+      google_play_track_version_codes(package_name: ANDROID_PACKAGE, track: track, json_key: json_key)
+    rescue StandardError => error
+      errors += 1
+      UI.important("Could not read Play track '#{track}': #{error.message}")
+      []
+    end
+    UI.user_error!('Could not read any Play track; refusing to guess a build number.') if errors == PLAY_TRACKS.size
+
+    build_number = (codes.map(&:to_i).max || 0) + 1
+    UI.message("Play Store highest versionCode: #{codes.max.inspect}; using #{build_number}")
+    write_github_output('build_number', build_number)
+    build_number
+  end
+
+  desc 'Build a signed release .aab with the upload keystore.'
+  lane :build_bundle do
+    run_gradle('bundle', {
+      'ALTUU_ANDROID_STORE_FILE' => ENV['ANDROID_KEYSTORE_PATH'],
+      'ALTUU_ANDROID_STORE_PASSWORD' => ENV['ANDROID_KEYSTORE_PASSWORD'],
+      'ALTUU_ANDROID_KEY_ALIAS' => ENV['ANDROID_KEY_ALIAS'],
+      'ALTUU_ANDROID_KEY_PASSWORD' => ENV['ANDROID_KEY_PASSWORD']
+    })
+    FileUtils.mkdir_p(OUTPUT_DIR)
+    FileUtils.cp(File.join(ROOT_DIR, 'android/app/build/outputs/bundle/release/app-release.aab'), File.join(OUTPUT_DIR, 'alt-uu.aab'))
+  end
+
+  desc 'Upload the built .aab to the Play internal testing track.'
+  lane :upload_bundle do
+    aab = File.join(OUTPUT_DIR, 'alt-uu.aab')
+    UI.user_error!("No .aab at #{aab}; run build_bundle first.") unless File.exist?(aab)
+
+    upload_to_play_store(
+      package_name: ANDROID_PACKAGE,
+      json_key: play_json_key,
+      track: 'internal',
+      aab: aab,
+      skip_upload_apk: true,
+      skip_upload_metadata: true,
+      skip_upload_changelogs: true,
+      skip_upload_images: true,
+      skip_upload_screenshots: true
+    )
+  end
+
+  desc 'Build and upload to the Play internal track.'
+  lane :release do
+    build_bundle
+    upload_bundle
+  end
+
+  desc 'Build the sideload .apk signed with the dedicated sideload key.'
+  lane :build_sideload do
+    run_gradle('assemble', {
+      'ALTUU_ANDROID_STORE_FILE' => ENV['SIDELOAD_KEYSTORE_PATH'],
+      'ALTUU_ANDROID_STORE_PASSWORD' => ENV['SIDELOAD_KEYSTORE_PASSWORD'],
+      'ALTUU_ANDROID_KEY_ALIAS' => ENV['SIDELOAD_KEY_ALIAS'],
+      'ALTUU_ANDROID_KEY_PASSWORD' => ENV['SIDELOAD_KEYSTORE_PASSWORD']
+    })
+    FileUtils.mkdir_p(OUTPUT_DIR)
+    FileUtils.cp(File.join(ROOT_DIR, 'android/app/build/outputs/apk/release/app-release.apk'), File.join(OUTPUT_DIR, 'alt-uu-sideload.apk'))
+  end
+end

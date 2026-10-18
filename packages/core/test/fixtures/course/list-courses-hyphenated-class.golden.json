@@ -1,0 +1,26 @@
+{
+    "generatedBy": "real PHP legacy app (alt-uu-legacy worktree of main)",
+    "phpClass": "AltUU\\Domains\\Course\\Actions\\ListCourses",
+    "cases": [
+        {
+            "name": "list-courses-hyphenated-class",
+            "input": {
+                "method": "GET",
+                "path": "/api/courses"
+            },
+            "output": {
+                "status": 200,
+                "json": [
+                    {
+                        "courseId": "2001",
+                        "commonCourseId": "2002",
+                        "semester": "114下",
+                        "name": "某某課程",
+                        "className": "台北-測試班",
+                        "courseType": "語音"
+                    }
+                ]
+            }
+        }
+    ]
+}

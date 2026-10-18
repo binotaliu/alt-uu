@@ -1,0 +1,16 @@
+{
+    "generatedBy": "real PHP legacy app (alt-uu-legacy worktree of main)",
+    "phpClass": "AltUU\\Domains\\Course\\Support\\VideoExtractors\\FlowplayerJsConfigVideoExtractor",
+    "cases": [
+        {
+            "name": "extractor-flowplayer-js-config",
+            "input": {
+                "file": "extractor-flowplayer-js-config.html"
+            },
+            "output": {
+                "videoUrl": "https://example.com/video/playlist.m3u8",
+                "subtitleUrl": "01.vtt"
+            }
+        }
+    ]
+}
