@@ -217,6 +217,24 @@ describe('CourseShowView', () => {
     expect(await screen.findByText('作業一')).toBeTruthy();
   });
 
+  it('shows the tabs as a sidebar on tablet widths', async () => {
+    jest
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      .spyOn(require('react-native'), 'useWindowDimensions')
+      .mockReturnValue({ width: 1024, height: 768, scale: 2, fontScale: 1 });
+
+    await renderWithServices(<CourseShowView cid="10" />, services());
+
+    expect(await screen.findByText('教材目錄', { exact: true })).toBeTruthy();
+    expect(screen.getByText('討論板')).toBeTruthy();
+    expect(screen.getByText('自我練習')).toBeTruthy();
+
+    await fireEvent.press(screen.getByRole('tab', { name: /作業/ }));
+    expect(await screen.findByText('作業一')).toBeTruthy();
+
+    jest.restoreAllMocks();
+  });
+
   it('falls back to materials for an unknown tab', () => {
     expect(resolveCourseTab('nope')).toBe('materials');
     expect(resolveCourseTab(undefined)).toBe('materials');

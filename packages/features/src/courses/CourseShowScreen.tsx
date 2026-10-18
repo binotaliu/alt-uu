@@ -1,4 +1,11 @@
-import { PageHeader, Screen, Text } from '@altuu/ui';
+import {
+  Icon,
+  PageHeader,
+  Screen,
+  Text,
+  useIsTablet,
+  type IconName,
+} from '@altuu/ui';
 import { useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams, usePathname } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
@@ -17,13 +24,39 @@ import { CourseSelfExamTab } from './tabs/CourseSelfExamTab';
 export type CourseTab =
   'materials' | 'discuss' | 'homework' | 'self-exam' | 'grades' | 'course-info';
 
-const courseTabs: ReadonlyArray<{ id: CourseTab; label: string }> = [
-  { id: 'materials', label: '教材' },
-  { id: 'discuss', label: '討論' },
-  { id: 'homework', label: '作業' },
-  { id: 'self-exam', label: '練習' },
-  { id: 'grades', label: '成績' },
-  { id: 'course-info', label: '課程資訊' },
+const courseTabs: ReadonlyArray<{
+  id: CourseTab;
+  label: string;
+  /** Label and icon of the tablet sidebar entry. */
+  sidebarLabel: string;
+  icon: IconName;
+}> = [
+  { id: 'materials', label: '教材', sidebarLabel: '教材目錄', icon: 'folder' },
+  {
+    id: 'discuss',
+    label: '討論',
+    sidebarLabel: '討論板',
+    icon: 'chat-bubble-left-right',
+  },
+  {
+    id: 'homework',
+    label: '作業',
+    sidebarLabel: '作業',
+    icon: 'clipboard-document-list',
+  },
+  {
+    id: 'self-exam',
+    label: '練習',
+    sidebarLabel: '自我練習',
+    icon: 'clipboard-document-check',
+  },
+  { id: 'grades', label: '成績', sidebarLabel: '成績', icon: 'chart-bar' },
+  {
+    id: 'course-info',
+    label: '課程資訊',
+    sidebarLabel: '課程資訊',
+    icon: 'information-circle',
+  },
 ];
 
 /** Reads the `tab` route param (legacy `#hash` / `tab` prop). */
@@ -77,6 +110,7 @@ export function CourseShowView({
   const courses = useCourses();
   const tasks = useCourseTasksCount();
   const queryClient = useQueryClient();
+  const isTablet = useIsTablet();
   const pathname = usePathname();
   const refreshOnReturn = useRef(false);
   const wasHere = useRef(true);
@@ -138,6 +172,89 @@ export function CourseShowView({
         ? courseTasks.pendingHomeworks
         : 0;
 
+  const sidebar = (
+    <View className="w-56 gap-1 self-start rounded-2xl border border-theme-200 bg-white/90 p-1 dark:border-zinc-700 dark:bg-zinc-900/90">
+      {courseTabs.map((tab) => {
+        const selected = tab.id === activeTab;
+        const badge = badgeFor(tab.id);
+
+        return (
+          <Pressable
+            key={tab.id}
+            testID={`course-tab-${tab.id}`}
+            accessibilityRole="tab"
+            accessibilityState={{ selected }}
+            onPress={() => setActiveTab(tab.id)}
+            className={`flex-row items-center justify-between rounded-xl px-3 py-2 ${
+              selected
+                ? 'bg-theme-800 dark:bg-zinc-600'
+                : 'active:bg-theme-50 dark:active:bg-zinc-800'
+            }`}
+          >
+            <View className="flex-row items-center gap-1">
+              <Icon
+                name={tab.icon}
+                size={16}
+                className={
+                  selected ? 'text-white' : 'text-theme-700 dark:text-zinc-300'
+                }
+              />
+              <Text
+                className={`font-medium ${
+                  selected ? 'text-white' : 'text-theme-700 dark:text-zinc-300'
+                }`}
+              >
+                {tab.sidebarLabel}
+              </Text>
+            </View>
+            <TabBadge count={badge} active={selected} />
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+
+  const bodyScroll = (
+    <ScrollView
+      testID="course-body-scroll"
+      className="flex-1"
+      contentContainerClassName={isTablet ? 'pb-6' : 'px-3 pb-24'}
+      keyboardShouldPersistTaps="handled"
+      refreshControl={
+        activeTab === 'materials' ? (
+          <RefreshControl
+            refreshing={refreshingMaterials}
+            onRefresh={() => void refreshMaterials()}
+          />
+        ) : undefined
+      }
+    >
+      {activeTab === 'materials' ? (
+        <CourseMaterialsTab cid={cid} />
+      ) : activeTab === 'discuss' ? (
+        <CourseDiscussTab
+          cid={cid}
+          className={course?.className ?? null}
+          commonCourseId={course?.commonCourseId ?? null}
+        />
+      ) : activeTab === 'homework' ? (
+        <CourseHomeworkTab
+          cid={cid}
+          onOpenedInAppBrowser={markOpenedInBrowser}
+        />
+      ) : activeTab === 'self-exam' ? (
+        <CourseSelfExamTab
+          cid={cid}
+          onOpenedInAppBrowser={markOpenedInBrowser}
+        />
+      ) : activeTab === 'grades' ? (
+        <CourseGradeTab cid={cid} />
+      ) : (
+        <CourseInfoTab cid={cid} />
+      )}
+    </ScrollView>
+  );
+
   return (
     <Screen ignoreTopInset ignoreBottomInset>
       <PageHeader
@@ -162,84 +279,56 @@ export function CourseShowView({
         }
       />
 
-      <View className="py-3">
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerClassName="px-3 min-w-full justify-center"
-        >
-          <View className="flex-row rounded-2xl border border-theme-200 bg-white/90 p-1 dark:border-zinc-700 dark:bg-zinc-900/90">
-            {courseTabs.map((tab) => {
-              const selected = tab.id === activeTab;
+      {isTablet ? (
+        <View className="mx-auto w-full max-w-6xl flex-1 flex-row gap-4 px-4 pt-4">
+          {sidebar}
+          <View className="min-w-0 flex-1">{bodyScroll}</View>
+        </View>
+      ) : (
+        <>
+          <View className="py-3">
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerClassName="px-3 min-w-full justify-center"
+            >
+              <View className="flex-row rounded-2xl border border-theme-200 bg-white/90 p-1 dark:border-zinc-700 dark:bg-zinc-900/90">
+                {courseTabs.map((tab) => {
+                  const selected = tab.id === activeTab;
 
-              return (
-                <Pressable
-                  key={tab.id}
-                  testID={`course-tab-${tab.id}`}
-                  accessibilityRole="tab"
-                  accessibilityState={{ selected }}
-                  onPress={() => setActiveTab(tab.id)}
-                  className={`min-w-24 shrink-0 flex-row items-center justify-center rounded-xl px-4 py-2 ${
-                    selected
-                      ? 'bg-theme-800 dark:bg-zinc-600'
-                      : 'active:bg-theme-50 dark:active:bg-zinc-800'
-                  }`}
-                >
-                  <Text
-                    className={`text-sm font-medium ${
-                      selected
-                        ? 'text-white'
-                        : 'text-theme-700 dark:text-zinc-300'
-                    }`}
-                  >
-                    {tab.label}
-                  </Text>
-                  <TabBadge count={badgeFor(tab.id)} active={selected} />
-                </Pressable>
-              );
-            })}
+                  return (
+                    <Pressable
+                      key={tab.id}
+                      testID={`course-tab-${tab.id}`}
+                      accessibilityRole="tab"
+                      accessibilityState={{ selected }}
+                      onPress={() => setActiveTab(tab.id)}
+                      className={`min-w-24 shrink-0 flex-row items-center justify-center rounded-xl px-4 py-2 ${
+                        selected
+                          ? 'bg-theme-800 dark:bg-zinc-600'
+                          : 'active:bg-theme-50 dark:active:bg-zinc-800'
+                      }`}
+                    >
+                      <Text
+                        className={`text-sm font-medium ${
+                          selected
+                            ? 'text-white'
+                            : 'text-theme-700 dark:text-zinc-300'
+                        }`}
+                      >
+                        {tab.label}
+                      </Text>
+                      <TabBadge count={badgeFor(tab.id)} active={selected} />
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </ScrollView>
           </View>
-        </ScrollView>
-      </View>
 
-      <ScrollView
-        testID="course-body-scroll"
-        className="flex-1"
-        contentContainerClassName="px-3 pb-24"
-        keyboardShouldPersistTaps="handled"
-        refreshControl={
-          activeTab === 'materials' ? (
-            <RefreshControl
-              refreshing={refreshingMaterials}
-              onRefresh={() => void refreshMaterials()}
-            />
-          ) : undefined
-        }
-      >
-        {activeTab === 'materials' ? (
-          <CourseMaterialsTab cid={cid} />
-        ) : activeTab === 'discuss' ? (
-          <CourseDiscussTab
-            cid={cid}
-            className={course?.className ?? null}
-            commonCourseId={course?.commonCourseId ?? null}
-          />
-        ) : activeTab === 'homework' ? (
-          <CourseHomeworkTab
-            cid={cid}
-            onOpenedInAppBrowser={markOpenedInBrowser}
-          />
-        ) : activeTab === 'self-exam' ? (
-          <CourseSelfExamTab
-            cid={cid}
-            onOpenedInAppBrowser={markOpenedInBrowser}
-          />
-        ) : activeTab === 'grades' ? (
-          <CourseGradeTab cid={cid} />
-        ) : (
-          <CourseInfoTab cid={cid} />
-        )}
-      </ScrollView>
+          {bodyScroll}
+        </>
+      )}
     </Screen>
   );
 }

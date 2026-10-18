@@ -1,5 +1,12 @@
 import type { CourseMaterialNode, ParsedMaterialContent } from '@altuu/core';
-import { PageHeader, Screen, Text, accentPalettes, useIsDark } from '@altuu/ui';
+import {
+  PageHeader,
+  Screen,
+  Text,
+  accentPalettes,
+  useIsDark,
+  useIsTablet,
+} from '@altuu/ui';
 import { useQueryClient } from '@tanstack/react-query';
 import * as Network from 'expo-network';
 import { router, useNavigation } from 'expo-router';
@@ -11,10 +18,17 @@ import {
   Pressable,
   ScrollView,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useCourses } from '../courses/courseQueries';
+import {
+  courseKeys,
+  useCourseLearningTimes,
+  useCourses,
+  useLastSeenMaterial,
+} from '../courses/courseQueries';
+import { MaterialDirectory } from '../courses/MaterialDirectory';
 import { useServiceRuntime } from '../services/AppServicesProvider';
 import { useAppPreferences } from '../services/hooks';
 import { asServiceError } from '../services/serviceError';
@@ -194,6 +208,10 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
   const preferences = useAppPreferences();
   const isDark = useIsDark();
   const insets = useSafeAreaInsets();
+  const isTablet = useIsTablet();
+  const { width } = useWindowDimensions();
+  const learningTimes = useCourseLearningTimes(cid);
+  const lastSeen = useLastSeenMaterial(cid);
 
   const [activeScoid, setActiveScoid] = useState(scoid);
   const courses = useCourses();
@@ -611,6 +629,11 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
           savingRef.current = false;
           setIsSaving(false);
         }
+
+        // The tablet sidebar shows the durations.
+        void queryClient.invalidateQueries({
+          queryKey: courseKeys.learningTimes(cid),
+        });
       }
 
       timer.stopTimer();
@@ -623,7 +646,7 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
       setActiveScoid(identifier);
       router.setParams({ scoid: identifier });
     },
-    [activeScoid, saveStudyTime, timer],
+    [activeScoid, cid, queryClient, saveStudyTime, timer],
   );
 
   const handleProgress = useCallback(
@@ -893,6 +916,108 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
     <View />
   );
 
+  const contentScroll = (
+    <ScrollView
+      stickyHeaderIndices={[0]}
+      contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
+    >
+      {playerSection}
+      <View className="gap-4 px-3 pt-2">
+        {isContentLoading && !isReady ? (
+          <MaterialSkeleton />
+        ) : contentError && displayedContent === undefined ? (
+          <ErrorRetry
+            error={contentError}
+            retrying={content.isFetching}
+            onRetry={() => {
+              void content.refetch();
+              void resources.refetch();
+            }}
+          />
+        ) : displayedContent !== undefined ? (
+          <MaterialViewer
+            content={displayedContent}
+            resources={resources.data ?? []}
+            cookiesReady={
+              displayedContent.baseUrl !== null &&
+              cookiesReadyFor === displayedContent.baseUrl
+            }
+            fontScale={effectiveFontScale}
+            isSavingFontScale={isSavingFontScale}
+            isDark={isDark}
+            palette={palette}
+            canOpenInAppBrowser={activeHref !== null}
+            isReloading={isReloading}
+            reloadError={reloadError}
+            showVideoTools={showPlayer && !isAudio && !isYoutube}
+            videoRate={videoRate}
+            isCapturingFrame={isCapturingFrame}
+            captureError={captureError}
+            isDownloading={download.isDownloading}
+            downloadProgress={download.progress}
+            downloadError={download.error}
+            onOpenInAppBrowser={() => {
+              if (activeHref !== null) {
+                openInAppBrowser(activeHref);
+              }
+            }}
+            onReload={() => void handleReload()}
+            onCaptureFrame={() => void handleCaptureFrame()}
+            onVideoRateChange={(rate) => playerRef.current?.setRate(rate)}
+            onDownload={() => {
+              if (displayedContent.downloadUrl) {
+                void download.download({
+                  cid,
+                  url: displayedContent.downloadUrl,
+                  descriptor: displayedContent.download,
+                  fileName: buildDownloadFileName({
+                    downloadFileName: displayedContent.downloadFileName,
+                    downloadFileExtension:
+                      displayedContent.downloadFileExtension,
+                    isPdf: displayedContent.isPdf,
+                    title: activeNodeText,
+                  }),
+                });
+              }
+            }}
+            onFontScaleChange={(scale) => void handleFontScaleChange(scale)}
+            onLinkPress={(href) => void handleContentLink(href)}
+            onImagePress={(src, alt) =>
+              setLightbox({
+                src,
+                alt,
+                baseUrl: displayedContent.baseUrl ?? src,
+              })
+            }
+          />
+        ) : null}
+
+        {!isContentLoading && (previous || next) ? (
+          <View className="flex-row gap-3">
+            <AdjacentButton
+              node={previous}
+              direction="previous"
+              onPress={() => {
+                if (previous) {
+                  void handleNodeSelect(previous.identifier);
+                }
+              }}
+            />
+            <AdjacentButton
+              node={next}
+              direction="next"
+              onPress={() => {
+                if (next) {
+                  void handleNodeSelect(next.identifier);
+                }
+              }}
+            />
+          </View>
+        ) : null}
+      </View>
+    </ScrollView>
+  );
+
   return (
     <Screen testID="material-screen" ignoreTopInset ignoreBottomInset>
       <PageHeader
@@ -924,105 +1049,31 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
         }
       />
 
-      <ScrollView
-        stickyHeaderIndices={[0]}
-        contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
-      >
-        {playerSection}
-        <View className="gap-4 px-3 pt-2">
-          {isContentLoading && !isReady ? (
-            <MaterialSkeleton />
-          ) : contentError && displayedContent === undefined ? (
-            <ErrorRetry
-              error={contentError}
-              retrying={content.isFetching}
-              onRetry={() => {
-                void content.refetch();
-                void resources.refetch();
-              }}
-            />
-          ) : displayedContent !== undefined ? (
-            <MaterialViewer
-              content={displayedContent}
-              resources={resources.data ?? []}
-              cookiesReady={
-                displayedContent.baseUrl !== null &&
-                cookiesReadyFor === displayedContent.baseUrl
-              }
-              fontScale={effectiveFontScale}
-              isSavingFontScale={isSavingFontScale}
-              isDark={isDark}
-              palette={palette}
-              canOpenInAppBrowser={activeHref !== null}
-              isReloading={isReloading}
-              reloadError={reloadError}
-              showVideoTools={showPlayer && !isAudio && !isYoutube}
-              videoRate={videoRate}
-              isCapturingFrame={isCapturingFrame}
-              captureError={captureError}
-              isDownloading={download.isDownloading}
-              downloadProgress={download.progress}
-              downloadError={download.error}
-              onOpenInAppBrowser={() => {
-                if (activeHref !== null) {
-                  openInAppBrowser(activeHref);
-                }
-              }}
-              onReload={() => void handleReload()}
-              onCaptureFrame={() => void handleCaptureFrame()}
-              onVideoRateChange={(rate) => playerRef.current?.setRate(rate)}
-              onDownload={() => {
-                if (displayedContent.downloadUrl) {
-                  void download.download({
-                    cid,
-                    url: displayedContent.downloadUrl,
-                    descriptor: displayedContent.download,
-                    fileName: buildDownloadFileName({
-                      downloadFileName: displayedContent.downloadFileName,
-                      downloadFileExtension:
-                        displayedContent.downloadFileExtension,
-                      isPdf: displayedContent.isPdf,
-                      title: activeNodeText,
-                    }),
-                  });
-                }
-              }}
-              onFontScaleChange={(scale) => void handleFontScaleChange(scale)}
-              onLinkPress={(href) => void handleContentLink(href)}
-              onImagePress={(src, alt) =>
-                setLightbox({
-                  src,
-                  alt,
-                  baseUrl: displayedContent.baseUrl ?? src,
-                })
-              }
-            />
-          ) : null}
-
-          {!isContentLoading && (previous || next) ? (
-            <View className="flex-row gap-3">
-              <AdjacentButton
-                node={previous}
-                direction="previous"
-                onPress={() => {
-                  if (previous) {
-                    void handleNodeSelect(previous.identifier);
-                  }
-                }}
+      {isTablet ? (
+        <View className="flex-1 flex-row">
+          <View
+            testID="material-sidebar"
+            className="my-3 ml-3 overflow-hidden rounded-2xl border border-theme-200 bg-white/85 dark:border-zinc-700 dark:bg-zinc-900/85"
+            style={{ width: width >= 1280 ? 352 : 320 }}
+          >
+            <ScrollView>
+              <MaterialDirectory
+                selectedCid={cid}
+                nodes={learningTimes.data ?? []}
+                isLoading={learningTimes.isPending}
+                activeNodeIdentifier={activeScoid}
+                lastSeenIdentifier={lastSeen.data?.activityId ?? null}
+                lastSeenPositionSeconds={lastSeen.data?.positionSeconds}
+                lastSeenDurationSeconds={lastSeen.data?.mediaDurationSeconds}
+                onNodeSelect={(identifier) => void handleNodeSelect(identifier)}
               />
-              <AdjacentButton
-                node={next}
-                direction="next"
-                onPress={() => {
-                  if (next) {
-                    void handleNodeSelect(next.identifier);
-                  }
-                }}
-              />
-            </View>
-          ) : null}
+            </ScrollView>
+          </View>
+          <View className="min-w-0 flex-1">{contentScroll}</View>
         </View>
-      </ScrollView>
+      ) : (
+        contentScroll
+      )}
 
       {frameCapture.composer}
       <SavingProgressToast visible={isSaving} />

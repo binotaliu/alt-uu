@@ -1,4 +1,10 @@
-import { Screen, Text, TransparentPageHeader, Icon } from '@altuu/ui';
+import {
+  Screen,
+  Text,
+  TransparentPageHeader,
+  Icon,
+  useIsTablet,
+} from '@altuu/ui';
 import { useQueryClient } from '@tanstack/react-query';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useRef } from 'react';
@@ -47,6 +53,7 @@ function LinkRow({
 
 /** Legacy Courses/panes/AccountPane.vue plus its tab header (route `courses/(tabs)/account`). */
 export function AccountTabScreen() {
+  const isTablet = useIsTablet();
   const profile = useClientConfigStore((state) => state.profile);
   const { altUuPlusDisabled } = useAppPreferences();
   const queryClient = useQueryClient();
@@ -99,7 +106,9 @@ export function AccountTabScreen() {
         }
       />
 
-      <ScrollView contentContainerClassName="mx-auto w-full max-w-2xl gap-4 px-4 pb-6 pt-3">
+      <ScrollView
+        contentContainerClassName={`mx-auto w-full max-w-2xl gap-4 pb-6 ${isTablet ? 'px-6 pt-4' : 'px-4 pt-3'}`}
+      >
         <Card>
           <View className="flex-row items-center gap-4">
             <Avatar picture={profile?.picture} size={56} />

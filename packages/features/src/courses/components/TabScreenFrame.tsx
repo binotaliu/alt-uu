@@ -1,4 +1,10 @@
-import { Icon, Screen, TransparentPageHeader, type IconName } from '@altuu/ui';
+import {
+  Icon,
+  Screen,
+  TransparentPageHeader,
+  useIsTablet,
+  type IconName,
+} from '@altuu/ui';
 import { usePathname } from 'expo-router';
 import { useEffect, useRef, type ReactNode } from 'react';
 import { RefreshControl, ScrollView } from 'react-native';
@@ -35,6 +41,7 @@ export function TabScreenFrame({
   children,
 }: TabScreenFrameProps) {
   const pathname = usePathname();
+  const isTablet = useIsTablet();
   const isActive = pathname === path;
   const wasActive = useRef(isActive);
   const mountedActive = useRef(false);
@@ -66,7 +73,9 @@ export function TabScreenFrame({
       {showStatusBanners ? <AppStatusBanners /> : null}
       <ScrollView
         className="flex-1"
-        contentContainerClassName="px-4 pb-6 pt-3"
+        contentContainerClassName={
+          isTablet ? 'px-6 pb-6 pt-4' : 'px-4 pb-6 pt-3'
+        }
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }

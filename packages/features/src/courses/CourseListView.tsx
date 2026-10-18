@@ -1,5 +1,5 @@
 import type { CourseItem, CourseTasksCount } from '@altuu/core';
-import { Text, Icon } from '@altuu/ui';
+import { Text, Icon, useCardColumns, useIsTablet } from '@altuu/ui';
 import { router } from 'expo-router';
 import { Pressable, View } from 'react-native';
 
@@ -129,6 +129,8 @@ function CourseCard({
   tasksLoading: boolean;
   tasksError: boolean;
 }) {
+  const isTablet = useIsTablet();
+
   return (
     <Pressable
       testID="course-row"
@@ -137,7 +139,7 @@ function CourseCard({
       onPress={() =>
         router.push(`/courses/${encodeURIComponent(course.courseId)}`)
       }
-      className="gap-1 rounded-xl border border-theme-200 bg-white px-4 py-3 active:bg-theme-50 dark:border-zinc-700 dark:bg-zinc-900 dark:active:bg-zinc-800"
+      className={`rounded-xl border border-theme-200 bg-white active:bg-theme-50 dark:border-zinc-700 dark:bg-zinc-900 dark:active:bg-zinc-800 ${isTablet ? 'gap-2 px-8 py-6' : 'gap-1 px-4 py-3'}`}
     >
       <View className="-ml-2 flex-row items-start justify-between gap-2">
         <CourseChips
@@ -154,7 +156,7 @@ function CourseCard({
       </View>
       <Text
         numberOfLines={2}
-        className="text-base font-semibold text-theme-900 dark:text-zinc-100"
+        className={`font-semibold text-theme-900 dark:text-zinc-100 ${isTablet ? 'text-lg' : 'text-base'}`}
       >
         {course.name || `課程 ${course.courseId}`}
       </Text>
@@ -188,6 +190,16 @@ function CourseListSkeleton() {
   );
 }
 
+function chunk<T>(items: readonly T[], size: number): T[][] {
+  const rows: T[][] = [];
+
+  for (let index = 0; index < items.length; index += size) {
+    rows.push(items.slice(index, index + size));
+  }
+
+  return rows;
+}
+
 /** Semester-grouped course cards with loading / error / empty states. */
 export function CourseListView({
   courses,
@@ -218,6 +230,29 @@ export function CourseListView({
   }
 
   return (
+    <CourseGroups
+      courses={courses}
+      tasksCount={tasksCount}
+      tasksLoading={tasksLoading}
+      tasksError={tasksError}
+    />
+  );
+}
+
+/** Legacy `grid gap-3 sm:grid-cols-2 md:gap-5 xl:grid-cols-3`. */
+function CourseGroups({
+  courses,
+  tasksCount,
+  tasksLoading,
+  tasksError,
+}: Pick<
+  CourseListViewProps,
+  'courses' | 'tasksCount' | 'tasksLoading' | 'tasksError'
+>) {
+  const columns = useCardColumns();
+  const isTablet = useIsTablet();
+
+  return (
     <View className="gap-6">
       {groupCoursesBySemester(courses).map((group) => (
         <View key={group.semester}>
@@ -227,15 +262,26 @@ export function CourseListView({
           >
             {group.semester}
           </Text>
-          <View className="gap-3">
-            {group.courses.map((course) => (
-              <CourseCard
-                key={course.courseId}
-                course={course}
-                tasks={courseTasksFor(course, tasksCount)}
-                tasksLoading={tasksLoading}
-                tasksError={tasksError}
-              />
+          <View className={isTablet ? 'gap-5' : 'gap-3'}>
+            {chunk(group.courses, columns).map((row) => (
+              <View
+                key={row[0].courseId}
+                className={`flex-row ${isTablet ? 'gap-5' : 'gap-3'}`}
+              >
+                {row.map((course) => (
+                  <View key={course.courseId} className="min-w-0 flex-1">
+                    <CourseCard
+                      course={course}
+                      tasks={courseTasksFor(course, tasksCount)}
+                      tasksLoading={tasksLoading}
+                      tasksError={tasksError}
+                    />
+                  </View>
+                ))}
+                {Array.from({ length: columns - row.length }, (_, index) => (
+                  <View key={`filler-${index}`} className="min-w-0 flex-1" />
+                ))}
+              </View>
             ))}
           </View>
         </View>

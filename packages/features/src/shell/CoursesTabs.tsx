@@ -1,4 +1,13 @@
-import { Button, Icon, Sheet, Text, type IconName } from '@altuu/ui';
+import {
+  Button,
+  Icon,
+  NavAboveHeaderContext,
+  Sheet,
+  Text,
+  useIsTablet,
+  type IconName,
+} from '@altuu/ui';
+import { usePathname } from 'expo-router';
 import { TabList, TabSlot, TabTrigger, Tabs } from 'expo-router/ui';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
@@ -57,17 +66,48 @@ interface TabButtonProps {
   onPress?: () => void;
   nouToolsEnabled: boolean;
   onGatedPress: () => void;
+  /** Text-only pill of the tablet top bar instead of the icon + label tab. */
+  pill?: boolean;
 }
 
 /** One tab of the bar (legacy CoursesBottomNav item). */
 function TabButton({
   tab,
-  isFocused = false,
+  isFocused: isFocusedProp = false,
   onPress,
   nouToolsEnabled,
   onGatedPress,
+  pill = false,
 }: TabButtonProps) {
+  const pathname = usePathname();
+  // The navigator's own focus flag is not set for the index route here.
+  const isFocused = isFocusedProp || pathname === tab.href;
   const blocked = tab.gated && !nouToolsEnabled;
+
+  if (pill) {
+    return (
+      <Pressable
+        testID={`tab-${tab.name}`}
+        accessibilityRole="tab"
+        accessibilityLabel={tab.label}
+        accessibilityState={{ selected: isFocused }}
+        onPress={blocked ? onGatedPress : onPress}
+        className={`flex-1 items-center justify-center rounded-xl px-4 py-2 ${
+          isFocused
+            ? 'bg-theme-800 dark:bg-zinc-600'
+            : 'active:bg-theme-50 dark:active:bg-zinc-800'
+        }`}
+      >
+        <Text
+          className={`text-sm font-semibold ${
+            isFocused ? 'text-white' : 'text-theme-700 dark:text-zinc-300'
+          }`}
+        >
+          {tab.label}
+        </Text>
+      </Pressable>
+    );
+  }
 
   return (
     <Pressable
@@ -159,6 +199,7 @@ export function NouToolsEnableDialog({
 export function CoursesTabs() {
   const runtime = useServiceRuntime();
   const insets = useSafeAreaInsets();
+  const isTablet = useIsTablet();
   const nouToolsEnabled = useClientConfigStore(
     (state) => state.preferences.nouToolsIntegrationEnabled,
   );
@@ -182,30 +223,49 @@ export function CoursesTabs() {
     }
   };
 
+  const tabTriggers = coursesTabs.map((tab) => (
+    <TabTrigger key={tab.name} name={tab.name} href={tab.href as never} asChild>
+      <TabButton
+        tab={tab}
+        pill={isTablet}
+        nouToolsEnabled={nouToolsEnabled}
+        onGatedPress={() => setDialogOpen(true)}
+      />
+    </TabTrigger>
+  ));
+
+  // Legacy CoursesTopNav (md and up) replaces CoursesBottomNav.
   return (
     <Tabs>
-      <TabSlot />
-      <TabList asChild>
-        <View
-          className="flex-row gap-2 border-t border-theme-200 bg-white px-4 pt-2 dark:border-zinc-700 dark:bg-zinc-900"
-          style={{ paddingBottom: Math.max(insets.bottom, 12) }}
-        >
-          {coursesTabs.map((tab) => (
-            <TabTrigger
-              key={tab.name}
-              name={tab.name}
-              href={tab.href as never}
-              asChild
+      <NavAboveHeaderContext.Provider value={isTablet}>
+        {isTablet ? (
+          <View
+            className="bg-theme-100 dark:bg-zinc-950"
+            style={{
+              paddingTop: insets.top + 6,
+              paddingLeft: insets.left,
+              paddingRight: insets.right,
+            }}
+          >
+            <TabList asChild>
+              <View className="mx-auto w-full max-w-lg flex-row items-center gap-2 rounded-2xl border border-theme-200 bg-white/90 p-1 dark:border-zinc-700 dark:bg-zinc-900/90">
+                {tabTriggers}
+              </View>
+            </TabList>
+          </View>
+        ) : null}
+        <TabSlot />
+        {isTablet ? null : (
+          <TabList asChild>
+            <View
+              className="flex-row gap-2 border-t border-theme-200 bg-white px-4 pt-2 dark:border-zinc-700 dark:bg-zinc-900"
+              style={{ paddingBottom: Math.max(insets.bottom, 12) }}
             >
-              <TabButton
-                tab={tab}
-                nouToolsEnabled={nouToolsEnabled}
-                onGatedPress={() => setDialogOpen(true)}
-              />
-            </TabTrigger>
-          ))}
-        </View>
-      </TabList>
+              {tabTriggers}
+            </View>
+          </TabList>
+        )}
+      </NavAboveHeaderContext.Provider>
       <NouToolsEnableDialog
         visible={dialogOpen}
         onClose={() => setDialogOpen(false)}

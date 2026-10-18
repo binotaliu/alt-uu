@@ -16,6 +16,13 @@ export {
 export { cn } from './cn';
 export { Icon, type IconProps } from './components/Icon';
 export { PageHeader, type PageHeaderProps } from './components/PageHeader';
+export {
+  NavAboveHeaderContext,
+  TABLET_MIN_WIDTH,
+  useCardColumns,
+  useIsTablet,
+  useNavAboveHeader,
+} from './responsive';
 export { Screen, type ScreenProps } from './components/Screen';
 export { Sheet, type SheetProps } from './components/Sheet';
 export { Text } from './components/Text';
