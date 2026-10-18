@@ -66,8 +66,8 @@ platform :ios do
     # Both lookups only cover builds of this exact version string; a version
     # App Store Connect has never seen yields 0, so JUMP_BY alone sets the floor.
     known = [
-      latest_testflight_build_number(version: ENV['APP_VERSION'], api_key: api_key, initial_build_number: 0),
-      app_store_build_number(version: ENV['APP_VERSION'], live: false, api_key: api_key, initial_build_number: 0)
+      latest_testflight_build_number(app_identifier: IOS_BUNDLE_IDENTIFIER, version: ENV['APP_VERSION'], api_key: api_key, initial_build_number: 0),
+      app_store_build_number(app_identifier: IOS_BUNDLE_IDENTIFIER, version: ENV['APP_VERSION'], live: false, api_key: api_key, initial_build_number: 0)
     ].map(&:to_i).max
 
     build_number = known + 1 + jump_by
