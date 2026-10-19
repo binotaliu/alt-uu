@@ -56,7 +56,7 @@ describe('MaterialDirectory unread jump', () => {
 
     await scrollTo(scroll, 0);
 
-    expect(screen.getByTestId('material-jump-to-unread')).toBeTruthy();
+    expect(screen.getByTestId('material-jump-button')).toBeTruthy();
   });
 
   it('hides the jump button while the first unread material is in view', async () => {
@@ -65,7 +65,7 @@ describe('MaterialDirectory unread jump', () => {
     await scrollTo(scroll, 700);
 
     await waitFor(() =>
-      expect(screen.queryByTestId('material-jump-to-unread')).toBeNull(),
+      expect(screen.queryByTestId('material-jump-button')).toBeNull(),
     );
   });
 
@@ -74,6 +74,34 @@ describe('MaterialDirectory unread jump', () => {
       <MaterialDirectory selectedCid="1" nodes={[node('a', '00:10')]} />,
     );
 
-    expect(screen.queryByTestId('material-jump-to-unread')).toBeNull();
+    expect(screen.queryByTestId('material-jump-button')).toBeNull();
+  });
+});
+
+describe('MaterialDirectory active-material jump', () => {
+  it('targets the material being viewed instead of the first unread one', async () => {
+    await render(
+      <MaterialDirectory
+        selectedCid="1"
+        nodes={nodes}
+        activeNodeIdentifier="c"
+        scrollTarget="active"
+      />,
+    );
+    const scroll = screen.getByTestId('material-directory-scroll');
+
+    await fireEvent(scroll, 'layout', layout(0, 400));
+    // Only the active row ("c") reports a layout, so the unread row "b" is not the target.
+    await fireEvent(
+      screen.getAllByTestId('material-node')[2],
+      'layout',
+      layout(900, 50),
+    );
+    await fireEvent.scroll(scroll, {
+      nativeEvent: { contentOffset: { x: 0, y: 0 } },
+    });
+
+    expect(screen.getByText('跳至目前教材')).toBeTruthy();
+    expect(screen.queryByText('跳至未觀看')).toBeNull();
   });
 });

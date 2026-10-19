@@ -29,6 +29,12 @@ export interface MaterialDirectoryProps {
   lastSeenPositionSeconds?: number | null;
   lastSeenDurationSeconds?: number | null;
   /**
+   * Row the list opens on and the jump button returns to: the first unread
+   * material (course directory) or the material being viewed (material screen
+   * sidebar and sheet).
+   */
+  scrollTarget?: 'unread' | 'active';
+  /**
    * Called when a material row is pressed. Defaults to opening
    * `/courses/[cid]/[scoid]`.
    */
@@ -83,6 +89,7 @@ export function MaterialDirectory({
   lastSeenIdentifier = null,
   lastSeenPositionSeconds,
   lastSeenDurationSeconds,
+  scrollTarget = 'unread',
   onNodeSelect,
   className = 'flex-1',
   refreshControl,
@@ -142,19 +149,24 @@ export function MaterialDirectory({
     }
   };
 
-  const firstUnreadKey =
-    visible.find((node) => !node.isDirectory && isUnreadMaterial(node))
-      ?.internalId ?? null;
+  const scrollTargetKey =
+    visible.find((node) =>
+      scrollTarget === 'active'
+        ? !node.isDirectory &&
+          !!activeNodeIdentifier &&
+          node.targetIdentifier === activeNodeIdentifier
+        : !node.isDirectory && isUnreadMaterial(node),
+    )?.internalId ?? null;
 
   const scrollRef = useRef<ScrollViewInstance>(null);
   const scrollMetrics = useRef({ offset: 0, viewportHeight: 0 });
-  const unreadLayout = useRef<{ y: number; height: number } | null>(null);
+  const targetLayout = useRef<{ y: number; height: number } | null>(null);
   const autoScrolledFor = useRef<string | null>(null);
-  const [unreadOffscreen, setUnreadOffscreen] = useState(false);
+  const [targetOffscreen, setTargetOffscreen] = useState(false);
 
   const jumpOpacity = useState(() => new Animated.Value(0))[0];
   const [jumpFadedOut, setJumpFadedOut] = useState(true);
-  const showJump = !!firstUnreadKey && unreadOffscreen;
+  const showJump = !!scrollTargetKey && targetOffscreen;
 
   // Fade in on mount; fade out first, then unmount so it never pops away.
   if (showJump && jumpFadedOut) {
@@ -177,23 +189,23 @@ export function MaterialDirectory({
     return () => animation.stop();
   }, [showJump, jumpOpacity]);
 
-  const refreshUnreadVisibility = useCallback(() => {
-    const layout = unreadLayout.current;
+  const refreshTargetVisibility = useCallback(() => {
+    const layout = targetLayout.current;
     const { offset, viewportHeight } = scrollMetrics.current;
 
     if (!layout || viewportHeight === 0) {
-      setUnreadOffscreen(false);
+      setTargetOffscreen(false);
 
       return;
     }
 
-    setUnreadOffscreen(
+    setTargetOffscreen(
       layout.y + layout.height <= offset || layout.y >= offset + viewportHeight,
     );
   }, []);
 
-  const scrollToUnread = (animated: boolean) => {
-    const layout = unreadLayout.current;
+  const scrollToTarget = (animated: boolean) => {
+    const layout = targetLayout.current;
 
     if (layout) {
       scrollRef.current?.scrollTo({
@@ -203,24 +215,24 @@ export function MaterialDirectory({
     }
   };
 
-  const onUnreadLayout = (key: string, event: LayoutChangeEvent) => {
+  const onTargetLayout = (key: string, event: LayoutChangeEvent) => {
     const { y, height } = event.nativeEvent.layout;
 
-    unreadLayout.current = { y, height };
+    targetLayout.current = { y, height };
 
-    // Default position: land on the first unread material once per target.
+    // Default position: land on the scroll target once per target.
     if (autoScrolledFor.current !== key) {
       autoScrolledFor.current = key;
-      scrollToUnread(false);
+      scrollToTarget(false);
       scrollMetrics.current.offset = Math.max(0, y - scrollTargetMargin);
     }
 
-    refreshUnreadVisibility();
+    refreshTargetVisibility();
   };
 
   const onScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     scrollMetrics.current.offset = event.nativeEvent.contentOffset.y;
-    refreshUnreadVisibility();
+    refreshTargetVisibility();
   };
 
   const rows: ReactElement[] = [];
@@ -300,8 +312,8 @@ export function MaterialDirectory({
           key={node.internalId}
           className={rowClassName}
           onLayout={
-            node.internalId === firstUnreadKey
-              ? (event) => onUnreadLayout(node.internalId, event)
+            node.internalId === scrollTargetKey
+              ? (event) => onTargetLayout(node.internalId, event)
               : undefined
           }
         >
@@ -430,7 +442,7 @@ export function MaterialDirectory({
         onLayout={(event) => {
           scrollMetrics.current.viewportHeight =
             event.nativeEvent.layout.height;
-          refreshUnreadVisibility();
+          refreshTargetVisibility();
         }}
         contentContainerClassName="pb-3 pt-1"
         stickyHeaderIndices={stickyIndices}
@@ -446,10 +458,14 @@ export function MaterialDirectory({
           className="absolute bottom-4 right-4"
         >
           <Pressable
-            testID="material-jump-to-unread"
+            testID="material-jump-button"
             accessibilityRole="button"
-            accessibilityLabel="跳至第一個未觀看的教材"
-            onPress={() => scrollToUnread(true)}
+            accessibilityLabel={
+              scrollTarget === 'active'
+                ? '跳至目前教材'
+                : '跳至第一個未觀看的教材'
+            }
+            onPress={() => scrollToTarget(true)}
             className="flex-row items-center gap-1.5 rounded-full bg-theme-700 px-4 py-2.5 shadow-lg active:opacity-80 dark:bg-zinc-200"
           >
             <Icon
@@ -458,7 +474,7 @@ export function MaterialDirectory({
               className="text-white dark:text-zinc-900"
             />
             <Text className="text-xs font-medium text-white dark:text-zinc-900">
-              跳至未觀看
+              {scrollTarget === 'active' ? '跳至目前教材' : '跳至未觀看'}
             </Text>
           </Pressable>
         </Animated.View>
