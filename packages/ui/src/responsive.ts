@@ -30,6 +30,16 @@ export function useNavAboveHeader(): boolean {
   return useContext(NavAboveHeaderContext);
 }
 
+/**
+ * Set by `Screen` once it pads the left/right safe-area insets, so headers
+ * inside it neither pad them again nor stop their bar short of the screen edge.
+ */
+export const HorizontalInsetsAppliedContext = createContext(false);
+
+export function useHorizontalInsetsApplied(): boolean {
+  return useContext(HorizontalInsetsAppliedContext);
+}
+
 export interface CornerInsets {
   top: number;
   right: number;
