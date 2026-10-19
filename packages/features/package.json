@@ -37,9 +37,12 @@
     "nativewind": "*",
     "react": "*",
     "react-native": "*",
+    "react-native-gesture-handler": "*",
+    "react-native-reanimated": "*",
     "react-native-safe-area-context": "*",
     "react-native-svg": "*",
     "react-native-view-shot": "*",
-    "react-native-webview": "*"
+    "react-native-webview": "*",
+    "react-native-worklets": "*"
   }
 }

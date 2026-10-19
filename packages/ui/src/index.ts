@@ -1,4 +1,5 @@
 export { BackButton, type BackButtonProps } from './components/BackButton';
+export { BottomSheet, type BottomSheetProps } from './components/BottomSheet';
 export {
   Button,
   type ButtonProps,

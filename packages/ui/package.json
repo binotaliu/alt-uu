@@ -16,8 +16,11 @@
     "nativewind": "^4.2.7",
     "react": "*",
     "react-native": "*",
+    "react-native-gesture-handler": "*",
+    "react-native-reanimated": "*",
     "react-native-safe-area-context": "*",
-    "react-native-svg": "*"
+    "react-native-svg": "*",
+    "react-native-worklets": "*"
   },
   "dependencies": {
     "tailwind-merge": "^3.7.0"

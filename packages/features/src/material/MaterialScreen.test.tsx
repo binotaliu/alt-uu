@@ -498,7 +498,7 @@ describe('MaterialScreen landscape directory', () => {
     jest.restoreAllMocks();
   });
 
-  it('opens the directory drawer from 切換教材 on a phone in landscape', async () => {
+  it('opens the directory sheet from 切換教材 on a phone in landscape', async () => {
     jest
       .spyOn(dimensions, 'get')
       .mockReturnValue({ width: 700, height: 360, scale: 3, fontScale: 1 });
@@ -507,10 +507,10 @@ describe('MaterialScreen landscape directory', () => {
     await renderScreen('html');
     await waitFor(() => expect(screen.getByTestId('webview')).toBeTruthy());
 
-    expect(screen.queryByTestId('material-directory-drawer')).toBeNull();
+    expect(screen.queryByTestId('bottom-sheet')).toBeNull();
     await fireEvent.press(screen.getByTestId('material-switch-button'));
 
-    expect(screen.getByTestId('material-directory-drawer')).toBeTruthy();
+    expect(screen.getByTestId('bottom-sheet')).toBeTruthy();
   });
 
   it('shows 切換教材 whenever the sidebar is hidden', async () => {

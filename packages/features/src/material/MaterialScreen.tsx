@@ -44,7 +44,7 @@ import {
   clampFontScale,
   type MaterialHtmlPalette,
 } from './materialHtmlDocument';
-import { MaterialDirectoryDrawer } from './MaterialDirectoryDrawer';
+import { MaterialDirectorySheet } from './MaterialDirectorySheet';
 import { MaterialIcon } from './MaterialIcon';
 import {
   MIN_RESUME_POSITION_SECONDS,
@@ -1077,6 +1077,7 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
           >
             <MaterialDirectory
               selectedCid={cid}
+              scrollTarget="active"
               nodes={learningTimes.data ?? []}
               isLoading={learningTimes.isPending}
               activeNodeIdentifier={activeScoid}
@@ -1092,7 +1093,7 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
         contentScroll
       )}
 
-      <MaterialDirectoryDrawer
+      <MaterialDirectorySheet
         visible={directoryOpen}
         onClose={() => setDirectoryOpen(false)}
         selectedCid={cid}
