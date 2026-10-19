@@ -142,6 +142,7 @@ function setup(
     courseType?: string;
     progressSeconds?: number;
     contentError?: boolean;
+    plus?: boolean;
   } = {},
 ) {
   const fake = createFakeServices({ activeAccountId: 1 });
@@ -213,6 +214,21 @@ function setup(
     get: async () => null,
     set: jest.fn(async () => undefined),
     delete: jest.fn(async () => undefined),
+  };
+
+  services.subscription = {
+    getCachedEntitlement: async () => ({
+      active: options.plus ?? false,
+      productId: null,
+      expiresAt: null,
+      platform: null,
+    }),
+    getEntitlementStatus: async () => ({
+      active: options.plus ?? false,
+      productId: null,
+      expiresAt: null,
+      platform: null,
+    }),
   };
 
   const queryClient = createTestQueryClient();
@@ -624,5 +640,110 @@ describe('MaterialScreen downloads', () => {
     } finally {
       spy.mockRestore();
     }
+  });
+});
+
+describe('MaterialScreen 沉浸式播放', () => {
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  /** The entitlement loads asynchronously; the badge disappears once it is active. */
+  const toggleImmersive = async () => {
+    await waitFor(() => expect(screen.queryByText('Alt UU+')).toBeNull());
+    await fireEvent.press(screen.getByLabelText('沉浸式播放'));
+  };
+
+  it('sends non-subscribers to the subscription page', async () => {
+    const { renderScreen } = setup();
+
+    await renderScreen('html');
+    await waitFor(() => expect(screen.getByTestId('webview')).toBeTruthy());
+    expect(screen.getByText('Alt UU+')).toBeTruthy();
+    await fireEvent.press(screen.getByLabelText('沉浸式播放'));
+
+    expect(router.push).toHaveBeenCalledWith('/courses/account/subscription');
+    expect(
+      screen.getByLabelText('沉浸式播放').props.accessibilityState,
+    ).toEqual(expect.objectContaining({ checked: false }));
+  });
+
+  it('moves on to the next material when the media ends', async () => {
+    const { renderScreen } = setup({ plus: true });
+
+    await renderScreen('video');
+    await waitFor(() => expect(createdPlayers.length).toBe(1));
+    await waitFor(() =>
+      expect(
+        screen.getByLabelText('沉浸式播放').props.accessibilityState,
+      ).toBeTruthy(),
+    );
+    await toggleImmersive();
+
+    await act(async () => {
+      createdPlayers[0]?.emit('playToEnd');
+    });
+
+    await waitFor(() =>
+      expect(router.setParams).toHaveBeenCalledWith({ scoid: 'pdf' }),
+    );
+  });
+
+  it('counts down 30 seconds on materials without media, then moves on', async () => {
+    const { renderScreen } = setup({ plus: true });
+
+    await renderScreen('html');
+    await waitFor(() => expect(screen.getByTestId('webview')).toBeTruthy());
+    jest.useFakeTimers();
+    await toggleImmersive();
+
+    expect(screen.getByText('30 秒後自動切換至下一個教材')).toBeTruthy();
+
+    await act(async () => {
+      jest.advanceTimersByTime(10_000);
+    });
+    expect(screen.getByText('20 秒後自動切換至下一個教材')).toBeTruthy();
+
+    await act(async () => {
+      jest.advanceTimersByTime(20_000);
+    });
+    expect(router.setParams).toHaveBeenCalledWith({ scoid: 'video' });
+  });
+
+  it('stops the countdown from the toast', async () => {
+    const { renderScreen } = setup({ plus: true });
+
+    await renderScreen('html');
+    await waitFor(() => expect(screen.getByTestId('webview')).toBeTruthy());
+    await toggleImmersive();
+    await fireEvent.press(await screen.findByText('停止沉浸式播放'));
+
+    expect(screen.queryByTestId('immersive-countdown')).toBeNull();
+  });
+
+  it('does not offer to resume while immersive', async () => {
+    const { renderScreen } = setup({ plus: true, progressSeconds: 125 });
+
+    await renderScreen('html');
+    await waitFor(() => expect(screen.getByTestId('webview')).toBeTruthy());
+    await toggleImmersive();
+    await fireEvent.press(await screen.findByText('立即切換'));
+
+    await waitFor(() => expect(createdPlayers.length).toBe(1));
+    expect(screen.queryByText('接續上次播放？')).toBeNull();
+  });
+
+  it('finishes after the last material', async () => {
+    const { renderScreen } = setup({ plus: true });
+
+    await renderScreen('pdf');
+    await waitFor(() =>
+      expect(screen.getByLabelText('沉浸式播放')).toBeTruthy(),
+    );
+    await toggleImmersive();
+    await fireEvent.press(await screen.findByText('立即結束'));
+
+    expect(useToastStore.getState().message).toBe('沉浸式播放已結束');
+    expect(screen.queryByTestId('immersive-countdown')).toBeNull();
   });
 });

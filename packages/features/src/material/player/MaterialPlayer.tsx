@@ -67,6 +67,8 @@ export interface MaterialPlayerProps {
   /** Now-playing artist (the course). */
   courseTitle: string;
   onProgress?: (progress: PlaybackProgress) => void;
+  /** Playback reached the end of the media. */
+  onEnded?: () => void;
   ref?: Ref<MaterialPlayerHandle>;
 }
 
@@ -103,6 +105,7 @@ export function MaterialPlayer({
   title,
   courseTitle,
   onProgress,
+  onEnded,
   ref,
 }: MaterialPlayerProps) {
   const [source] = useState<VideoSource>(() => ({
@@ -132,10 +135,12 @@ export function MaterialPlayer({
   const [failed, setFailed] = useState(false);
   const [reloading, setReloading] = useState(false);
   const onProgressRef = useRef(onProgress);
+  const onEndedRef = useRef(onEnded);
 
   useEffect(() => {
     onProgressRef.current = onProgress;
-  }, [onProgress]);
+    onEndedRef.current = onEnded;
+  }, [onProgress, onEnded]);
 
   const publish = useCallback(() => {
     const next = readProgress(player);
@@ -150,6 +155,7 @@ export function MaterialPlayer({
   useEventListener(player, 'timeUpdate', publish);
   useEventListener(player, 'playingChange', publish);
   useEventListener(player, 'sourceLoad', publish);
+  useEventListener(player, 'playToEnd', () => onEndedRef.current?.());
   useEventListener(player, 'playbackRateChange', ({ playbackRate }) => {
     if (playbackRate > 0) {
       setStoredRate(playbackRate);

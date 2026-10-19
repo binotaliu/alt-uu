@@ -162,3 +162,54 @@ export function SavingProgressToast({ visible }: { visible: boolean }) {
     </View>
   );
 }
+
+export interface ImmersiveCountdownToastProps {
+  /** Seconds left, null when no countdown runs. */
+  secondsLeft: number | null;
+  hasNext: boolean;
+  onSkip: () => void;
+  onStop: () => void;
+}
+
+/** Countdown card of 沉浸式播放 for materials without video or audio. */
+export function ImmersiveCountdownToast({
+  secondsLeft,
+  hasNext,
+  onSkip,
+  onStop,
+}: ImmersiveCountdownToastProps) {
+  const insets = useSafeAreaInsets();
+
+  if (secondsLeft === null) {
+    return null;
+  }
+
+  return (
+    <View
+      pointerEvents="box-none"
+      className="absolute left-0 right-0 items-center px-4"
+      style={{ top: insets.top + 8 }}
+      accessibilityLiveRegion="polite"
+    >
+      <View
+        testID="immersive-countdown"
+        className="w-full max-w-md rounded-2xl border border-theme-200 bg-white px-4 py-3 shadow-lg dark:border-zinc-700 dark:bg-zinc-900"
+      >
+        <Text className="text-sm font-semibold text-theme-900 dark:text-zinc-100">
+          此教材沒有影音內容
+        </Text>
+        <Text className="text-xs text-theme-700 dark:text-zinc-400">
+          {hasNext
+            ? `${secondsLeft} 秒後自動切換至下一個教材`
+            : `${secondsLeft} 秒後結束沉浸式播放`}
+        </Text>
+        <PromptActions
+          primaryLabel={hasNext ? '立即切換' : '立即結束'}
+          secondaryLabel="停止沉浸式播放"
+          onPrimary={onSkip}
+          onSecondary={onStop}
+        />
+      </View>
+    </View>
+  );
+}

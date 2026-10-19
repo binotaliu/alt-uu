@@ -3,6 +3,17 @@ import type { CourseItem, CourseMaterialNode } from '@altuu/core';
 /** Saved positions below this are not offered for resuming (legacy). */
 export const MIN_RESUME_POSITION_SECONDS = 3;
 
+/** How long 沉浸式播放 shows a non-media material before moving on. */
+export const IMMERSIVE_IDLE_SECONDS = 30;
+
+/** Within this many seconds of the end, an embed's progress counts as finished. */
+const ENDED_TOLERANCE_SECONDS = 1;
+
+/** Whether a progress report (embeds that have no ended event) reached the end. */
+export function hasReachedEnd(currentTime: number, duration: number): boolean {
+  return duration > 0 && currentTime >= duration - ENDED_TOLERANCE_SECONDS;
+}
+
 /** Route of a material page (legacy `activeMaterialRoutePath`). */
 export function materialRoutePath(cid: string, scoid: string): string {
   return `/courses/${encodeURIComponent(cid)}/${encodeURIComponent(scoid)}`;

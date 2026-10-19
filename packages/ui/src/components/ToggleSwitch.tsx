@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Pressable, View } from 'react-native';
 
 import { Text } from './Text';
@@ -7,6 +8,8 @@ export interface ToggleSwitchProps {
   onValueChange: (value: boolean) => void;
   label: string;
   description?: string;
+  /** Rendered after the label, e.g. a badge. */
+  labelAccessory?: ReactNode;
   disabled?: boolean;
 }
 
@@ -16,6 +19,7 @@ export function ToggleSwitch({
   onValueChange,
   label,
   description = '',
+  labelAccessory,
   disabled = false,
 }: ToggleSwitchProps) {
   return (
@@ -28,9 +32,12 @@ export function ToggleSwitch({
       className={`flex-row items-center justify-between gap-3 py-2.5 ${disabled ? 'opacity-50' : ''}`}
     >
       <View className="flex-1">
-        <Text className="text-sm font-medium text-theme-800 dark:text-zinc-100">
-          {label}
-        </Text>
+        <View className="flex-row items-center gap-2">
+          <Text className="text-sm font-medium text-theme-800 dark:text-zinc-100">
+            {label}
+          </Text>
+          {labelAccessory}
+        </View>
         {description ? (
           <Text className="text-xs text-theme-700 dark:text-zinc-300">
             {description}

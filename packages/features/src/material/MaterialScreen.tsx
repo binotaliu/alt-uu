@@ -3,6 +3,7 @@ import {
   PageHeader,
   Screen,
   Text,
+  ToggleSwitch,
   accentPalettes,
   useIsDark,
   useIsTablet,
@@ -29,9 +30,11 @@ import {
   useLastSeenMaterial,
 } from '../courses/courseQueries';
 import { MaterialDirectory } from '../courses/MaterialDirectory';
+import { PremiumBadge } from '../account';
 import { useServiceRuntime } from '../services/AppServicesProvider';
-import { useAppPreferences } from '../services/hooks';
+import { useAppPreferences, useIsSubscribed } from '../services/hooks';
 import { asServiceError } from '../services/serviceError';
+import { useToastStore } from '../services/stores';
 import { ErrorRetry } from '../shell/ErrorRetry';
 import { openExternalUrl, openInAppBrowser } from '../shell/openUrl';
 import {
@@ -47,9 +50,11 @@ import {
 import { MaterialDirectorySheet } from './MaterialDirectorySheet';
 import { MaterialIcon } from './MaterialIcon';
 import {
+  IMMERSIVE_IDLE_SECONDS,
   MIN_RESUME_POSITION_SECONDS,
   adjacentMaterials,
   buildDownloadFileName,
+  hasReachedEnd,
   isAudioMaterial,
   materialRoutePath,
   resolveContentLink,
@@ -57,6 +62,7 @@ import {
 } from './materialNavigation';
 import {
   CellularPrompt,
+  ImmersiveCountdownToast,
   ResumePrompt,
   SavingProgressToast,
 } from './MaterialPrompts';
@@ -244,6 +250,13 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
   const [fontScale, setFontScale] = useState<number | null>(null);
   const [isSavingFontScale, setIsSavingFontScale] = useState(false);
   const videoRate = usePlaybackRateStore((state) => state.rate);
+  const isSubscribed = useIsSubscribed();
+  const [immersiveRequested, setImmersiveRequested] = useState(false);
+  const [idleSecondsLeft, setIdleSecondsLeft] = useState<number | null>(null);
+  // 沉浸式播放 is an Alt UU+ feature: a lapsed subscription switches it off.
+  const immersive = immersiveRequested && isSubscribed;
+  const immersiveRef = useRef(immersive);
+  const finishedScoidRef = useRef<string | null>(null);
 
   const playerRef = useRef<MaterialPlayerHandle>(null);
   const youtubeRef = useRef<YoutubeEmbedHandle>(null);
@@ -470,7 +483,7 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
       if (activeHref !== null) {
         void checkpoint();
 
-        if (media) {
+        if (media && !immersiveRef.current) {
           void checkPlaybackProgress(activeScoid);
         }
       }
@@ -645,11 +658,59 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
       setReloadError(null);
       setCaptureError(null);
       setReadyScoid(null);
+      finishedScoidRef.current = null;
       setActiveScoid(identifier);
       router.setParams({ scoid: identifier });
     },
     [activeScoid, cid, queryClient, saveStudyTime, timer],
   );
+
+  /** 沉浸式播放: on to the next material, or finish after the last one. */
+  const advanceImmersive = useCallback(() => {
+    if (!immersiveRef.current || savingRef.current) {
+      return;
+    }
+
+    if (next) {
+      void handleNodeSelect(next.identifier);
+    } else {
+      setImmersiveRequested(false);
+      useToastStore.getState().show('沉浸式播放已結束');
+    }
+  }, [handleNodeSelect, next]);
+  const advanceImmersiveRef = useRef(advanceImmersive);
+
+  useEffect(() => {
+    immersiveRef.current = immersive;
+    advanceImmersiveRef.current = advanceImmersive;
+  });
+
+  const handleMediaEnded = useCallback(() => {
+    // Both the player and the embed progress can report the end.
+    if (
+      !immersiveRef.current ||
+      finishedScoidRef.current === latest.current.activeNode?.identifier
+    ) {
+      return;
+    }
+
+    finishedScoidRef.current = latest.current.activeNode?.identifier ?? null;
+    advanceImmersiveRef.current();
+  }, []);
+
+  const handleImmersiveChange = (enabled: boolean) => {
+    if (enabled && !isSubscribed) {
+      router.push('/courses/account/subscription');
+
+      return;
+    }
+
+    setImmersiveRequested(enabled);
+
+    if (enabled) {
+      setResume(null);
+    }
+  };
 
   const handleProgress = useCallback(
     (progress: PlaybackProgress) => {
@@ -679,8 +740,13 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
         rate: 1,
         playing: currentTime > 0,
       });
+
+      // The embed has no ended event: finishing is reported as progress.
+      if (hasReachedEnd(currentTime, duration)) {
+        handleMediaEnded();
+      }
     },
-    [handleProgress],
+    [handleMediaEnded, handleProgress],
   );
 
   const openExternal = useCallback(async (url: string) => {
@@ -891,6 +957,39 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
   const showPlayer =
     isReady && hasPlayableMedia(displayedContent) && courses.isFetched;
 
+  const hasMedia = hasPlayableMedia(displayedContent);
+  const isIdleMaterial = isReady
+    ? !hasMedia
+    : !!contentError && displayedContent === undefined;
+  const countingDown = immersive && isIdleMaterial;
+
+  // Materials without video / audio stay for a while, then move on.
+  useEffect(() => {
+    if (!countingDown) {
+      return;
+    }
+
+    let remaining = IMMERSIVE_IDLE_SECONDS;
+
+    const timerId = setInterval(() => {
+      remaining -= 1;
+
+      if (remaining <= 0) {
+        clearInterval(timerId);
+        advanceImmersiveRef.current();
+
+        return;
+      }
+
+      setIdleSecondsLeft(remaining);
+    }, 1000);
+
+    return () => {
+      clearInterval(timerId);
+      setIdleSecondsLeft(null);
+    };
+  }, [countingDown, activeScoid]);
+
   const playerSection = showPlayer ? (
     <View className="bg-theme-100 px-3 pb-2 pt-3 dark:bg-zinc-950">
       {isYoutube ? (
@@ -911,6 +1010,7 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
           title={activeNodeText}
           courseTitle={courseTitle}
           onProgress={handleProgress}
+          onEnded={handleMediaEnded}
         />
       )}
     </View>
@@ -1029,6 +1129,15 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
             </Text>
           </Pressable>
         ) : null}
+
+        <View className="rounded-2xl border border-theme-200 bg-white/90 px-4 dark:border-zinc-700 dark:bg-zinc-900">
+          <ToggleSwitch
+            label="沉浸式播放"
+            labelAccessory={isSubscribed ? null : <PremiumBadge />}
+            value={immersive}
+            onValueChange={handleImmersiveChange}
+          />
+        </View>
       </View>
     </ScrollView>
   );
@@ -1107,6 +1216,14 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
       />
       {frameCapture.composer}
       <SavingProgressToast visible={isSaving} />
+      <ImmersiveCountdownToast
+        secondsLeft={
+          countingDown ? (idleSecondsLeft ?? IMMERSIVE_IDLE_SECONDS) : null
+        }
+        hasNext={next !== null}
+        onSkip={() => advanceImmersive()}
+        onStop={() => setImmersiveRequested(false)}
+      />
       <ResumePrompt
         label={resume?.label ?? null}
         onResume={handleResume}
