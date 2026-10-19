@@ -12,15 +12,13 @@ export interface DirectoryDisplayNode extends DirectorySourceNode {
   internalId: string;
   targetIdentifier: string;
   isDirectory: boolean;
-  isSyntheticLink: boolean;
   ancestorDirectoryIds: string[];
   parentInternalId: string | null;
 }
 
 /**
- * Flattens the material path into display rows. A node that has children
- * and its own page becomes a folder row plus an indented "link" row to the
- * page (legacy MaterialDirectory `directoryNodes`).
+ * Flattens the material path into display rows. A node that has children is
+ * a folder; any page link it carries is discarded.
  */
 export function buildDirectoryNodes(
   sourceNodes: readonly DirectorySourceNode[],
@@ -35,36 +33,15 @@ export function buildDirectoryNodes(
     const nextNode = sourceNodes[index + 1];
     const hasChildren = (nextNode?.level ?? -1) > node.level;
 
-    if (hasChildren && node.href) {
-      normalized.push({
-        ...node,
-        internalId: `${node.identifier}::folder`,
-        targetIdentifier: `${node.identifier}::folder`,
-        href: null,
-        itemDisabled: true,
-        duration: null,
-        isDirectory: true,
-        isSyntheticLink: false,
-      });
-      normalized.push({
-        ...node,
-        internalId: `${node.identifier}::link`,
-        targetIdentifier: node.identifier,
-        level: node.level + 1,
-        itemDisabled: false,
-        isDirectory: false,
-        isSyntheticLink: true,
-      });
-
-      return;
-    }
-
     normalized.push({
       ...node,
       internalId: node.identifier,
       targetIdentifier: node.identifier,
+      // A folder's own link is discarded: the row only expands / collapses.
+      href: hasChildren ? null : node.href,
+      itemDisabled: hasChildren ? true : node.itemDisabled,
+      duration: hasChildren ? null : node.duration,
       isDirectory: hasChildren,
-      isSyntheticLink: false,
     });
   });
 

@@ -274,31 +274,26 @@ describe('material tree', () => {
     },
   ];
 
-  it('splits a node with children and a page into folder + link rows', () => {
+  it('treats a node with children and a page as a folder without its link', () => {
     const display = buildDirectoryNodes(nodes);
 
-    expect(display.map((node) => node.internalId)).toEqual([
-      'f::folder',
-      'f::link',
-      'a',
-      'b',
-    ]);
-    expect(display[1]).toMatchObject({
-      targetIdentifier: 'f',
-      level: 1,
-      isSyntheticLink: true,
+    expect(display.map((node) => node.internalId)).toEqual(['f', 'a', 'b']);
+    expect(display[0]).toMatchObject({
+      isDirectory: true,
+      href: null,
+      itemDisabled: true,
     });
-    expect(display[2].ancestorDirectoryIds).toEqual(['f::folder']);
+    expect(display[1].ancestorDirectoryIds).toEqual(['f']);
   });
 
   it('hides descendants of collapsed folders', () => {
     const display = buildDirectoryNodes(nodes);
 
     expect(
-      visibleDirectoryNodes(display, new Set(['f::folder'])).map(
+      visibleDirectoryNodes(display, new Set(['f'])).map(
         (node) => node.internalId,
       ),
-    ).toEqual(['f::folder', 'b']);
+    ).toEqual(['f', 'b']);
   });
 });
 

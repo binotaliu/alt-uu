@@ -320,7 +320,7 @@ export function MaterialDirectory({
             >
               <Text
                 numberOfLines={2}
-                className={`min-w-0 flex-1 text-sm text-theme-700 dark:text-zinc-300 ${node.isSyntheticLink ? 'font-medium' : ''}`}
+                className={`min-w-0 flex-1 text-sm text-theme-700 dark:text-zinc-300`}
               >
                 {nodeTitle(node)}
               </Text>
