@@ -5,7 +5,7 @@ import { View } from 'react-native';
 import { ErrorRetry } from '../shell/ErrorRetry';
 import { Card, EmptyNotice, Skeleton } from './components/primitives';
 import { TabScreenFrame } from './components/TabScreenFrame';
-import { useSchoolCalendar, type SchoolCalendarEvent } from './courseQueries';
+import { useSchoolCalendar } from './courseQueries';
 import type { ServiceError } from '../services/serviceError';
 import {
   groupEventsByMonth,
@@ -36,29 +36,51 @@ function StatusPill({ status }: { status: 'ongoing' | 'ended' }) {
   );
 }
 
+function CountdownCard({ countdown }: { countdown: EventPresentation }) {
+  return (
+    <Card className="flex-row items-center justify-between">
+      <View className="min-w-0 flex-1 gap-1">
+        <Text className="text-base font-semibold text-theme-900 dark:text-zinc-100">
+          {countdown.name}
+        </Text>
+        <Text className="text-sm text-theme-700 dark:text-zinc-300">
+          {countdown.rangeLabel}
+        </Text>
+      </View>
+      {countdown.status === 'ongoing' ? (
+        <StatusPill status="ongoing" />
+      ) : (
+        <View className="items-end">
+          <Text className="text-2xl font-bold text-theme-800 dark:text-zinc-100">
+            {Math.max(countdown.daysUntil, 0)}
+          </Text>
+          <Text className="text-xs text-theme-700 dark:text-zinc-400">
+            天後
+          </Text>
+        </View>
+      )}
+    </Card>
+  );
+}
+
 export interface SchoolCalendarViewProps {
-  events: readonly SchoolCalendarEvent[];
+  presented: readonly EventPresentation[];
+  countdown: EventPresentation | null;
   isLoading: boolean;
   error: ServiceError | null;
   retrying?: boolean;
   onRetry: () => void;
-  now?: Date;
 }
 
-/** Countdown card plus 即將開始 / 進行中 and 已結束 events grouped by month. */
+/** 即將開始 / 進行中 and 已結束 events grouped by month (the countdown is pinned by the screen). */
 export function SchoolCalendarView({
-  events,
+  presented,
+  countdown,
   isLoading,
   error,
   retrying,
   onRetry,
-  now,
 }: SchoolCalendarViewProps) {
-  const presented = useMemo(
-    () => presentCalendar(events, now ?? new Date()),
-    [events, now],
-  );
-
   if (isLoading) {
     return (
       <View className="gap-4" accessibilityLabel="載入學校行事曆中">
@@ -84,7 +106,6 @@ export function SchoolCalendarView({
     return <EmptyNotice>目前沒有可顯示的學校行事曆。</EmptyNotice>;
   }
 
-  const countdown = pickCountdownEvent(presented);
   const timeline = presented.filter(
     (event) =>
       !(
@@ -113,31 +134,6 @@ export function SchoolCalendarView({
 
   return (
     <View className="gap-4">
-      {countdown ? (
-        <View className="flex-row items-center justify-between rounded-2xl border border-theme-200 bg-theme-50 p-4 dark:border-zinc-700 dark:bg-zinc-800">
-          <View className="min-w-0 flex-1 gap-1">
-            <Text className="text-base font-semibold text-theme-900 dark:text-zinc-100">
-              {countdown.name}
-            </Text>
-            <Text className="text-sm text-theme-700 dark:text-zinc-300">
-              {countdown.rangeLabel}
-            </Text>
-          </View>
-          {countdown.status === 'ongoing' ? (
-            <StatusPill status="ongoing" />
-          ) : (
-            <View className="items-end">
-              <Text className="text-2xl font-bold text-theme-800 dark:text-zinc-100">
-                {Math.max(countdown.daysUntil, 0)}
-              </Text>
-              <Text className="text-xs text-theme-700 dark:text-zinc-400">
-                天後
-              </Text>
-            </View>
-          )}
-        </View>
-      ) : null}
-
       {groups.map((group) => (
         <View key={group.label} className="gap-3">
           <View className="rounded-2xl border border-theme-200 bg-theme-50 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-900">
@@ -192,6 +188,13 @@ export function SchoolCalendarView({
 export function SchoolCalendarScreen() {
   const calendar = useSchoolCalendar();
   const { refetch } = calendar;
+  const presented = useMemo(
+    () => presentCalendar(calendar.data ?? [], new Date()),
+    [calendar.data],
+  );
+  const countdown = pickCountdownEvent(presented) ?? null;
+  const showCountdown =
+    countdown && !calendar.isPending && !calendar.isError ? countdown : null;
 
   return (
     <TabScreenFrame
@@ -200,9 +203,14 @@ export function SchoolCalendarScreen() {
       path="/courses/school-calendar"
       refreshing={calendar.isRefetching}
       onRefresh={() => void refetch()}
+      constrainWidth
+      stickyHeader={
+        showCountdown ? <CountdownCard countdown={showCountdown} /> : null
+      }
     >
       <SchoolCalendarView
-        events={calendar.data ?? []}
+        presented={presented}
+        countdown={countdown}
         isLoading={calendar.isPending}
         error={calendar.isError ? calendar.error : null}
         retrying={calendar.isFetching}

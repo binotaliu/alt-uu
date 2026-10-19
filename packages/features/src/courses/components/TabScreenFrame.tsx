@@ -7,7 +7,7 @@ import {
 } from '@altuu/ui';
 import { usePathname } from 'expo-router';
 import { useEffect, useRef, type ReactNode } from 'react';
-import { RefreshControl, ScrollView } from 'react-native';
+import { RefreshControl, ScrollView, View } from 'react-native';
 
 import { AppStatusBanners } from '../../shell/AppStatusBanners';
 import { AccountSwitcherButton } from '../../account/components/AccountSwitcherButton';
@@ -20,6 +20,10 @@ export interface TabScreenFrameProps {
   showStatusBanners?: boolean;
   refreshing: boolean;
   onRefresh: () => void;
+  /** Pinned above the scrolling body; also implies the width-limited layout. */
+  stickyHeader?: ReactNode;
+  /** Center the body in a `max-w-2xl` column so tablets render nicely. */
+  constrainWidth?: boolean;
   children: ReactNode;
 }
 
@@ -38,6 +42,8 @@ export function TabScreenFrame({
   showStatusBanners = false,
   refreshing,
   onRefresh,
+  stickyHeader,
+  constrainWidth = false,
   children,
 }: TabScreenFrameProps) {
   const pathname = usePathname();
@@ -73,13 +79,21 @@ export function TabScreenFrame({
       {showStatusBanners ? <AppStatusBanners /> : null}
       <ScrollView
         className="flex-1"
-        contentContainerClassName={
-          isTablet ? 'px-6 pb-6 pt-4' : 'px-4 pb-6 pt-3'
-        }
+        stickyHeaderIndices={stickyHeader ? [0] : undefined}
+        contentContainerClassName={`${
+          constrainWidth ? 'mx-auto w-full max-w-2xl ' : ''
+        }${isTablet ? 'px-6' : 'px-4'} pb-6 ${stickyHeader ? '' : isTablet ? 'pt-4' : 'pt-3'}`}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
+        {stickyHeader ? (
+          <View
+            className={`bg-theme-100 pb-3 dark:bg-zinc-950 ${isTablet ? 'pt-4' : 'pt-3'}`}
+          >
+            {stickyHeader}
+          </View>
+        ) : null}
         {children}
       </ScrollView>
     </Screen>
