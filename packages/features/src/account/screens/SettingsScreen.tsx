@@ -46,13 +46,6 @@ const PREFERENCE_SWITCHES = [
       '開啟此選項以讓 Alt UU 從 NOU 小幫手取得課程資訊與視訊面授資訊。部分詮釋資料可能會傳送給 NOU 小幫手以提供此功能。',
   },
   {
-    key: 'screenReaderEnhancedSupportEnabled',
-    title: '加強螢幕閱讀器支援',
-    description:
-      '若您使用螢幕閱讀器，如 VoiceOver、TalkBack、NVDA 或 JAWS，開啟此選項可讓 Alt UU 在教材頁中使用對螢幕閱讀器較友善的播放器。',
-    switchLabel: '切換增強螢幕閱讀器支援',
-  },
-  {
     key: 'liveSessionNicknameModalEnabled',
     title: '視訊面授前顯示暱稱設定提示',
     description:
@@ -220,7 +213,6 @@ export function SettingsScreen() {
           key={item.key}
           title={item.title}
           description={item.description}
-          switchLabel={'switchLabel' in item ? item.switchLabel : undefined}
           value={preferences[item.key]}
           disabled={savingKey === item.key}
           onValueChange={(value) => void setPreference(item.key, value)}

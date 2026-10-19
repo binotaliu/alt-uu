@@ -24,6 +24,7 @@ export const LEGACY_ACTIVE_PROFILE_KEY = 'account.active_profile';
  *   (port of migration 2026_07_11_091600), never copied as-is;
  * - `preference:diagnostics-recording-until`: a transient recording window
  *   tied to the (not migrated) diagnostic_events table;
+ * - `preference:screen-reader-enhanced-support`: the option was removed;
  * - unknown keys.
  */
 export const LEGACY_KEY_VALUE_ALLOWLIST: readonly string[] = [
@@ -31,7 +32,6 @@ export const LEGACY_KEY_VALUE_ALLOWLIST: readonly string[] = [
   'preference:appearance',
   'preference:accent-color',
   'preference:nou-tools-integration',
-  'preference:screen-reader-enhanced-support',
   'preference:alt-uu-plus-disabled',
   'preference:onboarding-completed',
   'preference:live-sessions-timezone',

@@ -9,7 +9,6 @@ const defaults: AppPreferences = {
   appearance: 'system',
   accentColor: 'warm',
   nouToolsIntegrationEnabled: false,
-  screenReaderEnhancedSupportEnabled: false,
   altUuPlusDisabled: false,
   onboardingCompleted: false,
   liveSessionsTimezone: 'taiwan',
@@ -69,7 +68,6 @@ describe('app preferences', () => {
       appearance: 'light',
       accentColor: 'ocean',
       nouToolsIntegrationEnabled: true,
-      screenReaderEnhancedSupportEnabled: true,
       altUuPlusDisabled: true,
       onboardingCompleted: true,
       liveSessionsTimezone: 'local',
@@ -79,6 +77,27 @@ describe('app preferences', () => {
     };
 
     expect(await preferences.update(everything)).toEqual(everything);
+  });
+
+  it('deletes the stored value of the removed screen reader option', async () => {
+    const { harness, preferences } = await setup();
+    await harness.keyValues.set(
+      'preference:screen-reader-enhanced-support',
+      '{"enabled":true}',
+    );
+    await harness.keyValues.set(
+      'preference:appearance',
+      '{"appearance":"dark"}',
+    );
+
+    await preferences.store.removeObsoleteKeys();
+
+    expect(
+      await harness.keyValues.get('preference:screen-reader-enhanced-support'),
+    ).toBeNull();
+    expect(await harness.keyValues.get('preference:appearance')).toBe(
+      '{"appearance":"dark"}',
+    );
   });
 
   it('rejects invalid values', async () => {
@@ -189,7 +208,6 @@ describe('app config', () => {
     const { harness, preferences } = await setup(true);
     await preferences.update({
       altUuPlusDisabled: true,
-      screenReaderEnhancedSupportEnabled: true,
       accentColor: 'forest',
     });
     const config = await createAppConfigServices({
@@ -200,7 +218,6 @@ describe('app config', () => {
     expect(config).toMatchObject({
       accentColor: 'forest',
       altUuPlusDisabled: true,
-      screenReaderEnhancedSupportEnabled: true,
       appName: 'Alt UU',
       appVersion: '1.1.0',
       appDisplayVersion: 'v1.1.0',

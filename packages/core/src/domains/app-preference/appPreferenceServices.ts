@@ -16,7 +16,6 @@ import {
 
 const BOOLEAN_FIELDS = [
   'nouToolsIntegrationEnabled',
-  'screenReaderEnhancedSupportEnabled',
   'altUuPlusDisabled',
   'onboardingCompleted',
   'liveSessionNicknameModalEnabled',
@@ -38,8 +37,6 @@ export function createAppPreferenceServices(deps: AppPreferenceServicesDeps) {
       appearance: await store.getAppearance(),
       accentColor: await store.getAccentColor(),
       nouToolsIntegrationEnabled: await store.getNouToolsIntegrationEnabled(),
-      screenReaderEnhancedSupportEnabled:
-        await store.getScreenReaderEnhancedSupportEnabled(),
       altUuPlusDisabled: await store.getAltUuPlusDisabled(),
       onboardingCompleted: await store.getOnboardingCompleted(),
       liveSessionsTimezone: await store.getLiveSessionsTimezone(),
@@ -66,12 +63,6 @@ export function createAppPreferenceServices(deps: AppPreferenceServicesDeps) {
     if (input.nouToolsIntegrationEnabled !== undefined) {
       await store.setNouToolsIntegrationEnabled(
         input.nouToolsIntegrationEnabled,
-      );
-    }
-
-    if (input.screenReaderEnhancedSupportEnabled !== undefined) {
-      await store.setScreenReaderEnhancedSupportEnabled(
-        input.screenReaderEnhancedSupportEnabled,
       );
     }
 

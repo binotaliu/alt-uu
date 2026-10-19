@@ -19,7 +19,6 @@ export interface AppConfig {
   appearance: Appearance;
   accentColor: AccentColor;
   nouToolsIntegrationEnabled: boolean;
-  screenReaderEnhancedSupportEnabled: boolean;
   altUuPlusDisabled: boolean;
   appName: string;
   appVersion: string;
@@ -43,8 +42,6 @@ export function createAppConfigServices(deps: {
         accentColor: await preferences.getAccentColor(),
         nouToolsIntegrationEnabled:
           await preferences.getNouToolsIntegrationEnabled(),
-        screenReaderEnhancedSupportEnabled:
-          await preferences.getScreenReaderEnhancedSupportEnabled(),
         altUuPlusDisabled: await preferences.getAltUuPlusDisabled(),
         appName: buildConfig.appName,
         appVersion: buildConfig.appVersion,

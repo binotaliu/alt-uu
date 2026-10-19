@@ -22,7 +22,6 @@ export interface AppPreferences {
   appearance: Appearance;
   accentColor: AccentColor;
   nouToolsIntegrationEnabled: boolean;
-  screenReaderEnhancedSupportEnabled: boolean;
   altUuPlusDisabled: boolean;
   onboardingCompleted: boolean;
   liveSessionsTimezone: LiveSessionsTimezone;

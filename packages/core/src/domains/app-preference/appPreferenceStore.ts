@@ -14,7 +14,6 @@ const KEYS = {
   appearance: 'preference:appearance',
   accentColor: 'preference:accent-color',
   nouToolsIntegration: 'preference:nou-tools-integration',
-  screenReaderEnhancedSupport: 'preference:screen-reader-enhanced-support',
   altUuPlusDisabled: 'preference:alt-uu-plus-disabled',
   onboardingCompleted: 'preference:onboarding-completed',
   liveSessionsTimezone: 'preference:live-sessions-timezone',
@@ -49,9 +48,18 @@ export async function readJsonRecord(
   }
 }
 
+/** Preference rows of removed options, deleted on launch. */
+const OBSOLETE_KEYS = ['preference:screen-reader-enhanced-support'] as const;
+
 /** Port of the legacy AppPreferenceStore (values are JSON in key_value_store). */
 export class AppPreferenceStore {
   constructor(private readonly keyValues: KeyValueStoreRepository) {}
+
+  async removeObsoleteKeys(): Promise<void> {
+    for (const key of OBSOLETE_KEYS) {
+      await this.keyValues.delete(key);
+    }
+  }
 
   async getAppearance(): Promise<Appearance> {
     return this.getOneOf(
@@ -95,18 +103,6 @@ export class AppPreferenceStore {
 
   setNouToolsIntegrationEnabled(enabled: boolean): Promise<boolean> {
     return this.setBoolean(KEYS.nouToolsIntegration, 'enabled', enabled);
-  }
-
-  getScreenReaderEnhancedSupportEnabled(): Promise<boolean> {
-    return this.getBoolean(KEYS.screenReaderEnhancedSupport, 'enabled', false);
-  }
-
-  setScreenReaderEnhancedSupportEnabled(enabled: boolean): Promise<boolean> {
-    return this.setBoolean(
-      KEYS.screenReaderEnhancedSupport,
-      'enabled',
-      enabled,
-    );
   }
 
   getAltUuPlusDisabled(): Promise<boolean> {

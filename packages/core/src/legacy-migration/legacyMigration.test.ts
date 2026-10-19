@@ -70,7 +70,7 @@ describe('legacy migration: current schema (v1.1.x)', () => {
       accountsWithoutPassword: 0,
       skippedDeletedAccounts: 1,
       undecryptableValues: 0,
-      keyValuesImported: 17,
+      keyValuesImported: 16,
       playbackProgressImported: 3,
       dailyActivitiesImported: 2,
       blockedContentsImported: 1,
@@ -80,6 +80,7 @@ describe('legacy migration: current schema (v1.1.x)', () => {
     expect(outcome.summary.skippedKeyValueKeys.sort()).toEqual([
       'hungu_remembered_credentials',
       'preference:diagnostics-recording-until',
+      'preference:screen-reader-enhanced-support',
       'unknown:future-key',
     ]);
 

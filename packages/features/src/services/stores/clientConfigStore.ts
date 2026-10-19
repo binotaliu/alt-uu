@@ -5,7 +5,6 @@ export const defaultPreferences: AppPreferences = {
   appearance: 'system',
   accentColor: 'warm',
   nouToolsIntegrationEnabled: false,
-  screenReaderEnhancedSupportEnabled: false,
   altUuPlusDisabled: false,
   onboardingCompleted: false,
   liveSessionsTimezone: 'taiwan',

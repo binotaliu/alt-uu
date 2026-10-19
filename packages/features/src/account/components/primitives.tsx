@@ -390,14 +390,12 @@ export function SwitchCard({
   value,
   onValueChange,
   disabled,
-  switchLabel,
 }: {
   title: string;
   description: string;
   value: boolean;
   onValueChange: (value: boolean) => void;
   disabled?: boolean;
-  switchLabel?: string;
 }) {
   return (
     <Card>
@@ -410,7 +408,7 @@ export function SwitchCard({
           value={value}
           onValueChange={onValueChange}
           disabled={disabled}
-          label={switchLabel ?? `切換${title}`}
+          label={`切換${title}`}
         />
       </View>
     </Card>

@@ -273,6 +273,7 @@ async function build(): Promise<AppServices> {
     keyValues: storage.keyValues,
     isSubscriptionActive,
   });
+  await appPreference.store.removeObsoleteKeys();
   subscriptionServices = createSubscriptionServices({
     billing: await createBilling(),
     // Local StoreKit transactions are only accepted by a dummy server.
