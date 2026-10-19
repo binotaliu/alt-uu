@@ -488,6 +488,41 @@ describe('MaterialScreen', () => {
   });
 });
 
+describe('MaterialScreen landscape directory', () => {
+  const dimensions =
+    jest.requireActual<typeof import('react-native')>(
+      'react-native',
+    ).Dimensions;
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('opens the directory drawer from 切換教材 on a phone in landscape', async () => {
+    jest
+      .spyOn(dimensions, 'get')
+      .mockReturnValue({ width: 700, height: 360, scale: 3, fontScale: 1 });
+    const { renderScreen } = setup();
+
+    await renderScreen('html');
+    await waitFor(() => expect(screen.getByTestId('webview')).toBeTruthy());
+
+    expect(screen.queryByTestId('material-directory-drawer')).toBeNull();
+    await fireEvent.press(screen.getByTestId('material-switch-button'));
+
+    expect(screen.getByTestId('material-directory-drawer')).toBeTruthy();
+  });
+
+  it('shows 切換教材 whenever the sidebar is hidden', async () => {
+    const { renderScreen } = setup();
+
+    await renderScreen('html');
+    await waitFor(() => expect(screen.getByTestId('webview')).toBeTruthy());
+
+    expect(screen.getByTestId('material-switch-button')).toBeTruthy();
+  });
+});
+
 describe('MaterialScreen downloads', () => {
   it('downloads with the session cookies and previews the file', async () => {
     const { renderScreen, prepareMaterialFetch } = setup();

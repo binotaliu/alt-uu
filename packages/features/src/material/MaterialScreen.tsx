@@ -44,6 +44,7 @@ import {
   clampFontScale,
   type MaterialHtmlPalette,
 } from './materialHtmlDocument';
+import { MaterialDirectoryDrawer } from './MaterialDirectoryDrawer';
 import { MaterialIcon } from './MaterialIcon';
 import {
   MIN_RESUME_POSITION_SECONDS,
@@ -210,6 +211,7 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
   const insets = useSafeAreaInsets();
   const isTablet = useIsTablet();
   const { width } = useWindowDimensions();
+  const [directoryOpen, setDirectoryOpen] = useState(false);
   const learningTimes = useCourseLearningTimes(cid);
   const lastSeen = useLastSeenMaterial(cid);
 
@@ -1014,6 +1016,19 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
             />
           </View>
         ) : null}
+
+        {!isTablet ? (
+          <Pressable
+            testID="material-switch-button"
+            accessibilityRole="button"
+            onPress={() => setDirectoryOpen(true)}
+            className="items-center rounded-2xl border border-theme-200 bg-white p-3 active:bg-theme-50 dark:border-zinc-700 dark:bg-zinc-900 dark:active:bg-zinc-800"
+          >
+            <Text className="text-sm font-semibold text-theme-900 dark:text-zinc-100">
+              切換教材
+            </Text>
+          </Pressable>
+        ) : null}
       </View>
     </ScrollView>
   );
@@ -1077,6 +1092,18 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
         contentScroll
       )}
 
+      <MaterialDirectoryDrawer
+        visible={directoryOpen}
+        onClose={() => setDirectoryOpen(false)}
+        selectedCid={cid}
+        nodes={learningTimes.data ?? []}
+        isLoading={learningTimes.isPending}
+        activeNodeIdentifier={activeScoid}
+        lastSeenIdentifier={lastSeen.data?.activityId ?? null}
+        lastSeenPositionSeconds={lastSeen.data?.positionSeconds}
+        lastSeenDurationSeconds={lastSeen.data?.mediaDurationSeconds}
+        onNodeSelect={(identifier) => void handleNodeSelect(identifier)}
+      />
       {frameCapture.composer}
       <SavingProgressToast visible={isSaving} />
       <ResumePrompt
