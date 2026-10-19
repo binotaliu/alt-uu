@@ -201,18 +201,20 @@ function LoadingSkeleton() {
       {[0, 1].map((section) => (
         <View key={section} className="gap-2">
           <Skeleton className="h-5 w-32" />
-          {[0, 1, 2].map((item) => (
-            <Card key={item}>
-              <View className="flex-row items-center gap-3">
-                <Skeleton className="h-16 w-16 rounded-lg" />
-                <View className="flex-1 gap-2">
-                  <Skeleton className="h-4 w-3/4" />
-                  <Skeleton className="h-3 w-1/2" />
-                  <Skeleton className="h-3 w-1/3" />
+          <CardGrid twoColumnsFrom={TABLET_MIN_WIDTH}>
+            {[0, 1, 2, 3].map((item) => (
+              <Card key={item}>
+                <View className="flex-row items-center gap-3">
+                  <Skeleton className="h-16 w-20 rounded-lg" />
+                  <View className="flex-1 gap-2">
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-3 w-1/2" />
+                    <Skeleton className="h-3 w-1/3" />
+                  </View>
                 </View>
-              </View>
-            </Card>
-          ))}
+              </Card>
+            ))}
+          </CardGrid>
         </View>
       ))}
     </View>

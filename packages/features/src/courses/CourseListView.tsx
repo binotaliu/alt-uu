@@ -165,25 +165,27 @@ function CourseCard({
 }
 
 function CourseListSkeleton() {
+  const isTablet = useIsTablet();
+
   return (
     <View className="gap-6" accessibilityLabel="載入課程中">
       {[0, 1].map((group) => (
         <View key={group}>
           <Skeleton className="mb-3 h-5 w-16" />
-          <View className="gap-3">
-            {[0, 1, 2, 3, 4].map((card) => (
+          <CardGrid>
+            {[0, 1, 2, 3, 4, 5].map((card) => (
               <View
                 key={card}
-                className="rounded-xl border border-theme-200 bg-white px-4 py-3 dark:border-zinc-700 dark:bg-zinc-900"
+                className={`rounded-xl border border-theme-200 bg-white dark:border-zinc-700 dark:bg-zinc-900 ${isTablet ? 'gap-2 px-8 py-6' : 'gap-2 px-4 py-3'}`}
               >
-                <View className="mb-2 flex-row gap-2">
+                <View className="flex-row gap-2">
                   <Skeleton className="h-4 w-12 rounded-full" />
                   <Skeleton className="h-4 w-16 rounded-full" />
                 </View>
-                <Skeleton className="h-10 w-3/4" />
+                <Skeleton className={isTablet ? 'h-12 w-3/4' : 'h-10 w-3/4'} />
               </View>
             ))}
-          </View>
+          </CardGrid>
         </View>
       ))}
     </View>
