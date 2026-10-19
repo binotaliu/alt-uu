@@ -14,6 +14,18 @@ interface SemesterGroup {
   grades: SchoolPortalGrade[];
 }
 
+const SEASON_RANK: Record<string, number> = { 暑: 0, 上: 1, 下: 2 };
+
+/** Chronological key: within a year 暑期 → 上學期 → 下學期; null when unparsable. */
+function semesterSortKey(label: string): number | null {
+  const match = label
+    .replace(/\s+/gu, '')
+    .match(/^(\d{2,3})(?:學年)?(上|下|暑)/u);
+
+  return match ? Number(match[1]) * 10 + SEASON_RANK[match[2]] : null;
+}
+
+/** Groups grades per semester, newest semester first. */
 export function groupBySemester(grades: SchoolPortalGrade[]): SemesterGroup[] {
   const groups: SemesterGroup[] = [];
 
@@ -30,7 +42,13 @@ export function groupBySemester(grades: SchoolPortalGrade[]): SemesterGroup[] {
     }
   }
 
-  return groups;
+  // Array#sort is stable, so unparsable labels keep their portal order.
+  return groups.sort((a, b) => {
+    const keyA = semesterSortKey(a.semesterLabel);
+    const keyB = semesterSortKey(b.semesterLabel);
+
+    return keyA === null || keyB === null ? 0 : keyB - keyA;
+  });
 }
 
 export function isScorePassing(score: string | null): boolean {

@@ -35,6 +35,25 @@ describe('grade helpers', () => {
     ]);
   });
 
+  it('sorts semesters newest first with 暑期 before 上學期 before 下學期', () => {
+    const grade = (semesterLabel: string) =>
+      ({ semesterLabel, courseName: 'X' }) as never;
+
+    expect(
+      groupBySemester([
+        grade('114 學年上學期'),
+        grade('114 學年下學期'),
+        grade('115 暑期'),
+        grade('115 學年上學期'),
+      ]).map((group) => group.semesterLabel),
+    ).toEqual([
+      '115 學年上學期',
+      '115 暑期',
+      '114 學年下學期',
+      '114 學年上學期',
+    ]);
+  });
+
   it('treats 60 and above as passing', () => {
     expect([null, '59', '60', '99', '免修'].map(isScorePassing)).toEqual([
       false,
