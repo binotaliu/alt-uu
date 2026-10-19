@@ -10,6 +10,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams, usePathname } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CourseChips } from './CourseListView';
 import { courseKeys, useCourses, useCourseTasksCount } from './courseQueries';
@@ -111,6 +112,7 @@ export function CourseShowView({
   const tasks = useCourseTasksCount();
   const queryClient = useQueryClient();
   const isTablet = useIsTablet();
+  const { bottom: bottomInset } = useSafeAreaInsets();
   const pathname = usePathname();
   const refreshOnReturn = useRef(false);
   const wasHere = useRef(true);
@@ -215,7 +217,12 @@ export function CourseShowView({
   );
 
   const materialsBody = (
-    <View className={`flex-1 ${isTablet ? 'pb-6' : 'px-3 pb-24'}`}>
+    // The directory scrolls itself, so it runs down to the bottom inset
+    // instead of leaving the body scroll's `pb-24` gap under the card.
+    <View
+      className={`flex-1 ${isTablet ? '' : 'px-3'}`}
+      style={{ paddingBottom: bottomInset + 12 }}
+    >
       <CourseMaterialsTab
         cid={cid}
         refreshControl={
