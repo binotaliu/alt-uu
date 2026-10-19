@@ -1060,18 +1060,16 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
             className="my-3 ml-3 overflow-hidden rounded-2xl border border-theme-200 bg-white/85 dark:border-zinc-700 dark:bg-zinc-900/85"
             style={{ width: width >= 1280 ? 352 : 320 }}
           >
-            <ScrollView>
-              <MaterialDirectory
-                selectedCid={cid}
-                nodes={learningTimes.data ?? []}
-                isLoading={learningTimes.isPending}
-                activeNodeIdentifier={activeScoid}
-                lastSeenIdentifier={lastSeen.data?.activityId ?? null}
-                lastSeenPositionSeconds={lastSeen.data?.positionSeconds}
-                lastSeenDurationSeconds={lastSeen.data?.mediaDurationSeconds}
-                onNodeSelect={(identifier) => void handleNodeSelect(identifier)}
-              />
-            </ScrollView>
+            <MaterialDirectory
+              selectedCid={cid}
+              nodes={learningTimes.data ?? []}
+              isLoading={learningTimes.isPending}
+              activeNodeIdentifier={activeScoid}
+              lastSeenIdentifier={lastSeen.data?.activityId ?? null}
+              lastSeenPositionSeconds={lastSeen.data?.positionSeconds}
+              lastSeenDurationSeconds={lastSeen.data?.mediaDurationSeconds}
+              onNodeSelect={(identifier) => void handleNodeSelect(identifier)}
+            />
           </View>
           <View className="min-w-0 flex-1">{contentScroll}</View>
         </View>

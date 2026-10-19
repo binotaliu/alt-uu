@@ -214,24 +214,29 @@ export function CourseShowView({
     </View>
   );
 
-  const bodyScroll = (
+  const materialsBody = (
+    <View className={`flex-1 ${isTablet ? 'pb-6' : 'px-3 pb-24'}`}>
+      <CourseMaterialsTab
+        cid={cid}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshingMaterials}
+            onRefresh={() => void refreshMaterials()}
+          />
+        }
+      />
+    </View>
+  );
+
+  // The materials tab scrolls itself so its folder rows can stick.
+  const otherBodyScroll = (
     <ScrollView
       testID="course-body-scroll"
       className="flex-1"
       contentContainerClassName={isTablet ? 'pb-6' : 'px-3 pb-24'}
       keyboardShouldPersistTaps="handled"
-      refreshControl={
-        activeTab === 'materials' ? (
-          <RefreshControl
-            refreshing={refreshingMaterials}
-            onRefresh={() => void refreshMaterials()}
-          />
-        ) : undefined
-      }
     >
-      {activeTab === 'materials' ? (
-        <CourseMaterialsTab cid={cid} />
-      ) : activeTab === 'discuss' ? (
+      {activeTab === 'discuss' ? (
         <CourseDiscussTab
           cid={cid}
           className={course?.className ?? null}
@@ -254,6 +259,9 @@ export function CourseShowView({
       )}
     </ScrollView>
   );
+
+  const bodyScroll =
+    activeTab === 'materials' ? materialsBody : otherBodyScroll;
 
   return (
     <Screen ignoreTopInset ignoreBottomInset>

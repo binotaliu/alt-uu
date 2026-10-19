@@ -127,12 +127,23 @@ describe('CourseShowView', () => {
 
     await act(async () => {
       screen
-        .getByTestId('course-body-scroll')
+        .getByTestId('material-directory-scroll')
         .props.refreshControl.props.onRefresh();
     });
 
     expect(overrides.course.getLearningTimes).toHaveBeenCalledTimes(2);
     expect(overrides.course.getLastSeenMaterial).toHaveBeenCalledTimes(2);
+  });
+
+  it('pins folder rows with sticky headers', async () => {
+    await renderWithServices(<CourseShowView cid="10" />, services());
+    await screen.findByText('第一章');
+
+    const scroll = screen.getByTestId('material-directory-scroll');
+    const folders = screen.getAllByTestId('material-folder');
+
+    expect(folders.length).toBeGreaterThan(0);
+    expect(scroll.props.stickyHeaderIndices).toHaveLength(folders.length);
   });
 
   it('collapses directories', async () => {
