@@ -240,6 +240,55 @@ describe('CourseShowView', () => {
     }
   });
 
+  it('refreshes the self-exam list after the in-app browser closes', async () => {
+    const overrides = services();
+    overrides.course.getSelfExams.mockResolvedValue([
+      {
+        title: '練習一',
+        type: 'self-exam',
+        isSubmitted: false,
+        actionUrl: 'https://uu.nou.edu.tw/exam/1',
+        resultUrl: null,
+        resultUnavailableReason: null,
+      },
+    ] as never);
+    const pathname = jest.spyOn(
+      jest.requireMock('expo-router') as { usePathname: typeof usePathname },
+      'usePathname',
+    );
+    pathname.mockReturnValue('/courses/10');
+
+    try {
+      const Harness = () => {
+        const [, setTick] = useState(0);
+
+        return (
+          <>
+            <Pressable
+              testID="rerender"
+              onPress={() => setTick((tick) => tick + 1)}
+            />
+            <CourseShowView cid="10" initialTab="self-exam" />
+          </>
+        );
+      };
+      await renderWithServices(<Harness />, overrides);
+      await fireEvent.press(await screen.findByText('進行練習'));
+      expect(overrides.course.getSelfExams).toHaveBeenCalledTimes(1);
+
+      pathname.mockReturnValue('/browser');
+      await fireEvent.press(screen.getByTestId('rerender'));
+      pathname.mockReturnValue('/courses/10');
+      await fireEvent.press(screen.getByTestId('rerender'));
+
+      await waitFor(() =>
+        expect(overrides.course.getSelfExams).toHaveBeenCalledTimes(2),
+      );
+    } finally {
+      pathname.mockRestore();
+    }
+  });
+
   it('starts on the tab given by the route', async () => {
     await renderWithServices(
       <CourseShowView cid="10" initialTab={resolveCourseTab('homework')} />,
