@@ -1,5 +1,5 @@
-import { act, fireEvent, screen } from '@testing-library/react-native';
-import { router } from 'expo-router';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { router, usePathname } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, Text } from 'react-native';
 
@@ -195,6 +195,49 @@ describe('CourseShowView', () => {
 
     await fireEvent.press(screen.getByText('看板 c10'));
     expect(router.push).toHaveBeenCalledWith('/courses/10/discuss/c10/b-c10');
+  });
+
+  it('refreshes the unread badge and boards when returning from a board', async () => {
+    const overrides = services();
+    const pathname = jest.spyOn(
+      jest.requireMock('expo-router') as { usePathname: typeof usePathname },
+      'usePathname',
+    );
+    pathname.mockReturnValue('/courses/10');
+
+    try {
+      const Harness = () => {
+        const [, setTick] = useState(0);
+
+        return (
+          <>
+            <Pressable
+              testID="rerender"
+              onPress={() => setTick((tick) => tick + 1)}
+            />
+            <CourseShowView cid="10" initialTab="discuss" />
+          </>
+        );
+      };
+      await renderWithServices(<Harness />, overrides);
+      await screen.findByText('看板 10');
+      expect(overrides.course.getTasksCount).toHaveBeenCalledTimes(1);
+      expect(overrides.discuss.listBoards).toHaveBeenCalledTimes(2);
+
+      pathname.mockReturnValue('/courses/10/discuss/10/b-10');
+      await fireEvent.press(screen.getByTestId('rerender'));
+      pathname.mockReturnValue('/courses/10');
+      await fireEvent.press(screen.getByTestId('rerender'));
+
+      await waitFor(() =>
+        expect(overrides.course.getTasksCount).toHaveBeenCalledTimes(2),
+      );
+      await waitFor(() =>
+        expect(overrides.discuss.listBoards).toHaveBeenCalledTimes(4),
+      );
+    } finally {
+      pathname.mockRestore();
+    }
   });
 
   it('starts on the tab given by the route', async () => {

@@ -12,6 +12,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { discussQueryKeys } from '../discuss/queryKeys';
 import { CourseChips } from './CourseListView';
 import { courseKeys, useCourses, useCourseTasksCount } from './courseQueries';
 import { courseTasksFor, formatBadgeCount } from './format';
@@ -132,6 +133,15 @@ export function CourseShowView({
       });
       void queryClient.invalidateQueries({
         queryKey: courseKeys.lastSeen(cid),
+      });
+    }
+
+    // Returning from a discuss board: refresh the unread badge and the boards'
+    // 新文章 markers.
+    if (here && !wasHere.current) {
+      void queryClient.invalidateQueries({ queryKey: courseKeys.tasksCount });
+      void queryClient.invalidateQueries({
+        queryKey: [...discussQueryKeys.all, 'boards'],
       });
     }
 
