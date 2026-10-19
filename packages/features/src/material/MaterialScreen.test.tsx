@@ -20,7 +20,7 @@ import { router } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AppServicesProvider } from '../services/AppServicesProvider';
-import { useClientConfigStore } from '../services/stores';
+import { useClientConfigStore, useToastStore } from '../services/stores';
 import {
   createFakeServices,
   createTestQueryClient,
@@ -563,5 +563,31 @@ describe('MaterialScreen downloads', () => {
     await waitFor(() =>
       expect(screen.getByText('下載失敗，HTTP 狀態碼：404')).toBeTruthy(),
     );
+  });
+
+  it('retries a failed study-time save three times, then shows a toast', async () => {
+    const { renderScreen, record } = setup();
+    record.mockRejectedValue(new Error('offline'));
+    let now = Date.parse('2026-10-18T02:00:00.000Z');
+    const spy = jest.spyOn(Date, 'now').mockImplementation(() => now);
+
+    try {
+      await renderScreen('html');
+      await waitFor(() => expect(screen.getByTestId('webview')).toBeTruthy());
+
+      now += 5_000;
+      await fireEvent.press(screen.getByText('第二章 影片'));
+
+      await waitFor(() => expect(record).toHaveBeenCalledTimes(4), {
+        timeout: 5000,
+      });
+      await waitFor(() =>
+        expect(useToastStore.getState().message).toBe(
+          '學習進度儲存失敗，請稍後再試',
+        ),
+      );
+    } finally {
+      spy.mockRestore();
+    }
   });
 });

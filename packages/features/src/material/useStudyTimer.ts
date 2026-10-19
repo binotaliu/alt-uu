@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useServiceRuntime } from '../services/AppServicesProvider';
+import { useToastStore } from '../services/stores';
 import { StudyTimerSession } from './studyTimer';
+
+/** Retries after the first failed report, each preceded by a session check. */
+export const STUDY_TIME_MAX_RETRIES = 3;
+const STUDY_TIME_RETRY_DELAY_MS = 500;
 
 export interface LivePlaybackReading {
   positionSeconds?: number;
@@ -17,8 +22,9 @@ export interface StudyTimerControls {
   /**
    * Reports the visit of `activityId` (legacy `sendStudyTime`). Resolves
    * false when there was nothing to send or the call failed. A failure
-   * re-validates the session once and retries, like legacy
-   * `saveStudyTimeWithRetry`. A successful report ends the visit.
+   * re-validates the session and retries up to {@link STUDY_TIME_MAX_RETRIES}
+   * times (legacy `saveStudyTimeWithRetry` retried once), then shows a toast.
+   * A successful report ends the visit.
    */
   sendStudyTime: (activityId: string, url: string) => Promise<boolean>;
   updatePlaybackPosition: (position: number) => void;
@@ -106,7 +112,11 @@ export function useStudyTimer(
       setViewingSeconds(payload.seconds ?? 0);
       let ok = await record(payload);
 
-      if (!ok) {
+      for (let retry = 0; !ok && retry < STUDY_TIME_MAX_RETRIES; retry += 1) {
+        await new Promise((resolve) =>
+          setTimeout(resolve, STUDY_TIME_RETRY_DELAY_MS),
+        );
+
         try {
           const bootstrap = await runtime.services.auth.bootstrapSession();
 
@@ -114,6 +124,10 @@ export function useStudyTimer(
         } catch {
           ok = false;
         }
+      }
+
+      if (!ok) {
+        useToastStore.getState().show('學習進度儲存失敗，請稍後再試');
       }
 
       if (ok) {

@@ -13,6 +13,7 @@ import {
 } from '../services/AppServicesProvider';
 import { useBootstrapStore } from '../services/stores';
 import type { AppServices } from '../services/types';
+import { AppToastHost } from './AppToastHost';
 import { ConnectivityIssueModal } from './ConnectivityIssueModal';
 import { CornerInsetsProvider } from './CornerInsetsProvider';
 import { FatalErrorScreen } from './FatalErrorScreen';
@@ -127,6 +128,7 @@ function Launch({
       <SessionExpiredPicker />
       <ConnectivityIssueModal />
       <WhatsNewSheet />
+      <AppToastHost />
     </>
   );
 }

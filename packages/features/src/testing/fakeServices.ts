@@ -8,6 +8,7 @@ import {
   useClientConfigStore,
   useConnectivityStore,
   useSessionExpiryStore,
+  useToastStore,
   useWhatsNewStore,
 } from '../services/stores';
 import type { AppServices } from '../services/types';
@@ -165,4 +166,5 @@ export function resetStores(): void {
     retryTimestamps: [],
   });
   useWhatsNewStore.setState({ isOpen: false });
+  useToastStore.setState({ message: null });
 }
