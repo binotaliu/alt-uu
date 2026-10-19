@@ -1,9 +1,15 @@
 import { Text, Icon } from '@altuu/ui';
 import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactElement } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
-import type { RefreshControlProps } from 'react-native';
+import { Animated, Pressable, ScrollView, View } from 'react-native';
+import type {
+  LayoutChangeEvent,
+  ScrollViewInstance,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  RefreshControlProps,
+} from 'react-native';
 
 import { Skeleton } from './components/primitives';
 import { formatClock } from './format';
@@ -49,8 +55,16 @@ function lastSeenLabel(
   return `上次看到 ${formatClock(Math.min(position, duration))} / ${formatClock(duration)}`;
 }
 
+/** A leaf the student can open but has no recorded watch time for. */
+function isUnreadMaterial(node: DirectoryDisplayNode): boolean {
+  return !!node.href && !node.itemDisabled && !node.duration;
+}
+
 /** Every list row pads itself so a pinned folder's background covers the gap. */
 const rowClassName = 'px-3 py-[5px]';
+
+/** Space kept above the first unread row, so it lands a few rows down, below the pinned folder. */
+const scrollTargetMargin = 168;
 
 function nodeTitle(node: DirectoryDisplayNode): string {
   return node.text || node.identifier || '未命名節點';
@@ -128,6 +142,87 @@ export function MaterialDirectory({
     }
   };
 
+  const firstUnreadKey =
+    visible.find((node) => !node.isDirectory && isUnreadMaterial(node))
+      ?.internalId ?? null;
+
+  const scrollRef = useRef<ScrollViewInstance>(null);
+  const scrollMetrics = useRef({ offset: 0, viewportHeight: 0 });
+  const unreadLayout = useRef<{ y: number; height: number } | null>(null);
+  const autoScrolledFor = useRef<string | null>(null);
+  const [unreadOffscreen, setUnreadOffscreen] = useState(false);
+
+  const jumpOpacity = useState(() => new Animated.Value(0))[0];
+  const [jumpFadedOut, setJumpFadedOut] = useState(true);
+  const showJump = !!firstUnreadKey && unreadOffscreen;
+
+  // Fade in on mount; fade out first, then unmount so it never pops away.
+  if (showJump && jumpFadedOut) {
+    setJumpFadedOut(false);
+  }
+
+  useEffect(() => {
+    const animation = Animated.timing(jumpOpacity, {
+      toValue: showJump ? 1 : 0,
+      duration: 200,
+      useNativeDriver: true,
+    });
+
+    animation.start(({ finished }) => {
+      if (finished && !showJump) {
+        setJumpFadedOut(true);
+      }
+    });
+
+    return () => animation.stop();
+  }, [showJump, jumpOpacity]);
+
+  const refreshUnreadVisibility = useCallback(() => {
+    const layout = unreadLayout.current;
+    const { offset, viewportHeight } = scrollMetrics.current;
+
+    if (!layout || viewportHeight === 0) {
+      setUnreadOffscreen(false);
+
+      return;
+    }
+
+    setUnreadOffscreen(
+      layout.y + layout.height <= offset || layout.y >= offset + viewportHeight,
+    );
+  }, []);
+
+  const scrollToUnread = (animated: boolean) => {
+    const layout = unreadLayout.current;
+
+    if (layout) {
+      scrollRef.current?.scrollTo({
+        y: Math.max(0, layout.y - scrollTargetMargin),
+        animated,
+      });
+    }
+  };
+
+  const onUnreadLayout = (key: string, event: LayoutChangeEvent) => {
+    const { y, height } = event.nativeEvent.layout;
+
+    unreadLayout.current = { y, height };
+
+    // Default position: land on the first unread material once per target.
+    if (autoScrolledFor.current !== key) {
+      autoScrolledFor.current = key;
+      scrollToUnread(false);
+      scrollMetrics.current.offset = Math.max(0, y - scrollTargetMargin);
+    }
+
+    refreshUnreadVisibility();
+  };
+
+  const onScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    scrollMetrics.current.offset = event.nativeEvent.contentOffset.y;
+    refreshUnreadVisibility();
+  };
+
   const rows: ReactElement[] = [];
   const stickyIndices: number[] = [];
 
@@ -201,7 +296,15 @@ export function MaterialDirectory({
         !!lastSeenIdentifier && node.targetIdentifier === lastSeenIdentifier;
 
       rows.push(
-        <View key={node.internalId} className={rowClassName}>
+        <View
+          key={node.internalId}
+          className={rowClassName}
+          onLayout={
+            node.internalId === firstUnreadKey
+              ? (event) => onUnreadLayout(node.internalId, event)
+              : undefined
+          }
+        >
           <View style={{ marginLeft: indent }}>
             <Pressable
               testID="material-node"
@@ -319,14 +422,47 @@ export function MaterialDirectory({
       </View>
 
       <ScrollView
+        ref={scrollRef}
         testID="material-directory-scroll"
         className="grow-0"
+        scrollEventThrottle={32}
+        onScroll={onScroll}
+        onLayout={(event) => {
+          scrollMetrics.current.viewportHeight =
+            event.nativeEvent.layout.height;
+          refreshUnreadVisibility();
+        }}
         contentContainerClassName="pb-3 pt-1"
         stickyHeaderIndices={stickyIndices}
         refreshControl={refreshControl}
       >
         {rows}
       </ScrollView>
+
+      {!jumpFadedOut ? (
+        <Animated.View
+          pointerEvents={showJump ? 'auto' : 'none'}
+          style={{ opacity: jumpOpacity }}
+          className="absolute bottom-4 right-4"
+        >
+          <Pressable
+            testID="material-jump-to-unread"
+            accessibilityRole="button"
+            accessibilityLabel="跳至第一個未觀看的教材"
+            onPress={() => scrollToUnread(true)}
+            className="flex-row items-center gap-1.5 rounded-full bg-theme-700 px-4 py-2.5 shadow-lg active:opacity-80 dark:bg-zinc-200"
+          >
+            <Icon
+              name="chevron-down"
+              size={16}
+              className="text-white dark:text-zinc-900"
+            />
+            <Text className="text-xs font-medium text-white dark:text-zinc-900">
+              跳至未觀看
+            </Text>
+          </Pressable>
+        </Animated.View>
+      ) : null}
     </View>
   );
 }
