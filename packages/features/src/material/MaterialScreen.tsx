@@ -1041,7 +1041,11 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
                 size={16}
                 className="text-theme-800 dark:text-zinc-200"
               />
-              <Text className="text-xs font-medium tabular-nums text-theme-800 dark:text-zinc-200">
+              {/* NativeWind drops `tabular-nums` (font-variant-numeric). */}
+              <Text
+                style={{ fontVariant: ['tabular-nums'] }}
+                className="text-xs font-medium text-theme-800 dark:text-zinc-200"
+              >
                 {formatStudyClock(timer.viewingSeconds)}
               </Text>
             </View>
