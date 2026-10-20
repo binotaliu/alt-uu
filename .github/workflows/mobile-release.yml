@@ -58,9 +58,9 @@ jobs:
         run: |
           set -euo pipefail
 
-          tag=$(git describe --tags --abbrev=0)
+          tag=$(git describe --tags --match 'v[0-9]*' --abbrev=0)
           version=$(printf '%s' "$tag" | sed -E 's/^v//' | grep -oE '^[0-9]+\.[0-9]+\.[0-9]+')
-          display_version=$(git describe --tags)
+          display_version=$(git describe --tags --match 'v[0-9]*')
 
           if [ -z "$version" ]; then
             echo "Could not extract a x.y.z version from tag '$tag'" >&2
