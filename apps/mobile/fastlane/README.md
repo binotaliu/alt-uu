@@ -2,7 +2,7 @@
 
 Driven by `.github/workflows/mobile-release.yml` and the composite action
 `.github/actions/setup-expo-build`. Flow per job:
-`setup-expo-build` -> (publish jobs) `fastlane <platform> sync_build_number` ->
+`setup-expo-build` -> (resolve-build-numbers job) `fastlane <platform> sync_build_number` ->
 `npx expo prebuild --platform <p> --clean` -> `fastlane <platform> build_* / release`.
 
 Build configuration reaches `app.config.ts` via env vars: `APP_VERSION`,

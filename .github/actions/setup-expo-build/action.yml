@@ -9,6 +9,12 @@ inputs:
   platform:
     description: ios, android or both - decides which credentials are decoded and whether a JDK is installed
     required: true
+  build-toolchains:
+    description: >
+      'false' skips Node, npm ci, the JDK and the Gradle cache, for jobs that only
+      run fastlane (build number lookups, store uploads).
+    required: false
+    default: 'true'
   production-env:
     description: >
       Contents of the legacy ALTUU_PRODUCTION_ENV secret. It is NOT written to a
@@ -52,6 +58,7 @@ runs:
   using: composite
   steps:
     - name: Setup Node
+      if: inputs.build-toolchains == 'true'
       uses: actions/setup-node@v4
       with:
         node-version: '22'
@@ -61,24 +68,26 @@ runs:
       uses: ruby/setup-ruby@v1
       with:
         ruby-version: '3.3'
+        bundler-cache: true
+        working-directory: apps/mobile
 
     - name: Setup Java
-      if: inputs.platform != 'ios'
+      if: inputs.build-toolchains == 'true' && inputs.platform != 'ios'
       uses: actions/setup-java@v4
       with:
         distribution: temurin
         java-version: '17'
 
+    # Caches ~/.gradle (dependencies, wrapper) between runs; only default-branch
+    # runs write to it.
+    - name: Setup Gradle cache
+      if: inputs.build-toolchains == 'true' && inputs.platform != 'ios'
+      uses: gradle/actions/setup-gradle@v4
+
     - name: Install npm dependencies
+      if: inputs.build-toolchains == 'true'
       shell: bash
       run: npm ci
-
-    - name: Install fastlane
-      shell: bash
-      working-directory: apps/mobile
-      run: |
-        bundle config set --local path vendor/bundle
-        bundle install --jobs 4 --retry 3
 
     - name: Export build configuration
       shell: bash

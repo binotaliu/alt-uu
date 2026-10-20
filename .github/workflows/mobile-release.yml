@@ -1,12 +1,17 @@
 name: Mobile Build & Release
 
-# build-android / build-ios always run on push to main (and on manual dispatch of
-# any branch), producing signed but unpublished artifacts for inspection/QA.
+# resolve-build-numbers looks up the next iOS build number / Android versionCode
+# up front, so every binary is built exactly once with its final number.
+#
+# build-android / build-ios / build-android-sideload run in parallel on push to
+# main (and on manual dispatch of any branch), producing signed but unpublished
+# artifacts for inspection/QA.
 #
 # publish-android / publish-ios only run on push to main, or a manual dispatch
 # with "publish" checked. They sit behind the `release` GitHub Environment, which
 # requires a manual approval click before the job starts - see README/setup docs
 # for configuring the required reviewer via `scripts/setup-github-secrets.sh`.
+# They upload the already-built artifact; they never rebuild.
 #
 # Pipeline: expo prebuild -> fastlane (apps/mobile/fastlane; its README lists the
 # required secrets and a dry-run checklist).
@@ -69,9 +74,65 @@ jobs:
           echo "version=${version}" >> "$GITHUB_OUTPUT"
           echo "display_version=${display_version}" >> "$GITHUB_OUTPUT"
 
+  # Store lookups are read-only, so they run before the builds (no approval
+  # needed). Both builds and the sideload APK then share the final numbers.
+  resolve-build-numbers:
+    name: Resolve build numbers
+    needs: determine-version
+    runs-on: ubuntu-latest
+    outputs:
+      ios: ${{ steps.ios.outputs.build_number }}
+      android: ${{ steps.android.outputs.build_number }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: ./.github/actions/setup-expo-build
+        with:
+          platform: both
+          build-toolchains: 'false'
+          production-env: ${{ secrets.ALTUU_PRODUCTION_ENV }}
+          app-version: ${{ needs.determine-version.outputs.version }}
+          display-version: ${{ needs.determine-version.outputs.display_version }}
+          ios-certificate-base64: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64 }}
+          ios-provisioning-profile-base64: ${{ secrets.IOS_DISTRIBUTION_PROVISIONING_PROFILE_BASE64 }}
+          app-store-api-key-base64: ${{ secrets.APP_STORE_API_KEY_P8_BASE64 }}
+          android-keystore-base64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          google-service-account-key-base64: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY_BASE64 }}
+
+      # App Store Connect's lookup only covers builds of this exact version
+      # string, so jump_by is added on top (and alone, for a never-seen version).
+      - name: Next iOS build number
+        id: ios
+        working-directory: apps/mobile
+        run: bundle exec fastlane ios sync_build_number
+        env:
+          JUMP_BY: ${{ inputs.jump_by }}
+
+      # Play Store's lookup scans every track across the whole app, so
+      # "highest + 1" is always safe regardless of version name (no jump_by).
+      - name: Next Android versionCode
+        id: android
+        working-directory: apps/mobile
+        run: bundle exec fastlane android sync_build_number
+
+      - name: Validate build numbers
+        run: |
+          set -euo pipefail
+          for n in "$IOS" "$ANDROID"; do
+            if ! [[ "$n" =~ ^[0-9]+$ ]]; then
+              echo "::error::Store sync did not produce numeric build numbers (ios='$IOS', android='$ANDROID')."
+              exit 1
+            fi
+          done
+          echo "iOS build number: $IOS"
+          echo "Android versionCode: $ANDROID"
+        env:
+          IOS: ${{ steps.ios.outputs.build_number }}
+          ANDROID: ${{ steps.android.outputs.build_number }}
+
   build-android:
     name: Build Android (unpublished)
-    needs: determine-version
+    needs: [determine-version, resolve-build-numbers]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -82,7 +143,7 @@ jobs:
           production-env: ${{ secrets.ALTUU_PRODUCTION_ENV }}
           app-version: ${{ needs.determine-version.outputs.version }}
           display-version: ${{ needs.determine-version.outputs.display_version }}
-          build-number: ${{ github.run_number }}
+          build-number: ${{ needs.resolve-build-numbers.outputs.android }}
           android-keystore-base64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           google-service-account-key-base64: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY_BASE64 }}
 
@@ -109,11 +170,11 @@ jobs:
         with:
           name: android-build
           path: apps/mobile/fastlane/build-output/*.aab
-          retention-days: 14
+          retention-days: 90
 
   build-ios:
     name: Build iOS (unpublished)
-    needs: determine-version
+    needs: [determine-version, resolve-build-numbers]
     # Expo SDK 58 / RN 0.88 need a current Xcode; macos-26 ships the newest SDK.
     runs-on: macos-26
     steps:
@@ -125,7 +186,7 @@ jobs:
           production-env: ${{ secrets.ALTUU_PRODUCTION_ENV }}
           app-version: ${{ needs.determine-version.outputs.version }}
           display-version: ${{ needs.determine-version.outputs.display_version }}
-          build-number: ${{ github.run_number }}
+          build-number: ${{ needs.resolve-build-numbers.outputs.ios }}
           ios-certificate-base64: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_P12_BASE64 }}
           ios-provisioning-profile-base64: ${{ secrets.IOS_DISTRIBUTION_PROVISIONING_PROFILE_BASE64 }}
           app-store-api-key-base64: ${{ secrets.APP_STORE_API_KEY_P8_BASE64 }}
@@ -153,86 +214,43 @@ jobs:
         with:
           name: ios-build
           path: apps/mobile/fastlane/build-output/*.ipa
-          retention-days: 14
+          retention-days: 90
 
+  # Uploads the artifact build-android already produced; nothing is rebuilt.
   publish-android:
     name: Publish Android to Play Store (internal)
     needs: [determine-version, build-android]
     if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.publish == true)
     environment: release
     runs-on: ubuntu-latest
-    outputs:
-      version_code: ${{ steps.export_version_code.outputs.version_code }}
     steps:
       - uses: actions/checkout@v6
 
       - uses: ./.github/actions/setup-expo-build
         with:
           platform: android
+          build-toolchains: 'false'
           production-env: ${{ secrets.ALTUU_PRODUCTION_ENV }}
           app-version: ${{ needs.determine-version.outputs.version }}
           display-version: ${{ needs.determine-version.outputs.display_version }}
           android-keystore-base64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           google-service-account-key-base64: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY_BASE64 }}
 
-      # Play Store's lookup scans every track across the whole app, so
-      # "highest + 1" is always safe regardless of version name (no jump_by).
-
-      - name: Sync build number with Play Store
-        id: build_number
-        working-directory: apps/mobile
-        run: bundle exec fastlane android sync_build_number
-
-      # Export for expo prebuild (it bakes the number into the native project)
-      # and fail early if the sync did not yield a number.
-      - name: Export build number
-        run: |
-          set -euo pipefail
-          if ! [[ "$BUILD_NUMBER" =~ ^[0-9]+$ ]]; then
-            echo "::error::Play Store sync did not produce a numeric build number."
-            exit 1
-          fi
-          echo "APP_BUILD_NUMBER=$BUILD_NUMBER" >> "$GITHUB_ENV"
-          echo "Build number: $BUILD_NUMBER"
-        env:
-          BUILD_NUMBER: ${{ steps.build_number.outputs.build_number }}
-
-      # Exposed so the sideload APK job reuses the exact same version code.
-      - name: Export version code
-        id: export_version_code
-        run: echo "version_code=$APP_BUILD_NUMBER" >> "$GITHUB_OUTPUT"
-
-      - name: Generate native android project
-        working-directory: apps/mobile
-        run: npx expo prebuild --platform android --clean
-
-      - name: Build, sign and upload to Play Store internal testing
-        working-directory: apps/mobile
-        run: bundle exec fastlane android release
-
-      # fastlane failures fail the step, but check the artifact explicitly so a
-      # silent no-op can never look like a release.
-      - name: Verify *.aab was produced
-        run: |
-          set -euo pipefail
-          if ! compgen -G "apps/mobile/fastlane/build-output/*.aab" > /dev/null; then
-            echo "::error::No *.aab found in apps/mobile/fastlane/build-output/."
-            exit 1
-          fi
-          ls -la apps/mobile/fastlane/build-output/
-
-      - uses: actions/upload-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
-          name: android-release-signed
-          path: apps/mobile/fastlane/build-output/*.aab
-          retention-days: 90
+          name: android-build
+          path: apps/mobile/fastlane/build-output
+
+      - name: Upload to Play Store internal testing
+        working-directory: apps/mobile
+        run: bundle exec fastlane android upload_bundle
 
   # Signed with a dedicated sideload key (NOT the Play upload key), so it is a
-  # separate install channel from the Play Store build. Runs after the Play
-  # publish (and its approval) and reuses that build's version code.
+  # separate install channel from the Play Store build. Uses the same version
+  # code as the Play build and runs in parallel with it.
   build-android-sideload:
     name: Build Android sideload APK
-    needs: [determine-version, publish-android]
+    needs: [determine-version, resolve-build-numbers]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -247,7 +265,7 @@ jobs:
           production-env: ${{ secrets.ALTUU_PRODUCTION_ENV }}
           app-version: ${{ needs.determine-version.outputs.version }}
           display-version: ${{ needs.determine-version.outputs.display_version }}
-          build-number: ${{ needs.publish-android.outputs.version_code }}
+          build-number: ${{ needs.resolve-build-numbers.outputs.android }}
           android-keystore-base64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           google-service-account-key-base64: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY_BASE64 }}
 
@@ -300,6 +318,7 @@ jobs:
           path: apps/mobile/fastlane/build-output/alt-uu-sideload.apk
           retention-days: 90
 
+  # Uploads the artifact build-ios already produced; nothing is rebuilt.
   publish-ios:
     name: Publish iOS to App Store Connect
     needs: [determine-version, build-ios]
@@ -312,6 +331,7 @@ jobs:
       - uses: ./.github/actions/setup-expo-build
         with:
           platform: ios
+          build-toolchains: 'false'
           production-env: ${{ secrets.ALTUU_PRODUCTION_ENV }}
           app-version: ${{ needs.determine-version.outputs.version }}
           display-version: ${{ needs.determine-version.outputs.display_version }}
@@ -319,54 +339,14 @@ jobs:
           ios-provisioning-profile-base64: ${{ secrets.IOS_DISTRIBUTION_PROVISIONING_PROFILE_BASE64 }}
           app-store-api-key-base64: ${{ secrets.APP_STORE_API_KEY_P8_BASE64 }}
 
-      # App Store Connect's lookup only covers builds of this exact version
-      # string, so jump_by is added on top (and alone, for a never-seen version).
-
-      - name: Sync build number with App Store Connect
-        id: build_number
-        working-directory: apps/mobile
-        run: bundle exec fastlane ios sync_build_number
-        env:
-          JUMP_BY: ${{ inputs.jump_by }}
-
-      # Export for expo prebuild (it bakes the number into the native project)
-      # and fail early if the sync did not yield a number.
-      - name: Export build number
-        run: |
-          set -euo pipefail
-          if ! [[ "$BUILD_NUMBER" =~ ^[0-9]+$ ]]; then
-            echo "::error::App Store Connect sync did not produce a numeric build number."
-            exit 1
-          fi
-          echo "APP_BUILD_NUMBER=$BUILD_NUMBER" >> "$GITHUB_ENV"
-          echo "Build number: $BUILD_NUMBER"
-        env:
-          BUILD_NUMBER: ${{ steps.build_number.outputs.build_number }}
-
-      - name: Generate native ios project
-        working-directory: apps/mobile
-        run: npx expo prebuild --platform ios --clean
-
-      - name: Build, sign and upload to App Store Connect
-        working-directory: apps/mobile
-        run: bundle exec fastlane ios release
-
-      # fastlane failures fail the step, but check the artifact explicitly so a
-      # silent no-op can never look like a release.
-      - name: Verify *.ipa was produced
-        run: |
-          set -euo pipefail
-          if ! compgen -G "apps/mobile/fastlane/build-output/*.ipa" > /dev/null; then
-            echo "::error::No *.ipa found in apps/mobile/fastlane/build-output/."
-            exit 1
-          fi
-          ls -la apps/mobile/fastlane/build-output/
-
-      - uses: actions/upload-artifact@v4
+      - uses: actions/download-artifact@v4
         with:
-          name: ios-release-signed
-          path: apps/mobile/fastlane/build-output/*.ipa
-          retention-days: 90
+          name: ios-build
+          path: apps/mobile/fastlane/build-output
+
+      - name: Upload to App Store Connect
+        working-directory: apps/mobile
+        run: bundle exec fastlane ios upload_ipa
 
   github-release:
     name: Create GitHub release
@@ -382,12 +362,12 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          name: android-release-signed
+          name: android-build
           path: release-assets
 
       - uses: actions/download-artifact@v4
         with:
-          name: ios-release-signed
+          name: ios-build
           path: release-assets
 
       - uses: actions/download-artifact@v4

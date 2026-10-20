@@ -1,9 +1,9 @@
 # Alt UU release lanes. Run from apps/mobile via `bundle exec fastlane <platform> <lane>`.
 #
 # Expected flow in CI (see .github/workflows/mobile-release.yml):
-#   1. `sync_build_number` (publish jobs only) -> APP_BUILD_NUMBER
+#   1. `sync_build_number` (resolve-build-numbers job) -> APP_BUILD_NUMBER
 #   2. `npx expo prebuild --platform <p> --clean` with APP_VERSION / APP_BUILD_NUMBER set
-#   3. `build_*` / `upload_*` lanes
+#   3. `build_*` lanes; the publish jobs later run `upload_*` on the built artifact
 
 require 'fileutils'
 require 'securerandom'
