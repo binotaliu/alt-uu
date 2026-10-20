@@ -49,12 +49,7 @@
     "@esbuild-kit/core-utils": {
       "esbuild": ">=0.25.0"
     },
-    "tailwindcss": {
-      "postcss-selector-parser": "^7.1.6"
-    },
-    "postcss-nested": {
-      "postcss-selector-parser": "^7.1.6"
-    },
-    "uuid": "^11.1.1"
+    "uuid": "^11.1.1",
+    "postcss-selector-parser": "^7.1.6"
   }
 }

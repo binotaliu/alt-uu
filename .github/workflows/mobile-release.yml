@@ -132,6 +132,7 @@ jobs:
 
   build-android:
     name: Build Android (unpublished)
+    timeout-minutes: 60
     needs: [determine-version, resolve-build-numbers]
     runs-on: ubuntu-latest
     steps:
@@ -174,6 +175,7 @@ jobs:
 
   build-ios:
     name: Build iOS (unpublished)
+    timeout-minutes: 60
     needs: [determine-version, resolve-build-numbers]
     # Expo SDK 58 / RN 0.88 need a current Xcode; macos-26 ships the newest SDK.
     runs-on: macos-26
@@ -250,6 +252,7 @@ jobs:
   # code as the Play build and runs in parallel with it.
   build-android-sideload:
     name: Build Android sideload APK
+    timeout-minutes: 60
     needs: [determine-version, resolve-build-numbers]
     runs-on: ubuntu-latest
     permissions:
