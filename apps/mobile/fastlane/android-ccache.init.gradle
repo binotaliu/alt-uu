@@ -1,0 +1,23 @@
+/*
+ * Gradle init script: routes every CMake compile (React Native modules with
+ * native code) through ccache, so unchanged C++ is not recompiled between CI
+ * runs. Only active when ALTUU_USE_CCACHE=1 and ccache is on PATH; the cache
+ * directory is restored by the setup-expo-build action.
+ *
+ * Usage: ./gradlew -I android-ccache.init.gradle bundleRelease
+ */
+if (System.getenv('ALTUU_USE_CCACHE') == '1') {
+    def addCcacheLauncher = { project ->
+        project.extensions.getByName('androidComponents').finalizeDsl { dsl ->
+            dsl.defaultConfig.externalNativeBuild.cmake.arguments(
+                '-DCMAKE_C_COMPILER_LAUNCHER=ccache',
+                '-DCMAKE_CXX_COMPILER_LAUNCHER=ccache'
+            )
+        }
+    }
+
+    allprojects {
+        plugins.withId('com.android.application') { addCcacheLauncher(project) }
+        plugins.withId('com.android.library') { addCcacheLauncher(project) }
+    }
+}

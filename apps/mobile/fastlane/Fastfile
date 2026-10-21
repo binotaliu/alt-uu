@@ -52,7 +52,7 @@ def run_gradle(task, signing_env)
     task: task,
     build_type: 'Release',
     project_dir: File.join(ROOT_DIR, 'android'),
-    flags: "-I '#{File.join(FASTLANE_DIR, 'android-signing.init.gradle')}' --stacktrace"
+    flags: "-I '#{File.join(FASTLANE_DIR, 'android-signing.init.gradle')}' -I '#{File.join(FASTLANE_DIR, 'android-ccache.init.gradle')}' --stacktrace"
   )
 end
 

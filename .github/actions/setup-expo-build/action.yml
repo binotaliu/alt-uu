@@ -84,6 +84,30 @@ runs:
       if: inputs.build-toolchains == 'true' && inputs.platform != 'ios'
       uses: gradle/actions/setup-gradle@v4
 
+    # Native compiles (Android CMake via android-ccache.init.gradle, iOS pods via
+    # React Native's USE_CCACHE) are routed through ccache. Source paths are
+    # identical between runs, so only genuinely changed C/C++ is recompiled.
+    - name: Setup ccache
+      if: inputs.build-toolchains == 'true'
+      uses: hendrikmuhs/ccache-action@v1.2
+      with:
+        key: ccache-${{ inputs.platform }}
+        max-size: 1G
+
+    - name: Configure ccache
+      if: inputs.build-toolchains == 'true'
+      shell: bash
+      run: |
+        {
+          echo 'USE_CCACHE=1'
+          echo 'ALTUU_USE_CCACHE=1'
+          echo "CCACHE_BASEDIR=$GITHUB_WORKSPACE"
+          # Fresh checkouts and toolchain installs change mtimes, not content.
+          echo 'CCACHE_COMPILERCHECK=content'
+          echo 'CCACHE_NOHASHDIR=true'
+          echo 'CCACHE_SLOPPINESS=include_file_mtime,include_file_ctime,time_macros'
+        } >> "$GITHUB_ENV"
+
     - name: Install npm dependencies
       if: inputs.build-toolchains == 'true'
       shell: bash
