@@ -84,22 +84,23 @@ runs:
       if: inputs.build-toolchains == 'true' && inputs.platform != 'ios'
       uses: gradle/actions/setup-gradle@v4
 
-    # Native compiles (Android CMake via android-ccache.init.gradle, iOS pods via
-    # React Native's USE_CCACHE) are routed through ccache. Source paths are
-    # identical between runs, so only genuinely changed C/C++ is recompiled.
+    # Android CMake compiles are routed through ccache (android-ccache.init.gradle).
+    # Source paths are identical between runs, so only changed C/C++ is
+    # recompiled. iOS does not use it: Xcode ignored React Native's ccache
+    # wrappers (0 ccache calls over 565 compiles); the iOS build job caches
+    # Xcode's own compilation cache instead.
     - name: Setup ccache
-      if: inputs.build-toolchains == 'true'
+      if: inputs.build-toolchains == 'true' && inputs.platform != 'ios'
       uses: hendrikmuhs/ccache-action@v1.2
       with:
         key: ccache-${{ inputs.platform }}
         max-size: 1G
 
     - name: Configure ccache
-      if: inputs.build-toolchains == 'true'
+      if: inputs.build-toolchains == 'true' && inputs.platform != 'ios'
       shell: bash
       run: |
         {
-          echo 'USE_CCACHE=1'
           echo 'ALTUU_USE_CCACHE=1'
           echo "CCACHE_BASEDIR=$GITHUB_WORKSPACE"
           # Fresh checkouts and toolchain installs change mtimes, not content.

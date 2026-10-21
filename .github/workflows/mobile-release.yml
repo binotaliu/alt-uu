@@ -197,6 +197,17 @@ jobs:
         working-directory: apps/mobile
         run: npx expo prebuild --platform ios --clean
 
+      # Xcode's compilation cache (COMPILATION_CACHE_ENABLE_CACHING, set in the
+      # build_ipa lane). Source paths are identical between runs, so unchanged
+      # C/C++/Swift is replayed from the cache. A fresh key per run saves the
+      # updated cache; restore-keys picks up the latest one.
+      - name: Restore Xcode compilation cache
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Developer/Xcode/DerivedData/CompilationCache.noindex
+          key: xcode-compilation-cache-${{ github.run_id }}
+          restore-keys: xcode-compilation-cache-
+
       - name: Archive and export signed iOS app
         working-directory: apps/mobile
         run: bundle exec fastlane ios build_ipa

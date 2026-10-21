@@ -138,6 +138,9 @@ platform :ios do
       export_method: 'app-store',
       output_directory: OUTPUT_DIR,
       output_name: 'alt-uu.ipa',
+      # Replays unchanged compiles from Xcode's compilation cache, which the
+      # release workflow persists between runs.
+      xcargs: 'COMPILATION_CACHE_ENABLE_CACHING=YES',
       export_options: {
         method: 'app-store',
         teamID: ENV['IOS_TEAM_ID'],
