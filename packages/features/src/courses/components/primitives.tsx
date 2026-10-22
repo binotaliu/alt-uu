@@ -147,7 +147,7 @@ export function CardButton({
       onPress={onPress}
       className={
         variant === 'primary'
-          ? `rounded-lg bg-theme-800 px-3 py-1.5 active:bg-theme-700 dark:bg-zinc-700 dark:active:bg-zinc-600 ${disabled ? 'bg-theme-400 dark:bg-zinc-800' : ''}`
+          ? `rounded-lg bg-theme-800 px-3 py-1.5 active:bg-theme-700 dark:bg-zinc-700 dark:active:bg-zinc-600 ${disabled ? 'opacity-50' : ''}`
           : `rounded-lg border border-theme-300 px-3 py-1.5 active:bg-theme-50 dark:border-zinc-600 dark:active:bg-zinc-800 ${disabled ? 'opacity-50' : ''}`
       }
     >

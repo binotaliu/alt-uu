@@ -267,7 +267,7 @@ export function parseHomeworkItems(
     const type = normalizeText(attr(box, 'data-type') ?? '');
     const { status, window, actionNode, resultNode } = processButtons(box);
     const actionUrl =
-      actionNode === undefined
+      actionNode === undefined || !isActionOpen(actionNode)
         ? null
         : homeworkActionUrl(actionNode, baseUrl, type);
     const resultUrl =
@@ -326,7 +326,7 @@ export function parseSelfExamItems(
     let resultUrl: string | null = null;
     let resultUnavailableReason: string | null = null;
 
-    if (actionNode !== undefined) {
+    if (actionNode !== undefined && isActionOpen(actionNode)) {
       const id = extractOnclickArgument(actionNode, /togo\('([^']+)'/);
       actionUrl =
         id === '' ? null : `${baseUrl}/learn/exam/exam_start.php?${id}+0`;
@@ -410,6 +410,11 @@ function processButtons(box: Element): {
   }
 
   return { status, window, actionNode, resultNode };
+}
+
+/** The portal drops the `active` class from the 進行作業 / 進行練習 button once the item is closed. */
+function isActionOpen(actionNode: Element): boolean {
+  return hasClassToken(actionNode, 'active');
 }
 
 function firstSubText(node: Element): Element | undefined {
