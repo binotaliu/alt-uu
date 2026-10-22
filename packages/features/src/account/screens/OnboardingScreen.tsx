@@ -1,4 +1,12 @@
-import { Icon, Text, useIsDark, type IconName } from '@altuu/ui';
+import {
+  Icon,
+  Text,
+  useCornerInsets,
+  useDuoLayout,
+  useIsDark,
+  type DuoLayout,
+  type IconName,
+} from '@altuu/ui';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import {
@@ -7,7 +15,11 @@ import {
   View,
   type GestureResponderEvent,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  useSafeAreaInsets,
+  type EdgeInsets,
+} from 'react-native-safe-area-context';
+import { useWindowDimensions } from 'react-native';
 
 import { useServiceRuntime } from '../../services/AppServicesProvider';
 import { useAppPreferences, useUpdatePreferences } from '../../services/hooks';
@@ -67,6 +79,41 @@ export const onboardingSlides: readonly OnboardingSlide[] = [
 
 const SWIPE_DISTANCE = 48;
 
+/**
+ * Padding that keeps the card inside the safe area, clear of the iPadOS window controls
+ * and, while an iPhone Duo is folded, on the wider side of the fold.
+ */
+export function onboardingPadding(
+  insets: EdgeInsets,
+  corner: EdgeInsets,
+  foldFrame: DuoLayout['foldFrame'],
+  windowWidth: number,
+) {
+  const padding = {
+    paddingTop: Math.max(insets.top, corner.top, 32),
+    paddingBottom: Math.max(insets.bottom, corner.bottom, 32),
+    paddingLeft: Math.max(insets.left, corner.left, 20),
+    paddingRight: Math.max(insets.right, corner.right, 20),
+  };
+
+  if (foldFrame && foldFrame.width < windowWidth) {
+    const foldEnd = foldFrame.x + foldFrame.width;
+    const leftWidth = foldFrame.x;
+    const rightWidth = windowWidth - foldEnd;
+
+    if (leftWidth >= rightWidth) {
+      padding.paddingRight = Math.max(
+        padding.paddingRight,
+        rightWidth + foldFrame.width,
+      );
+    } else {
+      padding.paddingLeft = Math.max(padding.paddingLeft, foldEnd);
+    }
+  }
+
+  return padding;
+}
+
 /** Static preview of the study timer header (legacy "study-time" slide). */
 function StudyTimerPreview() {
   return (
@@ -110,6 +157,9 @@ function StudyTimerPreview() {
 /** Legacy Auth/Onboarding.vue. */
 export function OnboardingScreen() {
   const insets = useSafeAreaInsets();
+  const corner = useCornerInsets();
+  const { foldFrame, foldAxis } = useDuoLayout();
+  const { width: windowWidth } = useWindowDimensions();
   const runtime = useServiceRuntime();
   const preferences = useAppPreferences();
   const isDark = useIsDark();
@@ -195,11 +245,13 @@ export function OnboardingScreen() {
     <ScrollView
       className="flex-1 bg-theme-50 dark:bg-zinc-950"
       style={authBackgroundStyle(isDark)}
-      contentContainerClassName="flex-grow items-center justify-center px-5"
-      contentContainerStyle={{
-        paddingTop: Math.max(insets.top, 32),
-        paddingBottom: Math.max(insets.bottom, 32),
-      }}
+      contentContainerClassName="flex-grow items-center justify-center"
+      contentContainerStyle={onboardingPadding(
+        insets,
+        corner,
+        foldAxis === 'vertical' ? foldFrame : null,
+        windowWidth,
+      )}
     >
       <View className="w-full max-w-md overflow-hidden rounded-[2rem] border border-theme-200 bg-white/85 px-4 py-4 dark:border-zinc-700 dark:bg-zinc-900/90">
         <View className="flex-row items-center justify-between px-2 pb-3 pt-1">
