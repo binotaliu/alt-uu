@@ -392,7 +392,14 @@ input.cssBtn[value='取消'] {
 
 /* ---- jQuery UI confirm dialog -------------------------------------------- */
 
+/* jQuery UI positions the dialog with position:absolute, centred against the
+   document; once the page is scrolled the dialog (and overlay) sit at the top
+   of the document, out of view. Pin both to the viewport instead. */
 .ui-dialog {
+    position: fixed !important;
+    z-index: 10001 !important;
+    max-height: 90vh;
+    overflow: auto;
     width: 90vw !important;
     max-width: 22rem !important;
     left: 50% !important;
@@ -402,6 +409,26 @@ input.cssBtn[value='取消'] {
     background: var(--hw-surface) !important;
     border: 1px solid var(--hw-border) !important;
     box-shadow: 0 10px 30px oklch(0 0 0 / 0.2) !important;
+}
+
+.ui-dialog .ui-dialog-titlebar {
+    background: var(--hw-theme-100) !important;
+    border: none !important;
+    border-bottom: 1px solid var(--hw-border) !important;
+    border-radius: var(--hw-radius) var(--hw-radius) 0 0 !important;
+    padding: 0.75rem 1rem !important;
+}
+
+.ui-dialog .ui-dialog-title {
+    color: var(--hw-theme-900) !important;
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.ui-dialog .ui-dialog-titlebar-close {
+    color: var(--hw-theme-800) !important;
+    background: transparent !important;
+    border: none !important;
 }
 
 .ui-dialog .ui-dialog-content {
@@ -428,6 +455,11 @@ input.cssBtn[value='取消'] {
 }
 
 .ui-widget-overlay {
+    position: fixed !important;
+    inset: 0 !important;
+    width: auto !important;
+    height: auto !important;
+    z-index: 10000 !important;
     background: oklch(0 0 0 / 0.4) !important;
 }
 
