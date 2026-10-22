@@ -28,6 +28,7 @@ export const {
   fileExists,
   captureVideoFrame,
   getCornerInsets,
+  getReservedRegions,
 } = attachmentBridge;
 
 export default attachmentBridge;

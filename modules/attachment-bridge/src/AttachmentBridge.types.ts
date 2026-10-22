@@ -91,6 +91,15 @@ export type VideoFrameResult = {
   height: number;
 };
 
+/** A hardware-driven region (fold, camera) in window coordinates, in points. */
+export type ReservedRegion = {
+  /** `division` splits the window (the fold); `occlusion` covers part of it (a camera). */
+  kind: 'division' | 'occlusion';
+  /** The fold is active only while the device is folded; a camera only while in use. */
+  active: boolean;
+  frame: { x: number; y: number; width: number; height: number };
+};
+
 /** Points the window leaves free on each edge for system chrome (iPadOS 26 window controls). */
 export type CornerInsets = {
   top: number;
@@ -151,6 +160,7 @@ export interface AttachmentBridgeNativeModule {
   fileExists(path: string): Promise<boolean>;
   captureVideoFrame(url: string, seconds: number): Promise<VideoFrameResult>;
   getCornerInsets(): Promise<CornerInsets>;
+  getReservedRegions(): Promise<ReservedRegion[]>;
   addListener(
     eventName: 'onDownloadProgress',
     listener: (event: DownloadProgressEvent) => void,

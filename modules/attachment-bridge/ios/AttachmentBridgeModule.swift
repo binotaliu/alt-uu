@@ -189,6 +189,43 @@ public final class AttachmentBridgeModule: Module {
       ]
     }.runOnQueue(.main)
 
+    // iPhone Duo: the fold (division) and cameras (occlusion) as regions of the key window. Inactive
+    // regions are included so JS can tell "not a foldable" (empty) from "foldable, currently flat".
+    AsyncFunction("getReservedRegions") { () -> [[String: Any]] in
+      guard #available(iOS 27.1, *) else {
+        return []
+      }
+
+      let window = UIApplication.shared.connectedScenes
+        .compactMap { $0 as? UIWindowScene }
+        .flatMap { $0.windows }
+        .first { $0.isKeyWindow }
+
+      guard let window else {
+        return []
+      }
+
+      let kinds: [(name: String, kind: UIView.ReservedRegion.Kind)] = [
+        ("division", .division),
+        ("occlusion", .occlusion),
+      ]
+
+      return kinds.flatMap { entry in
+        window.reservedRegions(kind: entry.kind, options: [.includeInactive]).map { region in
+          [
+            "kind": entry.name,
+            "active": region.isActive,
+            "frame": [
+              "x": Double(region.frame.origin.x),
+              "y": Double(region.frame.origin.y),
+              "width": Double(region.frame.size.width),
+              "height": Double(region.frame.size.height),
+            ],
+          ] as [String: Any]
+        }
+      }
+    }.runOnQueue(.main)
+
     AsyncFunction("saveFile") { (uri: String, fileName: String, _: String?, promise: Promise) in
       let fileURL = try resolveLocalFileURL(uri)
 

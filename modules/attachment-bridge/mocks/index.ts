@@ -95,6 +95,7 @@ export function createMockAttachmentBridgeNativeModule(): MockAttachmentBridgeNa
     fileExists: jest.fn(),
     captureVideoFrame: jest.fn(),
     getCornerInsets: jest.fn(),
+    getReservedRegions: jest.fn(),
     addListener: jest.fn(),
     emitDownloadProgress(event: DownloadProgressEvent) {
       listeners.forEach((listener) => listener(event));
@@ -132,6 +133,7 @@ export function createMockAttachmentBridgeNativeModule(): MockAttachmentBridgeNa
         width: 1280,
         height: 720,
       }));
+      mock.getReservedRegions.mockReset().mockImplementation(async () => []);
       mock.getCornerInsets.mockReset().mockImplementation(async () => ({
         top: 0,
         right: 0,
@@ -174,6 +176,7 @@ export const {
   fileExists,
   captureVideoFrame,
   getCornerInsets,
+  getReservedRegions,
 } = attachmentBridge;
 
 export default attachmentBridge;

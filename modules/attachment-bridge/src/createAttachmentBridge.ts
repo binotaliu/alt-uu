@@ -7,6 +7,7 @@ import type {
   DownloadProgressEvent,
   DownloadResult,
   NativeBridgeCookie,
+  ReservedRegion,
   SaveFileResult,
   StartedDownload,
   VideoFrameResult,
@@ -87,6 +88,12 @@ export type AttachmentBridge = {
    * is resized: the controls change shape with the window.
    */
   getCornerInsets(): Promise<CornerInsets>;
+  /**
+   * Fold and camera regions of the key window (iPhone Duo, iOS 27.1+), inactive ones
+   * included. Empty everywhere else, and when the native module predates the function.
+   * Re-read when the window is resized: folding changes the window size.
+   */
+  getReservedRegions(): Promise<ReservedRegion[]>;
 };
 
 const NO_CORNER_INSETS: CornerInsets = { top: 0, right: 0, bottom: 0, left: 0 };
@@ -189,6 +196,17 @@ export function createAttachmentBridge(
     fileExists: (path) => rethrowNormalized(nativeModule.fileExists(path)),
     captureVideoFrame: (url, seconds) =>
       rethrowNormalized(nativeModule.captureVideoFrame(url, seconds)),
+    async getReservedRegions() {
+      if (typeof nativeModule.getReservedRegions !== 'function') {
+        return [];
+      }
+
+      try {
+        return await nativeModule.getReservedRegions();
+      } catch {
+        return [];
+      }
+    },
     async getCornerInsets() {
       if (typeof nativeModule.getCornerInsets !== 'function') {
         return NO_CORNER_INSETS;

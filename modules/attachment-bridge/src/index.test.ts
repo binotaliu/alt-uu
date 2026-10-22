@@ -10,6 +10,7 @@ import {
   download,
   fileExists,
   getCornerInsets,
+  getReservedRegions,
   isAttachmentBridgeError,
   previewFile,
   readLegacyNativePhpAppKey,
@@ -276,5 +277,28 @@ describe('getCornerInsets', () => {
       bottom: 0,
       left: 0,
     });
+  });
+});
+
+describe('getReservedRegions', () => {
+  it('returns the native regions', async () => {
+    const regions = [
+      {
+        kind: 'division' as const,
+        active: true,
+        frame: { x: 400, y: 0, width: 12, height: 800 },
+      },
+    ];
+    mockNativeModule.getReservedRegions.mockResolvedValueOnce(regions);
+
+    await expect(getReservedRegions()).resolves.toEqual(regions);
+  });
+
+  it('falls back to no regions when the native call fails', async () => {
+    mockNativeModule.getReservedRegions.mockRejectedValueOnce(
+      new Error('boom'),
+    );
+
+    await expect(getReservedRegions()).resolves.toEqual([]);
   });
 });
