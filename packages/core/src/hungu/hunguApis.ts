@@ -125,8 +125,11 @@ export class HunguDiscussClient {
         subject: post.subject,
         content: post.content,
         reply_content: post.replyContent ?? null,
-        // Legacy always sent this, even as `{bid}_` without a reply.
-        reply_post_id: `${post.boardId}_${post.replyPostId ?? ''}`,
+        // The official app omits it for a new thread; the legacy `{bid}_`
+        // placeholder is rejected by HUNGU.
+        reply_post_id: post.replyPostId
+          ? `${post.boardId}_${post.replyPostId}`
+          : null,
         attaches: post.attaches ?? [],
       }),
       bodyType: 'json',

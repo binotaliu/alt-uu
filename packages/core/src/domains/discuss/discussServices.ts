@@ -40,6 +40,26 @@ function bad(message: string): never {
   throw new UserFacingHttpError(400, message);
 }
 
+/**
+ * HUNGU answers a rejected post with HTTP 200 and a non-zero `code`; the
+ * official app alerts on it (`discuss.postFail`), legacy passed it through.
+ */
+function assertAccepted(
+  payload: Record<string, unknown>,
+  failureMessage: string,
+): Record<string, unknown> {
+  if (payload.code !== 0) {
+    const reason =
+      typeof payload.message === 'string' && payload.message !== ''
+        ? `（${payload.message}）`
+        : '';
+
+    throw new UserFacingHttpError(502, `${failureMessage}${reason}`);
+  }
+
+  return payload;
+}
+
 /** `Arr::get($payload, 'data.list', Arr::get($payload, 'data', []))` as rows. */
 function payloadRows(payload: Record<string, unknown>): unknown[] {
   const list = dataGet(payload, 'data.list');
@@ -273,7 +293,7 @@ export function createDiscussServices(deps: DiscussServicesDeps) {
         attaches: (input.attaches ?? []) as never[],
       });
 
-      return result.payload;
+      return assertAccepted(result.payload, '發佈失敗，請稍後再試');
     },
 
     async updatePost(
@@ -298,7 +318,7 @@ export function createDiscussServices(deps: DiscussServicesDeps) {
         attaches: (input.attaches ?? []) as never[],
       });
 
-      return result.payload;
+      return assertAccepted(result.payload, '更新失敗，請稍後再試');
     },
 
     async deletePost(postId: string): Promise<DiscussMutationPayload> {
@@ -306,7 +326,10 @@ export function createDiscussServices(deps: DiscussServicesDeps) {
         bad('postId is required');
       }
 
-      return (await client.deletePost(postId)).payload;
+      return assertAccepted(
+        (await client.deletePost(postId)).payload,
+        '刪除失敗，請稍後再試',
+      );
     },
 
     async likePost(

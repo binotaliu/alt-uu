@@ -196,7 +196,26 @@ describe('discuss services', () => {
     expect(created).toMatchObject({ data: { post_id: 'P-1' } });
     expect(
       requests.map(({ method, url, body }) => ({ method, url, body })),
-    ).toEqual(golden.upstreamRequests);
+    ).toEqual(
+      // Intentional difference: a new thread omits `reply_post_id` like the
+      // official app instead of legacy's `B-1_`.
+      (golden.upstreamRequests as Array<{ body: string | null }>).map(
+        (request) => ({
+          ...request,
+          body: request.body?.replace(',"reply_post_id":"B-1_"', '') ?? null,
+        }),
+      ),
+    );
+  });
+
+  it('rejects a post HUNGU answers with a non-zero code', async () => {
+    const { services } = setup([
+      ['*', { body: { code: 1, message: 'no permission' } }],
+    ]);
+
+    await expect(
+      services.createPost({ boardId: 'B-1', subject: 's', content: 'c' }),
+    ).rejects.toThrow('發佈失敗，請稍後再試（no permission）');
   });
 
   it('escapes and nl2br-encodes new post and whisper content', async () => {

@@ -484,7 +484,7 @@ describe('HunguClient', () => {
       'action=get-board-node-list&ticket=T1&ua=UA+X&offset=0&size=50&bid=b1',
     );
     expect(requests[1].body).toBe(
-      '{"board_id":"b1","subject":"s","content":"c","reply_post_id":"b1_","attaches":[]}',
+      '{"board_id":"b1","subject":"s","content":"c","attaches":[]}',
     );
     expect(requests[2].body).toBe(
       '{"post_id":"p1","content":"c2","attaches":[]}',
