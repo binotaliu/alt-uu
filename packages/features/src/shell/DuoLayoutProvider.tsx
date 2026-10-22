@@ -28,13 +28,13 @@ function isSameLayout(a: DuoLayout, b: DuoLayout): boolean {
 /**
  * The hinge event can arrive before UIKit has updated the fold region's `active` flag, so a
  * single read right then returns the previous fold state. Reading again at these delays
- * (ms after the event) picks up the settled state; unchanged layouts are ignored.
+ * (ms after the event or resize) picks up the settled state; unchanged layouts are ignored.
  */
 export const FOLD_SETTLE_DELAYS_MS = [0, 100, 250, 500, 1000];
 
 /**
  * Feeds the iPhone Duo fold state to the layouts. Rotating resizes the window, so the
- * regions are read again then. Folding or unfolding does not resize it (the fold region
+ * regions are read again then (also at the settle delays). Folding or unfolding does not resize it (the fold region
  * just turns active), so the native hinge event triggers a read too. Other devices report
  * no regions and never emit the event.
  */
@@ -58,14 +58,18 @@ export function DuoLayoutProvider({ children }: { children: ReactNode }) {
     };
 
     let settleTimers: ReturnType<typeof setTimeout>[] = [];
-
-    read();
-    const subscription = addFoldChangeListener(() => {
+    const readSettling = () => {
       settleTimers.forEach(clearTimeout);
       settleTimers = FOLD_SETTLE_DELAYS_MS.map((delay) =>
         setTimeout(read, delay),
       );
-    });
+    };
+
+    // Rotation can resize the window before UIKit has moved the status-area region, so
+    // the first read may still hold the previous orientation's geometry.
+    read();
+    readSettling();
+    const subscription = addFoldChangeListener(readSettling);
 
     return () => {
       cancelled = true;
