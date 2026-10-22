@@ -166,18 +166,9 @@ export function CourseHomeworkTab({
           ) : null}
           {items.map((item, index) => (
             <Card key={`${item.type}-${item.title}-${index}`}>
-              <View className="flex-row flex-wrap items-center gap-2">
-                <Text className="text-base font-semibold text-theme-900 dark:text-zinc-100">
-                  {item.title}
-                </Text>
-                {item.percent ? (
-                  <View className="rounded-full bg-theme-100 px-2 py-0.5 dark:bg-zinc-800">
-                    <Text className="text-xs text-theme-800 dark:text-zinc-300">
-                      {item.percent}
-                    </Text>
-                  </View>
-                ) : null}
-              </View>
+              <Text className="text-base font-semibold text-theme-900 dark:text-zinc-100">
+                {item.title}
+              </Text>
               {item.status ? (
                 <Text className="mt-1 text-sm text-theme-700 dark:text-zinc-300">
                   {item.status}
