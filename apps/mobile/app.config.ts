@@ -7,7 +7,7 @@ import type { ConfigContext, ExpoConfig } from 'expo/config';
  */
 const IOS_BUNDLE_IDENTIFIER = 'org.binota.alt-uu';
 const ANDROID_PACKAGE = 'org.binota.alt_uu';
-const LEGACY_VERSION = '1.1.0';
+const LEGACY_VERSION = '2.0.0';
 
 const parseOptionalInteger = (
   value: string | undefined,
