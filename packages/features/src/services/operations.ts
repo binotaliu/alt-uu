@@ -28,6 +28,7 @@ export const OPERATIONS = {
   'courses.schoolPortalInfo': { code: 'CSPI', label: '課程校務資訊' },
   'schoolPortal.grades': { code: 'SPGR', label: '歷年成績' },
   'schoolPortal.examAgenda': { code: 'SPEX', label: '考試資訊' },
+  'schoolPortal.examScopes': { code: 'SPES', label: '考試命題範圍' },
   'material.parsed': { code: 'MPRS', label: '教材解析' },
   'playback.progress': { code: 'PLAY', label: '播放進度' },
   'discuss.boards': { code: 'DBRD', label: '討論板' },

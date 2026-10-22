@@ -42,6 +42,11 @@ export interface SchoolPortalExamInfo {
   scopes: SchoolPortalExamScope[];
 }
 
+export interface SchoolPortalCourseExamScopes {
+  courseName: string;
+  scopes: SchoolPortalExamScope[];
+}
+
 export interface SchoolPortalExamAgendaItem {
   courseName: string;
   category: string;

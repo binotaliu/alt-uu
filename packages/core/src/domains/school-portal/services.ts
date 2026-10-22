@@ -14,6 +14,7 @@ import type {
   CourseSchoolPortalInfo,
   SchoolPortalCourseRef,
   SchoolPortalExamAgendaItem,
+  SchoolPortalCourseExamScopes,
   SchoolPortalExamInfo,
   SchoolPortalGrade,
 } from './types';
@@ -126,6 +127,18 @@ export function createSchoolPortalDomainServices(deps: SchoolPortalDomainDeps) {
     };
   };
 
+  /** 考試命題範圍 per course, for the 考試資訊 page (no legacy counterpart). */
+  const getExamScopes = async (): Promise<SchoolPortalCourseExamScopes[]> => {
+    const page = await examInfoRepository.currentSemesterExamInfo();
+
+    return page.courses
+      .filter((course) => course.scopes.length > 0)
+      .map((course) => ({
+        courseName: course.courseName,
+        scopes: course.scopes.map((scope) => ({ ...scope })),
+      }));
+  };
+
   /** GetExamAgenda (GET /api/exam-agenda): the `items` array. */
   const getExamAgenda = async (): Promise<SchoolPortalExamAgendaItem[]> => {
     const page = await examInfoRepository.currentSemesterExamInfo();
@@ -211,6 +224,7 @@ export function createSchoolPortalDomainServices(deps: SchoolPortalDomainDeps) {
     getCourseClassSessionInfo,
     getCourseExamInfo,
     getExamAgenda,
+    getExamScopes,
     getSchoolPortalHomeworkNotices,
   };
 }

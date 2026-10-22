@@ -1,5 +1,5 @@
 import { formatSchoolPortalTimeRange } from '../../courses/format';
-import { groupExamAgenda } from '../screens/ExamInfoScreen';
+import { findExamScopes, groupExamAgenda } from '../screens/ExamInfoScreen';
 import { groupBySemester, isScorePassing } from '../screens/GradesScreen';
 import { summarize } from '../screens/ConnectivityDiagnosticsScreen';
 import { storeDisclosure } from '../screens/SubscriptionScreen';
@@ -90,6 +90,27 @@ describe('exam agenda grouping', () => {
       '2026年12月13日(星期日)',
       '2026年12月20日(星期日)',
     ]);
+  });
+});
+
+describe('findExamScopes', () => {
+  const scopes = [
+    {
+      courseName: 'A',
+      scopes: [
+        { category: '期中考試範圍', scope: '第一章～第六章' },
+        { category: '期末考試範圍', scope: null },
+      ],
+    },
+  ];
+
+  it('matches the scope category by exam group prefix', () => {
+    expect(findExamScopes(scopes, 'A', '期中考')).toEqual(['第一章～第六章']);
+  });
+
+  it('skips empty scopes and unknown courses', () => {
+    expect(findExamScopes(scopes, 'A', '期末考')).toEqual([]);
+    expect(findExamScopes(scopes, 'B', '期中考')).toEqual([]);
   });
 });
 

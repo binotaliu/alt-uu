@@ -1,4 +1,7 @@
-import type { SchoolPortalExamAgendaItem } from '@altuu/core';
+import type {
+  SchoolPortalCourseExamScopes,
+  SchoolPortalExamAgendaItem,
+} from '@altuu/core';
 import { Text } from '@altuu/ui';
 import { useMemo } from 'react';
 import { View } from 'react-native';
@@ -8,6 +11,7 @@ import { ErrorRetry } from '../../shell/ErrorRetry';
 import { SubPage } from '../components/SubPage';
 import { Card } from '../components/primitives';
 import { EmptyCard, LoadingCard } from '../components/states';
+import { ExamScopeEntries } from '../../courses/components/ExamScopeEntries';
 import { formatSchoolPortalTimeRange } from '../../courses/format';
 
 interface ExamDateGroup {
@@ -59,12 +63,36 @@ export function groupExamAgenda(
   });
 }
 
+/**
+ * 命題範圍 for one exam group. Scope categories read "期中考試範圍" while agenda
+ * groups read "期中考", so match on the group label as a prefix.
+ */
+export function findExamScopes(
+  scopesByCourse: SchoolPortalCourseExamScopes[],
+  courseName: string,
+  groupLabelText: string,
+): string[] {
+  const course = scopesByCourse.find((item) => item.courseName === courseName);
+
+  return (course?.scopes ?? [])
+    .filter((scope) => scope.category.startsWith(groupLabelText))
+    .map((scope) => scope.scope?.trim() ?? '')
+    .filter((scope) => scope !== '');
+}
+
 /** Legacy Account/ExamInfo.vue. */
 export function ExamInfoScreen() {
   const agenda = useServiceQuery<SchoolPortalExamAgendaItem[]>({
     op: 'schoolPortal.examAgenda',
     queryKey: ['account', 'exam-agenda'],
     queryFn: (services) => services.schoolPortalDomain.getExamAgenda(),
+    staleTime: 0,
+  });
+  // Scopes are supplementary: a failure here must not hide the schedule.
+  const scopes = useServiceQuery<SchoolPortalCourseExamScopes[]>({
+    op: 'schoolPortal.examScopes',
+    queryKey: ['account', 'exam-scopes'],
+    queryFn: (services) => services.schoolPortalDomain.getExamScopes(),
     staleTime: 0,
   });
   const groups = useMemo(
@@ -97,33 +125,49 @@ export function ExamInfoScreen() {
                     {dateGroup.date}
                   </Text>
                 ) : null}
-                {dateGroup.items.map((item, index) => (
-                  <Card key={`${item.courseName}-${index}`}>
-                    <Text className="text-base font-medium text-theme-900 dark:text-zinc-100">
-                      {item.courseName}
-                    </Text>
-                    <View className="mt-2 flex-row flex-wrap gap-x-4 gap-y-1">
-                      <View className="flex-row items-center gap-1">
-                        <Text className="text-xs text-theme-700 dark:text-zinc-400">
-                          時間
-                        </Text>
-                        <Text className="text-xs font-medium text-theme-900 dark:text-zinc-200">
-                          {formatSchoolPortalTimeRange(item.time)}
-                        </Text>
-                      </View>
-                      {item.room ? (
+                {dateGroup.items.map((item, index) => {
+                  const examScopes = findExamScopes(
+                    scopes.data ?? [],
+                    item.courseName,
+                    group.label,
+                  );
+
+                  return (
+                    <Card key={`${item.courseName}-${index}`}>
+                      <Text className="text-base font-medium text-theme-900 dark:text-zinc-100">
+                        {item.courseName}
+                      </Text>
+                      <View className="mt-2 flex-row flex-wrap gap-x-4 gap-y-1">
                         <View className="flex-row items-center gap-1">
                           <Text className="text-xs text-theme-700 dark:text-zinc-400">
-                            教室
+                            時間
                           </Text>
                           <Text className="text-xs font-medium text-theme-900 dark:text-zinc-200">
-                            {item.room}
+                            {formatSchoolPortalTimeRange(item.time)}
                           </Text>
                         </View>
+                        {item.room ? (
+                          <View className="flex-row items-center gap-1">
+                            <Text className="text-xs text-theme-700 dark:text-zinc-400">
+                              教室
+                            </Text>
+                            <Text className="text-xs font-medium text-theme-900 dark:text-zinc-200">
+                              {item.room}
+                            </Text>
+                          </View>
+                        ) : null}
+                      </View>
+                      {examScopes.length > 0 ? (
+                        <View className="mt-2 gap-1 border-t border-theme-200 pt-2 dark:border-zinc-700">
+                          <Text className="text-xs text-theme-700 dark:text-zinc-400">
+                            命題範圍
+                          </Text>
+                          <ExamScopeEntries scopes={examScopes} />
+                        </View>
                       ) : null}
-                    </View>
-                  </Card>
-                ))}
+                    </Card>
+                  );
+                })}
               </View>
             ))}
           </View>

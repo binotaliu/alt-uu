@@ -12,6 +12,7 @@ import { useAppPreferences } from '../../services/hooks';
 import type { ServiceError } from '../../services/serviceError';
 import { ErrorRetry } from '../../shell/ErrorRetry';
 import { openInAppBrowser } from '../../shell/openUrl';
+import { ExamScopeEntries } from '../components/ExamScopeEntries';
 import { Card, EmptyNotice } from '../components/primitives';
 import {
   useCourseSchoolPortalInfo,
@@ -272,9 +273,7 @@ function ExamInfoSections({ info }: { info: SchoolPortalExamInfo }) {
               <Text className="text-sm font-semibold text-theme-800 dark:text-zinc-200">
                 {scope.category}
               </Text>
-              <Text className="mt-1 text-sm text-theme-700 dark:text-zinc-300">
-                {scope.scope}
-              </Text>
+              <ExamScopeEntries scopes={scope.scope ? [scope.scope] : []} />
             </View>
           ))}
         </Section>
