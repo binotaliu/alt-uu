@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   DUO_CLOCK_OFFSET,
+  DUO_CORNER_MARGIN,
   DUO_STATUS_AREA_WIDTH,
   useCornerInsets,
   useDuoLayout,
@@ -42,7 +43,7 @@ export function PageHeader({
   const corner = useCornerInsets();
   const insetsApplied = useHorizontalInsetsApplied();
   const { width: windowWidth } = useWindowDimensions();
-  const { isFoldable, sideBar, foldFrame, foldAxis } = useDuoLayout();
+  const { isFoldable, sideBar, barEdge, foldFrame, foldAxis } = useDuoLayout();
   // Inner display in portrait: the tall top strip is mostly empty, so the title row moves
   // into it, beside the status area, instead of sitting below.
   const inStatusStrip = isFoldable && !sideBar;
@@ -54,15 +55,21 @@ export function PageHeader({
       ? windowWidth - foldFrame.x + minSide
       : 0;
 
+  // The side rail already reserves its edge; the other sides need the corner margin.
+  const railEdge = sideBar ? barEdge : null;
   const barStyle = {
     // Bleed the bar over the inset the parent Screen already padded.
     marginLeft: insetsApplied ? -insets.left : 0,
     marginRight: insetsApplied ? -insets.right : 0,
-    paddingLeft: Math.max(insets.left, corner.left, minSide),
+    paddingLeft: Math.max(
+      insets.left,
+      corner.left,
+      railEdge === 'left' ? 0 : minSide,
+    ),
     paddingRight: Math.max(
       insets.right,
       corner.right,
-      minSide,
+      railEdge === 'right' ? 0 : minSide,
       foldClearance,
       inStatusStrip ? DUO_STATUS_AREA_WIDTH : 0,
     ),
@@ -119,7 +126,10 @@ export function PageHeader({
   return (
     <View
       className="flex-row items-stretch border-b border-theme-200 bg-white pl-4 pr-4 dark:border-zinc-700/80 dark:bg-zinc-900"
-      style={{ paddingTop: insets.top, ...barStyle }}
+      style={{
+        paddingTop: insets.top + (isFoldable ? DUO_CORNER_MARGIN : 0),
+        ...barStyle,
+      }}
     >
       <View className="shrink-0 items-start pt-1.5">
         {left ??
