@@ -15,6 +15,7 @@ import {
   normalizeTermCode,
 } from '../course/support/courseNameMatcher';
 import type { UpstreamCallEvent } from '../../http/transport';
+import { getNouToolsCourseData } from './nouToolsCourseData';
 import {
   NouToolsClient,
   createNouToolsServices,
@@ -463,5 +464,52 @@ describe('course name matching', () => {
     );
     expect(normalizeCourseName('ＡＢＣ  Intro!')).toBe('abcintro');
     expect(normalizeCourseName('  ')).toBe('');
+  });
+});
+
+describe('same-named nou-tools courses', () => {
+  const userCourse: NouToolsUserCourse = {
+    courseId: '1',
+    name: '國文',
+    semester: '114上',
+    className: 'B班',
+  };
+  const details: Record<number, { classes: Array<{ code: string }> }> = {
+    10: { classes: [{ code: 'A' }] },
+    11: { classes: [{ code: '不分班' }] },
+    12: { classes: [{ code: 'A' }, { code: 'B' }] },
+  };
+  const client = {
+    listCourses: async () => [
+      { id: 10, name: '國文' },
+      { id: 11, name: '國文' },
+      { id: 12, name: '國文' },
+    ],
+    getCourseDetail: async (id: number) => details[id] ?? null,
+  };
+
+  it('picks the course that has the user class', async () => {
+    const [result] = await getNouToolsCourseData(client, [userCourse]);
+
+    expect(result.nouToolsCourseId).toBe(12);
+    expect(result.matchedClass).toEqual({ code: 'B' });
+  });
+
+  it('falls back to a course with an undivided class, then to the first', async () => {
+    const [undivided] = await getNouToolsCourseData(client, [
+      { ...userCourse, className: 'Z班' },
+    ]);
+    expect(undivided.nouToolsCourseId).toBe(11);
+    expect(undivided.matchedClass).toEqual({ code: '不分班' });
+
+    const [first] = await getNouToolsCourseData(
+      {
+        ...client,
+        getCourseDetail: async (id) => (id === 11 ? null : details[id]),
+      },
+      [{ ...userCourse, className: 'Z班' }],
+    );
+    expect(first.nouToolsCourseId).toBe(10);
+    expect(first.matchedClass).toBeNull();
   });
 });
