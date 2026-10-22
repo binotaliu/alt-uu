@@ -19,6 +19,12 @@ export { Icon, type IconProps } from './components/Icon';
 export { PageHeader, type PageHeaderProps } from './components/PageHeader';
 export {
   CornerInsetsContext,
+  DuoLayoutContext,
+  NOT_FOLDABLE,
+  type DuoDisplay,
+  type DuoLayout,
+  type FoldFrame,
+  useDuoLayout,
   type CornerInsets,
   useCornerInsets,
   NavAboveHeaderContext,

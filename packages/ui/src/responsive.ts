@@ -59,3 +59,44 @@ export const CornerInsetsContext =
 export function useCornerInsets(): CornerInsets {
   return useContext(CornerInsetsContext);
 }
+
+export interface FoldFrame {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/** Which iPhone Duo display the window is on; `other` for every other device. */
+export type DuoDisplay = 'outer' | 'inner' | 'other';
+
+export interface DuoLayout {
+  /** The device reports a fold (iPhone Duo, iOS 27.1+), flat or not. */
+  isFoldable: boolean;
+  display: DuoDisplay;
+  /** Window rect of the fold while the device is folded, otherwise null. */
+  foldFrame: FoldFrame | null;
+  /** Direction of the fold line: `vertical` puts the two panes side by side. */
+  foldAxis: 'vertical' | 'horizontal' | null;
+  /**
+   * Navigation moves to a vertical bar on the trailing edge: always on the outer
+   * display, and on the inner display in landscape. Inner portrait keeps the
+   * horizontal bars.
+   */
+  sideBar: boolean;
+}
+
+export const NOT_FOLDABLE: DuoLayout = {
+  isFoldable: false,
+  display: 'other',
+  foldFrame: null,
+  foldAxis: null,
+  sideBar: false,
+};
+
+/** Provided by the app shell; `NOT_FOLDABLE` without a provider. */
+export const DuoLayoutContext = createContext<DuoLayout>(NOT_FOLDABLE);
+
+export function useDuoLayout(): DuoLayout {
+  return useContext(DuoLayoutContext);
+}

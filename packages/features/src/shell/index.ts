@@ -12,6 +12,8 @@ export {
   coursesTabs,
   type CoursesTabName,
 } from './CoursesTabs';
+export { DuoLayoutProvider } from './DuoLayoutProvider';
+export { deriveDuoLayout } from './duoLayout';
 export { EntryRedirect } from './EntryRedirect';
 export { ErrorRetry, type ErrorRetryProps } from './ErrorRetry';
 export { FatalErrorScreen } from './FatalErrorScreen';

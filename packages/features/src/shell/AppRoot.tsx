@@ -16,6 +16,7 @@ import type { AppServices } from '../services/types';
 import { AppToastHost } from './AppToastHost';
 import { ConnectivityIssueModal } from './ConnectivityIssueModal';
 import { CornerInsetsProvider } from './CornerInsetsProvider';
+import { DuoLayoutProvider } from './DuoLayoutProvider';
 import { FatalErrorScreen } from './FatalErrorScreen';
 import { NavigationTracker } from './NavigationTracker';
 import { SessionExpiredPicker } from './SessionExpiredPicker';
@@ -72,15 +73,17 @@ export function AppRoot({ createServices, onReady, children }: AppRootProps) {
   return (
     <SafeAreaProvider>
       <CornerInsetsProvider>
-        {state.status === 'ready' ? (
-          <AppServicesProvider services={state.services}>
-            <ThemeBridge>
-              <Launch onReady={onReady}>{children}</Launch>
-            </ThemeBridge>
-          </AppServicesProvider>
-        ) : state.status === 'error' ? (
-          <FatalErrorScreen error={state.error} onRetry={load} />
-        ) : null}
+        <DuoLayoutProvider>
+          {state.status === 'ready' ? (
+            <AppServicesProvider services={state.services}>
+              <ThemeBridge>
+                <Launch onReady={onReady}>{children}</Launch>
+              </ThemeBridge>
+            </AppServicesProvider>
+          ) : state.status === 'error' ? (
+            <FatalErrorScreen error={state.error} onRetry={load} />
+          ) : null}
+        </DuoLayoutProvider>
       </CornerInsetsProvider>
     </SafeAreaProvider>
   );

@@ -4,6 +4,7 @@ import {
   NavAboveHeaderContext,
   Sheet,
   Text,
+  useDuoLayout,
   useIsTablet,
   type IconName,
 } from '@altuu/ui';
@@ -11,7 +12,10 @@ import { usePathname } from 'expo-router';
 import { TabList, TabSlot, TabTrigger, Tabs } from 'expo-router/ui';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  SafeAreaInsetsContext,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
 
 import { useServiceRuntime } from '../services/AppServicesProvider';
 import { useClientConfigStore } from '../services/stores';
@@ -68,6 +72,8 @@ interface TabButtonProps {
   onGatedPress: () => void;
   /** Text-only pill of the tablet top bar instead of the icon + label tab. */
   pill?: boolean;
+  /** Icon-only button of the iPhone Duo side rail. */
+  rail?: boolean;
 }
 
 /** One tab of the bar (legacy CoursesBottomNav item). */
@@ -78,11 +84,37 @@ function TabButton({
   nouToolsEnabled,
   onGatedPress,
   pill = false,
+  rail = false,
 }: TabButtonProps) {
   const pathname = usePathname();
   // The navigator's own focus flag is not set for the index route here.
   const isFocused = isFocusedProp || pathname === tab.href;
   const blocked = tab.gated && !nouToolsEnabled;
+
+  if (rail) {
+    return (
+      <Pressable
+        testID={`tab-${tab.name}`}
+        accessibilityRole="tab"
+        accessibilityLabel={tab.label}
+        accessibilityState={{ selected: isFocused }}
+        onPress={blocked ? onGatedPress : onPress}
+        className={`h-12 w-12 items-center justify-center rounded-xl ${
+          isFocused
+            ? 'bg-theme-800 dark:bg-zinc-600'
+            : 'active:bg-theme-50 dark:active:bg-zinc-800'
+        }`}
+      >
+        <Icon
+          name={tab.icon}
+          size={24}
+          className={
+            isFocused ? 'text-white' : 'text-theme-700 dark:text-zinc-300'
+          }
+        />
+      </Pressable>
+    );
+  }
 
   if (pill) {
     return (
@@ -200,6 +232,7 @@ export function CoursesTabs() {
   const runtime = useServiceRuntime();
   const insets = useSafeAreaInsets();
   const isTablet = useIsTablet();
+  const { sideBar } = useDuoLayout();
   const nouToolsEnabled = useClientConfigStore(
     (state) => state.preferences.nouToolsIntegrationEnabled,
   );
@@ -227,12 +260,49 @@ export function CoursesTabs() {
     <TabTrigger key={tab.name} name={tab.name} href={tab.href as never} asChild>
       <TabButton
         tab={tab}
-        pill={isTablet}
+        pill={isTablet && !sideBar}
+        rail={sideBar}
         nouToolsEnabled={nouToolsEnabled}
         onGatedPress={() => setDialogOpen(true)}
       />
     </TabTrigger>
   ));
+
+  // iPhone Duo: iOS moves system bars to the side, but these bars are drawn here, so
+  // the rail is ours. The rail takes over the trailing safe-area inset from the page.
+  if (sideBar) {
+    return (
+      <View className="flex-1 bg-theme-100 dark:bg-zinc-950">
+        <Tabs style={{ flex: 1, flexDirection: 'row' }}>
+          <SafeAreaInsetsContext.Provider value={{ ...insets, right: 0 }}>
+            <View className="flex-1">
+              <TabSlot />
+            </View>
+          </SafeAreaInsetsContext.Provider>
+          <TabList asChild>
+            <View
+              testID="tab-rail"
+              className="items-center justify-end gap-2 border-l border-theme-200 bg-white px-2 dark:border-zinc-700 dark:bg-zinc-900"
+              style={{
+                paddingTop: insets.top + 8,
+                paddingBottom: Math.max(insets.bottom, 12),
+                paddingRight: insets.right + 8,
+              }}
+            >
+              {tabTriggers}
+            </View>
+          </TabList>
+          <NouToolsEnableDialog
+            visible={dialogOpen}
+            onClose={() => setDialogOpen(false)}
+            onEnable={() => void enableNouTools()}
+            error={error}
+            enabling={enabling}
+          />
+        </Tabs>
+      </View>
+    );
+  }
 
   // Legacy CoursesTopNav (md and up) replaces CoursesBottomNav. expo-router
   // only registers triggers of a TabList that is a direct child of Tabs, so
