@@ -21,6 +21,7 @@ export { PageHeader, type PageHeaderProps } from './components/PageHeader';
 export {
   CornerInsetsContext,
   DUO_CLOCK_OFFSET,
+  DUO_CORNER_MARGIN,
   DUO_STATUS_AREA_WIDTH,
   DuoLayoutContext,
   NOT_FOLDABLE,

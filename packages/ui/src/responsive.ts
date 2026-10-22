@@ -122,3 +122,6 @@ export const DUO_STATUS_AREA_WIDTH = 140;
 
 /** The clock sits this far below the middle of the top strip (measured in the simulator). */
 export const DUO_CLOCK_OFFSET = 9;
+
+/** Extra margin (pt) around headers on a foldable, whose rounded corners crowd the title. */
+export const DUO_CORNER_MARGIN = 12;

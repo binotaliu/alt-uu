@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   DUO_CLOCK_OFFSET,
+  DUO_CORNER_MARGIN,
   DUO_STATUS_AREA_WIDTH,
   useCornerInsets,
   useDuoLayout,
@@ -34,17 +35,32 @@ export function TransparentPageHeader({
   const isTablet = useIsTablet();
   const navAbove = useNavAboveHeader();
   const insetsApplied = useHorizontalInsetsApplied();
-  const { isFoldable, sideBar } = useDuoLayout();
+  const { isFoldable, sideBar, barEdge } = useDuoLayout();
   // Inner display in portrait: the top strip is tall and mostly empty, so the title row
   // moves into it, beside the status area, instead of sitting below.
   const inStatusStrip = isFoldable && !sideBar && !navAbove;
   const sideInsets = insetsApplied ? { left: 0, right: 0 } : insets;
+  // The side rail already reserves its edge (the corner insets include the status strip
+  // it sits in), so the header adds nothing there. The rounded corners of a foldable need
+  // a wider margin on the other sides than the 16 pt the row pads.
+  const railEdge = sideBar ? barEdge : null;
+  const duoMargin = isFoldable ? DUO_CORNER_MARGIN : 0;
+  const leftPadding =
+    railEdge === 'left'
+      ? 0
+      : Math.max(sideInsets.left, corner.left - 16, duoMargin);
+  const rightPadding =
+    railEdge === 'right'
+      ? 0
+      : Math.max(sideInsets.right, corner.right - 16, duoMargin);
 
   return (
     <View
       className="bg-theme-100 py-1.5 dark:bg-zinc-950"
       style={{
-        paddingTop: inStatusStrip ? 0 : navAbove ? 6 : insets.top + 6,
+        paddingTop: inStatusStrip
+          ? 0
+          : (navAbove ? 6 : insets.top + 6) + duoMargin,
         ...(inStatusStrip
           ? {
               height: Math.max(insets.top, 56),
@@ -54,8 +70,8 @@ export function TransparentPageHeader({
             }
           : null),
         // The row below already pads 16.
-        paddingLeft: Math.max(sideInsets.left, corner.left - 16),
-        paddingRight: Math.max(sideInsets.right, corner.right - 16),
+        paddingLeft: leftPadding,
+        paddingRight: rightPadding,
       }}
     >
       {nav ? <View className="mb-2">{nav}</View> : null}
