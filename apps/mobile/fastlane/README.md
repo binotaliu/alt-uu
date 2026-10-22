@@ -42,7 +42,7 @@ Existing secrets, reused unchanged:
 Optional env: `IOS_CODE_SIGN_IDENTITY` (default `Apple Distribution`; set to
 `iPhone Distribution` if the cert is an older one).
 
-Android jobs now run on `ubuntu-latest` (no macOS needed); iOS on `macos-26`.
+Android jobs now run on `ubuntu-latest` (no macOS needed); iOS build on `xcode-27` (Xcode 27.1 selected; macos-26 only has Xcode 26.x).
 
 ## One-time setup
 

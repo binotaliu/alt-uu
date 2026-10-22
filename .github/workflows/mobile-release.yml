@@ -177,10 +177,15 @@ jobs:
     name: Build iOS (unpublished)
     timeout-minutes: 60
     needs: [determine-version, resolve-build-numbers]
-    # Expo SDK 58 / RN 0.88 need a current Xcode; macos-26 ships the newest SDK.
-    runs-on: macos-26
+    # The attachment bridge uses the iOS 27.1 hinge / reserved-region APIs, so the build
+    # needs the Xcode 27.1 SDK. macos-26 only ships Xcode 26.x; the xcode-27 image
+    # (macOS 27) has 27.1 installed next to its default 27.0.
+    runs-on: xcode-27
     steps:
       - uses: actions/checkout@v6
+
+      - name: Select Xcode 27.1
+        run: sudo xcode-select -s /Applications/Xcode_27.1.app
 
       - uses: ./.github/actions/setup-expo-build
         with:
