@@ -188,7 +188,6 @@ export function SettingsScreen() {
     <SubPage
       title="設定"
       backHref={sessionStatus === 'unauthenticated' ? '/login' : '/courses'}
-      wide
     >
       <View className="mb-4 items-center justify-center gap-4 py-2">
         <View className="items-center">
