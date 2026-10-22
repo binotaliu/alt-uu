@@ -282,11 +282,16 @@ export function CoursesTabs() {
           <TabList asChild>
             <View
               testID="tab-rail"
-              className="items-center justify-end gap-2 border-l border-theme-200 bg-white px-2 dark:border-zinc-700 dark:bg-zinc-900"
+              className="items-center justify-end gap-2 border-l border-theme-200 bg-white dark:border-zinc-700 dark:bg-zinc-900"
+              // TabList defaults to a row with space-between; the rail is a column.
               style={{
+                flexDirection: 'column',
+                justifyContent: 'flex-end',
                 paddingTop: insets.top + 8,
                 paddingBottom: Math.max(insets.bottom, 12),
-                paddingRight: insets.right + 8,
+                // The system reserves this strip for the status area: match its width
+                // instead of adding to it, and centre the icons under it.
+                width: Math.max(insets.right, 64),
               }}
             >
               {tabTriggers}
