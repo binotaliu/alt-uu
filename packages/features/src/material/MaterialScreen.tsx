@@ -220,7 +220,7 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
   const isDark = useIsDark();
   const insets = useSafeAreaInsets();
   const isTablet = useIsTablet();
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const [directoryOpen, setDirectoryOpen] = useState(false);
   const learningTimes = useCourseLearningTimes(cid);
   const lastSeen = useLastSeenMaterial(cid);
@@ -1008,6 +1008,14 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
     !isAudio &&
     !isYoutube;
 
+  // Landscape with a vertical fold: directory and content become two panes either side of
+  // the hinge instead of a sidebar that could cross it.
+  const splitAroundFold =
+    !foldedVideo &&
+    foldFrame !== null &&
+    foldAxis === 'vertical' &&
+    width > height;
+
   // The seek bar sits where the interactive swipe-back would start, so while the folded
   // layout shows it the swipe is off; the header's back button still leaves the page.
   useEffect(() => {
@@ -1154,7 +1162,7 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
         </View>
       ) : null}
 
-      {!isTablet ? (
+      {!isTablet && !splitAroundFold ? (
         <Pressable
           testID="material-switch-button"
           accessibilityRole="button"
@@ -1253,6 +1261,28 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
               />
             </View>
           }
+        />
+      ) : splitAroundFold ? (
+        <FoldSplit
+          first={
+            <View
+              testID="material-sidebar"
+              className="my-3 ml-3 flex-1 overflow-hidden rounded-2xl border border-theme-200 bg-white/85 dark:border-zinc-700 dark:bg-zinc-900/85"
+            >
+              <MaterialDirectory
+                selectedCid={cid}
+                scrollTarget="active"
+                nodes={learningTimes.data ?? []}
+                isLoading={learningTimes.isPending}
+                activeNodeIdentifier={activeScoid}
+                lastSeenIdentifier={lastSeen.data?.activityId ?? null}
+                lastSeenPositionSeconds={lastSeen.data?.positionSeconds}
+                lastSeenDurationSeconds={lastSeen.data?.mediaDurationSeconds}
+                onNodeSelect={(identifier) => void handleNodeSelect(identifier)}
+              />
+            </View>
+          }
+          second={contentScroll}
         />
       ) : isTablet ? (
         <View className="flex-1 flex-row">

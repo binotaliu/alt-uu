@@ -584,6 +584,29 @@ describe('MaterialScreen landscape directory', () => {
     expect(screen.getByTestId('bottom-sheet')).toBeTruthy();
   });
 
+  it('splits directory and content around a vertical fold in landscape', async () => {
+    jest
+      .spyOn(dimensions, 'get')
+      .mockReturnValue({ width: 700, height: 360, scale: 3, fontScale: 1 });
+    const { renderScreen } = setup();
+
+    await renderScreen('html', {
+      isFoldable: true,
+      display: 'inner',
+      foldFrame: { x: 340, y: 0, width: 20, height: 360 },
+      foldAxis: 'vertical',
+      sideBar: true,
+      barEdge: 'right',
+      barWidth: 0,
+      barClearance: { top: 0, bottom: 0 },
+    });
+    await waitFor(() => expect(screen.getByTestId('webview')).toBeTruthy());
+
+    expect(screen.getByTestId('fold-split')).toBeTruthy();
+    expect(screen.getByTestId('material-sidebar')).toBeTruthy();
+    expect(screen.queryByTestId('material-switch-button')).toBeNull();
+  });
+
   it('shows 切換教材 whenever the sidebar is hidden', async () => {
     const { renderScreen } = setup();
 
