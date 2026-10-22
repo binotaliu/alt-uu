@@ -85,7 +85,7 @@ export function Scrubber({
       </View>
       <View
         pointerEvents="none"
-        className="absolute h-4 w-4 rounded-full border border-theme-300 bg-white shadow dark:border-zinc-500"
+        className="absolute h-4 w-4 rounded-full border border-theme-300 bg-white shadow-sm dark:border-zinc-500"
         style={{ left: `${progress * 100}%`, marginLeft: -8 }}
       />
     </View>

@@ -38,6 +38,7 @@ export interface MaterialPlayerHandle {
   getDuration(): number;
   isPlaying(): boolean;
   seekTo(seconds: number): void;
+  togglePlay(): void;
   setRate(rate: number): void;
   /**
    * Rebuilds the source and resumes at the same position (legacy
@@ -69,6 +70,10 @@ export interface MaterialPlayerProps {
   onProgress?: (progress: PlaybackProgress) => void;
   /** Playback reached the end of the media. */
   onEnded?: () => void;
+  /** Fill the parent (no aspect ratio, corners or shadow) instead of a 16:9 card. */
+  fill?: boolean;
+  /** Seconds to start from, for a player remounted by a layout change. Read once on mount. */
+  getStartAt?: () => number;
   ref?: Ref<MaterialPlayerHandle>;
 }
 
@@ -106,6 +111,8 @@ export function MaterialPlayer({
   courseTitle,
   onProgress,
   onEnded,
+  fill = false,
+  getStartAt,
   ref,
 }: MaterialPlayerProps) {
   const [source] = useState<VideoSource>(() => ({
@@ -115,11 +122,17 @@ export function MaterialPlayer({
   const storedRate = usePlaybackRateStore((state) => state.rate);
   const setStoredRate = usePlaybackRateStore((state) => state.setRate);
   const [initialRate] = useState(storedRate);
+  const [initialTime] = useState(() => getStartAt?.() ?? 0);
   const player = useVideoPlayer(source, (created) => {
     created.timeUpdateEventInterval = 1;
     created.showNowPlayingNotification = true;
     created.staysActiveInBackground = true;
     created.playbackRate = initialRate;
+
+    if (initialTime > 0) {
+      seekPlayer(created, initialTime);
+    }
+
     created.play();
   });
   const videoViewRef = useRef<VideoView>(null);
@@ -228,6 +241,13 @@ export function MaterialPlayer({
       getDuration: () => readProgress(player).duration,
       isPlaying: () => player.playing,
       seekTo,
+      togglePlay: () => {
+        if (player.playing) {
+          player.pause();
+        } else {
+          player.play();
+        }
+      },
       setRate,
       reload,
       stop: () => {
@@ -338,11 +358,15 @@ export function MaterialPlayer({
   }
 
   return (
-    <View>
+    <View className={fill ? 'flex-1' : ''}>
       <View
         ref={videoFrameRef}
         collapsable={false}
-        className="aspect-video w-full overflow-hidden rounded-xl bg-black shadow"
+        className={
+          fill
+            ? 'w-full flex-1 overflow-hidden bg-black'
+            : 'aspect-video w-full overflow-hidden rounded-xl bg-black shadow'
+        }
       >
         <VideoView
           ref={videoViewRef}

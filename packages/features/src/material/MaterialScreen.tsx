@@ -3,7 +3,9 @@ import {
   PageHeader,
   Screen,
   Text,
+  FoldSplit,
   ToggleSwitch,
+  useDuoLayout,
   accentPalettes,
   useIsDark,
   useIsTablet,
@@ -81,6 +83,7 @@ import {
   type PlaybackProgress,
 } from './player/MaterialPlayer';
 import { usePlaybackRateStore } from './player/PlaybackRateMenu';
+import { VideoControlBar } from './player/VideoControlBar';
 import { YoutubeEmbed, type YoutubeEmbedHandle } from './player/YoutubeEmbed';
 import { formatDurationLabel, formatStudyClock } from './studyTimer';
 import { useMaterialDownload } from './useMaterialDownload';
@@ -206,6 +209,7 @@ function AdjacentButton({
  */
 interface BeforeRemoveSource {
   addListener: (event: 'beforeRemove', listener: () => void) => () => void;
+  setOptions?: (options: { gestureEnabled: boolean }) => void;
 }
 
 export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
@@ -258,6 +262,10 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
   const immersiveRef = useRef(immersive);
   const finishedScoidRef = useRef<string | null>(null);
 
+  const { foldFrame, foldAxis } = useDuoLayout();
+  // The latest playback state, kept only while the folded layout shows its own controls.
+  const [playback, setPlayback] = useState<PlaybackProgress | null>(null);
+  const lastPositionRef = useRef(0);
   const playerRef = useRef<MaterialPlayerHandle>(null);
   const youtubeRef = useRef<YoutubeEmbedHandle>(null);
   const playbackRef = useRef({ playing: false, lastCheckpointAt: 0 });
@@ -714,6 +722,7 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
 
   const handleProgress = useCallback(
     (progress: PlaybackProgress) => {
+      lastPositionRef.current = progress.currentTime;
       timer.updatePlaybackPosition(progress.currentTime);
       timer.updateMediaDuration(progress.duration);
 
@@ -990,32 +999,183 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
     };
   }, [countingDown, activeScoid]);
 
+  // Half-folded iPhone Duo in portrait (horizontal fold): the video fills the top half and
+  // its seek bar and controls sit in the bottom half, where a thumb reaches.
+  const foldedVideo =
+    foldFrame !== null &&
+    foldAxis === 'horizontal' &&
+    showPlayer &&
+    !isAudio &&
+    !isYoutube;
+
+  // The seek bar sits where the interactive swipe-back would start, so while the folded
+  // layout shows it the swipe is off; the header's back button still leaves the page.
+  useEffect(() => {
+    const source = navigation as unknown as BeforeRemoveSource;
+
+    if (!foldedVideo) {
+      return undefined;
+    }
+
+    source.setOptions?.({ gestureEnabled: false });
+
+    return () => source.setOptions?.({ gestureEnabled: true });
+  }, [foldedVideo, navigation]);
+
+  const renderPlayer = (content: ParsedMaterialContent, fill: boolean) =>
+    isYoutube ? (
+      <YoutubeEmbed
+        key={content.embedVideoUrl}
+        ref={youtubeRef}
+        embedUrl={content.embedVideoUrl as string}
+        title={activeNodeText}
+        onProgress={handleYoutubeProgress}
+        onExternalLink={(url) => void openExternal(url)}
+      />
+    ) : (
+      <MaterialPlayer
+        key={content.videoUrl}
+        ref={playerRef}
+        videoUrl={content.videoUrl as string}
+        isAudio={isAudio}
+        title={activeNodeText}
+        courseTitle={courseTitle}
+        fill={fill}
+        getStartAt={fill ? () => lastPositionRef.current : undefined}
+        onProgress={(progress) => {
+          handleProgress(progress);
+
+          if (fill) {
+            setPlayback(progress);
+          }
+        }}
+        onEnded={handleMediaEnded}
+      />
+    );
+
   const playerSection = showPlayer ? (
     <View className="bg-theme-100 px-3 pb-2 pt-3 dark:bg-zinc-950">
-      {isYoutube ? (
-        <YoutubeEmbed
-          key={displayedContent.embedVideoUrl}
-          ref={youtubeRef}
-          embedUrl={displayedContent.embedVideoUrl as string}
-          title={activeNodeText}
-          onProgress={handleYoutubeProgress}
-          onExternalLink={(url) => void openExternal(url)}
-        />
-      ) : (
-        <MaterialPlayer
-          key={displayedContent.videoUrl}
-          ref={playerRef}
-          videoUrl={displayedContent.videoUrl as string}
-          isAudio={isAudio}
-          title={activeNodeText}
-          courseTitle={courseTitle}
-          onProgress={handleProgress}
-          onEnded={handleMediaEnded}
-        />
-      )}
+      {displayedContent ? renderPlayer(displayedContent, false) : null}
     </View>
   ) : (
     <View />
+  );
+
+  const detailBlocks = (
+    <View className="gap-4 px-3 pt-2">
+      {isContentLoading && !isReady ? (
+        <MaterialSkeleton />
+      ) : contentError && displayedContent === undefined ? (
+        <ErrorRetry
+          error={contentError}
+          retrying={content.isFetching}
+          onRetry={() => {
+            void content.refetch();
+            void resources.refetch();
+          }}
+        />
+      ) : displayedContent !== undefined ? (
+        <MaterialViewer
+          content={displayedContent}
+          resources={resources.data ?? []}
+          cookiesReady={
+            displayedContent.baseUrl !== null &&
+            cookiesReadyFor === displayedContent.baseUrl
+          }
+          fontScale={effectiveFontScale}
+          isSavingFontScale={isSavingFontScale}
+          isDark={isDark}
+          palette={palette}
+          canOpenInAppBrowser={activeHref !== null}
+          isReloading={isReloading}
+          reloadError={reloadError}
+          showVideoTools={showPlayer && !isAudio && !isYoutube}
+          videoRate={videoRate}
+          isCapturingFrame={isCapturingFrame}
+          captureError={captureError}
+          isDownloading={download.isDownloading}
+          downloadProgress={download.progress}
+          downloadError={download.error}
+          onOpenInAppBrowser={() => {
+            if (activeHref !== null) {
+              openInAppBrowser(activeHref);
+            }
+          }}
+          onReload={() => void handleReload()}
+          onCaptureFrame={() => void handleCaptureFrame()}
+          onVideoRateChange={(rate) => playerRef.current?.setRate(rate)}
+          onDownload={() => {
+            if (displayedContent.downloadUrl) {
+              void download.download({
+                cid,
+                url: displayedContent.downloadUrl,
+                descriptor: displayedContent.download,
+                fileName: buildDownloadFileName({
+                  downloadFileName: displayedContent.downloadFileName,
+                  downloadFileExtension: displayedContent.downloadFileExtension,
+                  isPdf: displayedContent.isPdf,
+                  title: activeNodeText,
+                }),
+              });
+            }
+          }}
+          onFontScaleChange={(scale) => void handleFontScaleChange(scale)}
+          onLinkPress={(href) => void handleContentLink(href)}
+          onImagePress={(src, alt) =>
+            setLightbox({
+              src,
+              alt,
+              baseUrl: displayedContent.baseUrl ?? src,
+            })
+          }
+        />
+      ) : null}
+
+      {!isContentLoading && (previous || next) ? (
+        <View className="flex-row gap-3">
+          <AdjacentButton
+            node={previous}
+            direction="previous"
+            onPress={() => {
+              if (previous) {
+                void handleNodeSelect(previous.identifier);
+              }
+            }}
+          />
+          <AdjacentButton
+            node={next}
+            direction="next"
+            onPress={() => {
+              if (next) {
+                void handleNodeSelect(next.identifier);
+              }
+            }}
+          />
+        </View>
+      ) : null}
+
+      {!isTablet ? (
+        <Pressable
+          testID="material-switch-button"
+          accessibilityRole="button"
+          onPress={() => setDirectoryOpen(true)}
+          className="items-center rounded-2xl border border-theme-200 bg-white p-3 active:bg-theme-50 dark:border-zinc-700 dark:bg-zinc-900 dark:active:bg-zinc-800"
+        >
+          <Text className="text-sm font-semibold text-theme-900 dark:text-zinc-100">
+            切換教材
+          </Text>
+        </Pressable>
+      ) : null}
+
+      <View className="rounded-2xl border border-theme-200 bg-white/90 px-4 dark:border-zinc-700 dark:bg-zinc-900">
+        <ToggleSwitch
+          label="沉浸式播放"
+          labelAccessory={isSubscribed ? null : <PremiumBadge />}
+          value={immersive}
+          onValueChange={handleImmersiveChange}
+        />
+      </View>
+    </View>
   );
 
   const contentScroll = (
@@ -1024,121 +1184,7 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
       contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
     >
       {playerSection}
-      <View className="gap-4 px-3 pt-2">
-        {isContentLoading && !isReady ? (
-          <MaterialSkeleton />
-        ) : contentError && displayedContent === undefined ? (
-          <ErrorRetry
-            error={contentError}
-            retrying={content.isFetching}
-            onRetry={() => {
-              void content.refetch();
-              void resources.refetch();
-            }}
-          />
-        ) : displayedContent !== undefined ? (
-          <MaterialViewer
-            content={displayedContent}
-            resources={resources.data ?? []}
-            cookiesReady={
-              displayedContent.baseUrl !== null &&
-              cookiesReadyFor === displayedContent.baseUrl
-            }
-            fontScale={effectiveFontScale}
-            isSavingFontScale={isSavingFontScale}
-            isDark={isDark}
-            palette={palette}
-            canOpenInAppBrowser={activeHref !== null}
-            isReloading={isReloading}
-            reloadError={reloadError}
-            showVideoTools={showPlayer && !isAudio && !isYoutube}
-            videoRate={videoRate}
-            isCapturingFrame={isCapturingFrame}
-            captureError={captureError}
-            isDownloading={download.isDownloading}
-            downloadProgress={download.progress}
-            downloadError={download.error}
-            onOpenInAppBrowser={() => {
-              if (activeHref !== null) {
-                openInAppBrowser(activeHref);
-              }
-            }}
-            onReload={() => void handleReload()}
-            onCaptureFrame={() => void handleCaptureFrame()}
-            onVideoRateChange={(rate) => playerRef.current?.setRate(rate)}
-            onDownload={() => {
-              if (displayedContent.downloadUrl) {
-                void download.download({
-                  cid,
-                  url: displayedContent.downloadUrl,
-                  descriptor: displayedContent.download,
-                  fileName: buildDownloadFileName({
-                    downloadFileName: displayedContent.downloadFileName,
-                    downloadFileExtension:
-                      displayedContent.downloadFileExtension,
-                    isPdf: displayedContent.isPdf,
-                    title: activeNodeText,
-                  }),
-                });
-              }
-            }}
-            onFontScaleChange={(scale) => void handleFontScaleChange(scale)}
-            onLinkPress={(href) => void handleContentLink(href)}
-            onImagePress={(src, alt) =>
-              setLightbox({
-                src,
-                alt,
-                baseUrl: displayedContent.baseUrl ?? src,
-              })
-            }
-          />
-        ) : null}
-
-        {!isContentLoading && (previous || next) ? (
-          <View className="flex-row gap-3">
-            <AdjacentButton
-              node={previous}
-              direction="previous"
-              onPress={() => {
-                if (previous) {
-                  void handleNodeSelect(previous.identifier);
-                }
-              }}
-            />
-            <AdjacentButton
-              node={next}
-              direction="next"
-              onPress={() => {
-                if (next) {
-                  void handleNodeSelect(next.identifier);
-                }
-              }}
-            />
-          </View>
-        ) : null}
-
-        {!isTablet ? (
-          <Pressable
-            testID="material-switch-button"
-            accessibilityRole="button"
-            onPress={() => setDirectoryOpen(true)}
-            className="items-center rounded-2xl border border-theme-200 bg-white p-3 active:bg-theme-50 dark:border-zinc-700 dark:bg-zinc-900 dark:active:bg-zinc-800"
-          >
-            <Text className="text-sm font-semibold text-theme-900 dark:text-zinc-100">
-              切換教材
-            </Text>
-          </Pressable>
-        ) : null}
-
-        <View className="rounded-2xl border border-theme-200 bg-white/90 px-4 dark:border-zinc-700 dark:bg-zinc-900">
-          <ToggleSwitch
-            label="沉浸式播放"
-            labelAccessory={isSubscribed ? null : <PremiumBadge />}
-            value={immersive}
-            onValueChange={handleImmersiveChange}
-          />
-        </View>
-      </View>
+      {detailBlocks}
     </ScrollView>
   );
 
@@ -1177,7 +1223,38 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
         }
       />
 
-      {isTablet ? (
+      {foldedVideo ? (
+        <FoldSplit
+          first={
+            <View className="flex-1 bg-black">
+              {displayedContent ? renderPlayer(displayedContent, true) : null}
+            </View>
+          }
+          second={
+            <View className="flex-1">
+              <ScrollView
+                contentContainerStyle={{ paddingBottom: 24, paddingTop: 12 }}
+              >
+                {detailBlocks}
+              </ScrollView>
+              <VideoControlBar
+                playing={playback?.playing ?? false}
+                currentTime={playback?.currentTime ?? 0}
+                duration={playback?.duration ?? 0}
+                rate={playback?.rate ?? videoRate}
+                onTogglePlay={() => playerRef.current?.togglePlay()}
+                onSkip={(delta) =>
+                  playerRef.current?.seekTo(
+                    (playerRef.current?.getCurrentTime() ?? 0) + delta,
+                  )
+                }
+                onSeek={(seconds) => playerRef.current?.seekTo(seconds)}
+                onRateChange={(rate) => playerRef.current?.setRate(rate)}
+              />
+            </View>
+          }
+        />
+      ) : isTablet ? (
         <View className="flex-1 flex-row">
           <View
             testID="material-sidebar"

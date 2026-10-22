@@ -16,6 +16,7 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react-native';
+import { DuoLayoutContext, NOT_FOLDABLE, type DuoLayout } from '@altuu/ui';
 import { router } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -57,7 +58,9 @@ jest.mock(
   () => require('./testDoubles').passthroughModules.orientation,
 );
 const mockBeforeRemoveListeners: Array<() => void> = [];
+const mockSetOptions = jest.fn();
 const mockNavigation = {
+  setOptions: mockSetOptions,
   addListener: (_event: string, listener: () => void) => {
     mockBeforeRemoveListeners.push(listener);
 
@@ -238,7 +241,7 @@ function setup(
     record,
     getNodeContent,
     prepareMaterialFetch,
-    renderScreen: (scoid: string) =>
+    renderScreen: (scoid: string, layout: DuoLayout = NOT_FOLDABLE) =>
       render(
         <SafeAreaProvider
           initialMetrics={{
@@ -251,7 +254,9 @@ function setup(
             queryClient={queryClient}
             router={{ push: jest.fn(), replace: jest.fn() }}
           >
-            <MaterialScreen cid="C1" scoid={scoid} />
+            <DuoLayoutContext.Provider value={layout}>
+              <MaterialScreen cid="C1" scoid={scoid} />
+            </DuoLayoutContext.Provider>
           </AppServicesProvider>
         </SafeAreaProvider>,
       ),
@@ -409,6 +414,56 @@ describe('MaterialScreen', () => {
 
     expect(createdPlayers[0]?.playbackRate).toBe(1.5);
     expect(usePlaybackRateStore.getState().rate).toBe(1.5);
+  });
+
+  describe('on a half-folded iPhone Duo in portrait', () => {
+    const laptopFold: DuoLayout = {
+      isFoldable: true,
+      display: 'inner',
+      foldFrame: { x: 0, y: 450, width: 700, height: 12 },
+      foldAxis: 'horizontal',
+      sideBar: false,
+      barEdge: 'right',
+      barWidth: 0,
+      barClearance: { top: 0, bottom: 0 },
+    };
+
+    it('shows the seek bar and controls below the fold', async () => {
+      const { renderScreen } = setup();
+
+      await renderScreen('video', laptopFold);
+      await waitFor(() => expect(createdPlayers).toHaveLength(1));
+
+      expect(screen.getByTestId('video-control-bar')).toBeTruthy();
+      expect(screen.getByTestId('fold-split-first')).toBeTruthy();
+
+      const player = createdPlayers[0];
+
+      await fireEvent.press(screen.getByLabelText('快轉 10 秒'));
+      expect(player?.currentTime).toBe(10);
+
+      await fireEvent.press(await screen.findByLabelText('暫停'));
+      expect(player?.playing).toBe(false);
+    });
+
+    it('turns the swipe-back gesture off while the seek bar is shown', async () => {
+      mockSetOptions.mockClear();
+      const { renderScreen } = setup();
+
+      await renderScreen('video', laptopFold);
+      await waitFor(() =>
+        expect(mockSetOptions).toHaveBeenCalledWith({ gestureEnabled: false }),
+      );
+    });
+
+    it('keeps the normal layout when the device is not folded', async () => {
+      const { renderScreen } = setup();
+
+      await renderScreen('video', { ...laptopFold, foldFrame: null });
+      await waitFor(() => expect(createdPlayers).toHaveLength(1));
+
+      expect(screen.queryByTestId('video-control-bar')).toBeNull();
+    });
   });
 
   it('shows the audio controls for 語音 courses', async () => {
