@@ -22,31 +22,46 @@ function isSameLayout(a: DuoLayout, b: DuoLayout): boolean {
   );
 }
 
+/** How often a foldable's regions are read again: fold changes send no JS event. */
+export const FOLD_POLL_INTERVAL_MS = 400;
+
 /**
- * Feeds the iPhone Duo fold state to the layouts. Folding, unfolding and rotating
- * resize the window, so the regions are read again whenever its size does.
+ * Feeds the iPhone Duo fold state to the layouts. Rotating resizes the window, so the
+ * regions are read again then. Folding or unfolding does not resize it (the fold region
+ * just turns active), and nothing notifies JS, so on a foldable the regions are also
+ * polled. Other devices report no regions and are never polled.
  */
 export function DuoLayoutProvider({ children }: { children: ReactNode }) {
   const { width, height } = useWindowDimensions();
   const [layout, setLayout] = useState(NOT_FOLDABLE);
+  const isFoldable = layout.isFoldable;
 
   useEffect(() => {
     let cancelled = false;
 
-    void getReservedRegions().then((regions) => {
-      if (!cancelled) {
-        const next = deriveDuoLayout(regions, { width, height });
+    const read = () => {
+      void getReservedRegions().then((regions) => {
+        if (!cancelled) {
+          const next = deriveDuoLayout(regions, { width, height });
 
-        setLayout((previous) =>
-          isSameLayout(previous, next) ? previous : next,
-        );
-      }
-    });
+          setLayout((previous) =>
+            isSameLayout(previous, next) ? previous : next,
+          );
+        }
+      });
+    };
+
+    read();
+    const timer = isFoldable ? setInterval(read, FOLD_POLL_INTERVAL_MS) : null;
 
     return () => {
       cancelled = true;
+
+      if (timer) {
+        clearInterval(timer);
+      }
     };
-  }, [width, height]);
+  }, [width, height, isFoldable]);
 
   return (
     <DuoLayoutContext.Provider value={layout}>
