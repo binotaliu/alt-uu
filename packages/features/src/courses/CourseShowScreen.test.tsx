@@ -346,6 +346,20 @@ describe('CourseShowView', () => {
   });
 
   describe('on a folded iPhone Duo', () => {
+    const mockWindow = (width: number, height: number) =>
+      jest
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        .spyOn(require('react-native'), 'useWindowDimensions')
+        .mockReturnValue({ width, height, scale: 2, fontScale: 1 });
+
+    beforeEach(() => {
+      mockWindow(900, 700);
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
     const foldedLayout = (axis: 'vertical' | 'horizontal'): DuoLayout => ({
       isFoldable: true,
       display: 'inner',
@@ -394,6 +408,19 @@ describe('CourseShowView', () => {
           'course-fold-tabs',
         ),
       ).toBeTruthy();
+    });
+
+    it('keeps the single-column page in portrait', async () => {
+      mockWindow(700, 900);
+      await renderWithServices(
+        <DuoLayoutContext.Provider value={foldedLayout('horizontal')}>
+          <CourseShowView cid="10" />
+        </DuoLayoutContext.Provider>,
+        services(),
+      );
+
+      expect(await screen.findByTestId('course-tab-homework')).toBeTruthy();
+      expect(screen.queryByTestId('fold-split')).toBeNull();
     });
 
     it('does not split when the device is fully open', async () => {

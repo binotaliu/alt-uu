@@ -11,7 +11,13 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams, usePathname } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
+import {
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { discussQueryKeys } from '../discuss/queryKeys';
@@ -116,6 +122,9 @@ export function CourseShowView({
   const queryClient = useQueryClient();
   const isTablet = useIsTablet();
   const { foldFrame, foldAxis } = useDuoLayout();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  // Portrait keeps the regular single-column page; only landscape splits around the fold.
+  const splitAroundFold = foldFrame !== null && windowWidth > windowHeight;
   const { bottom: bottomInset } = useSafeAreaInsets();
   const pathname = usePathname();
   const refreshOnReturn = useRef(false);
@@ -189,7 +198,7 @@ export function CourseShowView({
 
   const sidebar = (
     <View
-      className={`${foldFrame ? 'w-full' : 'w-56'} gap-1 self-start rounded-2xl border border-theme-200 bg-white/90 p-1 dark:border-zinc-700 dark:bg-zinc-900/90`}
+      className={`${splitAroundFold ? 'w-full' : 'w-56'} gap-1 self-start rounded-2xl border border-theme-200 bg-white/90 p-1 dark:border-zinc-700 dark:bg-zinc-900/90`}
     >
       {courseTabs.map((tab) => {
         const selected = tab.id === activeTab;
@@ -313,7 +322,7 @@ export function CourseShowView({
   // keeps its content off the fold. Book posture (vertical fold): tabs left, body right.
   // Tabletop posture (horizontal fold): body above, tabs below, since the lower half is
   // the one to reach with a thumb.
-  if (foldFrame) {
+  if (splitAroundFold) {
     const horizontal = foldAxis === 'horizontal';
     const tabList = (
       <ScrollView testID="course-fold-tabs" contentContainerClassName="p-3">
