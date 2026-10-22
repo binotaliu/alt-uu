@@ -20,6 +20,27 @@ export interface Release {
  */
 export const releases: Release[] = [
   {
+    version: '2.0.0',
+    highlights: [
+      {
+        icon: 'arrow-up-circle',
+        title: '全新打造的 Alt UU',
+        description: '我們使用新技術重新打造了 Alt UU，用起來更流暢、更穩定',
+      },
+      {
+        icon: 'book-open',
+        title: '教材目錄更好找',
+        description: '目錄會自動捲動到尚未觀看的教材，並可隨時切換到另一個教材',
+      },
+      {
+        icon: 'video-camera',
+        title: '沉浸式播放',
+        description: '開啟沉浸式播放後，即可不需手動操作，專心觀看教材影片',
+        plus: true,
+      },
+    ],
+  },
+  {
     version: '1.1.0',
     highlights: [
       {
