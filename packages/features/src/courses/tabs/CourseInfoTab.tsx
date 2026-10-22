@@ -156,9 +156,14 @@ function NouToolsSections({ course }: { course: NouToolsCourse }) {
 
       <Section title="考古題">
         {previousExams.length === 0 ? (
-          <Text className="text-sm text-theme-700 dark:text-zinc-400">
-            尚無可用考古題。
-          </Text>
+          <View className="items-center rounded-xl border border-dashed border-theme-300 bg-theme-50 px-4 py-6 dark:border-zinc-600 dark:bg-zinc-800">
+            <Text className="text-sm font-semibold text-theme-800 dark:text-zinc-200">
+              本課程無考古題
+            </Text>
+            <Text className="mt-1 text-center text-sm text-theme-700 dark:text-zinc-400">
+              可能的原因：本課程是新開課程，或本課程為全遠距微學分課程。
+            </Text>
+          </View>
         ) : (
           previousExams.map((exam) => (
             <View
