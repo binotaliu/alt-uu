@@ -6,11 +6,22 @@ public final class AttachmentBridgeModule: Module {
   private var downloader: AttachmentDownloader?
   private let previewPresenter = AttachmentPreviewPresenter()
   private let savePresenter = AttachmentSavePresenter()
+  private var hingeObserver: AnyObject?
 
   public func definition() -> ModuleDefinition {
     Name("AltUUAttachmentBridge")
 
-    Events("onDownloadProgress")
+    Events("onDownloadProgress", "onFoldChange")
+
+    // iPhone Duo: tells JS when the hinge closes, half-opens or opens, so it re-reads the reserved
+    // regions instead of polling. Only the status is forwarded; the angle changes continuously.
+    OnStartObserving("onFoldChange") {
+      self.startObservingHinge()
+    }
+
+    OnStopObserving("onFoldChange") {
+      self.stopObservingHinge()
+    }
 
     OnDestroy {
       self.downloader?.invalidate()
@@ -237,6 +248,44 @@ public final class AttachmentBridgeModule: Module {
     }.runOnQueue(.main)
   }
 
+  private func startObservingHinge() {
+    guard #available(iOS 27.1, *) else {
+      return
+    }
+
+    DispatchQueue.main.async { [weak self] in
+      guard let self, self.hingeObserver == nil else {
+        return
+      }
+
+      let window = UIApplication.shared.connectedScenes
+        .compactMap { $0 as? UIWindowScene }
+        .flatMap { $0.windows }
+        .first { $0.isKeyWindow }
+
+      guard let window else {
+        return
+      }
+
+      let observer = HingeStatusObserver { [weak self] in
+        self?.sendEvent("onFoldChange", [:])
+      }
+      window.addInteraction(observer.interaction)
+      self.hingeObserver = observer
+    }
+  }
+
+  private func stopObservingHinge() {
+    DispatchQueue.main.async { [weak self] in
+      guard #available(iOS 27.1, *), let observer = self?.hingeObserver as? HingeStatusObserver else {
+        return
+      }
+
+      observer.interaction.view?.removeInteraction(observer.interaction)
+      self?.hingeObserver = nil
+    }
+  }
+
   private func activeDownloader() -> AttachmentDownloader {
     if let downloader {
       return downloader
@@ -296,5 +345,28 @@ public final class AttachmentBridgeModule: Module {
 
   private static func isIPAddress(_ host: String) -> Bool {
     host.contains(":") || host.allSatisfy { $0.isNumber || $0 == "." }
+  }
+}
+
+/// Wraps `UIHingeInteraction`, reporting only status changes (the handler also fires for every
+/// angle update, and once on attach with the initial state).
+@available(iOS 27.1, *)
+private final class HingeStatusObserver {
+  private(set) var interaction: UIHingeInteraction!
+  private var lastStatus: UIHinge.Status?
+
+  init(onStatusChange: @escaping () -> Void) {
+    interaction = UIHingeInteraction { [weak self] _, update in
+      guard let self, let status = update.hinge?.status, status != self.lastStatus else {
+        return
+      }
+
+      let isInitial = self.lastStatus == nil
+      self.lastStatus = status
+
+      if !isInitial {
+        onStatusChange()
+      }
+    }
   }
 }

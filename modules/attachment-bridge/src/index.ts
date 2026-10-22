@@ -19,6 +19,7 @@ export const {
   setWebViewCookies,
   clearWebViewCookies,
   addDownloadProgressListener,
+  addFoldChangeListener,
   startDownload,
   download,
   cancelDownload,

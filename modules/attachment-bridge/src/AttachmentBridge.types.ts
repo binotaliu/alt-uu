@@ -136,6 +136,7 @@ export type AttachmentBridgeErrorCode =
 
 export type AttachmentBridgeModuleEvents = {
   onDownloadProgress: (event: DownloadProgressEvent) => void;
+  onFoldChange: () => void;
 };
 
 /** Minimal subscription handle (structurally `EventSubscription` from expo). */
@@ -161,8 +162,8 @@ export interface AttachmentBridgeNativeModule {
   captureVideoFrame(url: string, seconds: number): Promise<VideoFrameResult>;
   getCornerInsets(): Promise<CornerInsets>;
   getReservedRegions(): Promise<ReservedRegion[]>;
-  addListener(
-    eventName: 'onDownloadProgress',
-    listener: (event: DownloadProgressEvent) => void,
+  addListener<E extends keyof AttachmentBridgeModuleEvents>(
+    eventName: E,
+    listener: AttachmentBridgeModuleEvents[E],
   ): BridgeSubscription;
 }

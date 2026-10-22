@@ -5,6 +5,7 @@ import {
 } from '../mocks';
 
 import {
+  addFoldChangeListener,
   cancelDownload,
   clearWebViewCookies,
   download,
@@ -300,5 +301,18 @@ describe('getReservedRegions', () => {
     );
 
     await expect(getReservedRegions()).resolves.toEqual([]);
+  });
+});
+
+describe('addFoldChangeListener', () => {
+  it('delivers fold changes until removed', () => {
+    const listener = jest.fn();
+    const subscription = addFoldChangeListener(listener);
+
+    mockNativeModule.emitFoldChange();
+    subscription.remove();
+    mockNativeModule.emitFoldChange();
+
+    expect(listener).toHaveBeenCalledTimes(1);
   });
 });

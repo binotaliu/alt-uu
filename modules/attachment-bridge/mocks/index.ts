@@ -49,7 +49,10 @@ export type MockAttachmentBridgeNativeModule = {
   webViewCookies: Map<string, NativeBridgeCookie[]>;
   /** Delivers a progress event to every `onDownloadProgress` listener. */
   emitDownloadProgress(event: DownloadProgressEvent): void;
+  /** Delivers an `onFoldChange` event to every fold listener. */
+  emitFoldChange(): void;
   listenerCount(): number;
+  foldListenerCount(): number;
   /** Restores the default implementations and clears recorded state. */
   reset(): void;
 };
@@ -81,6 +84,7 @@ export function mockDownloadResult(
 
 export function createMockAttachmentBridgeNativeModule(): MockAttachmentBridgeNativeModule {
   const listeners = new Set<(event: DownloadProgressEvent) => void>();
+  const foldListeners = new Set<() => void>();
   const webViewCookies = new Map<string, NativeBridgeCookie[]>();
 
   const mock = {
@@ -100,9 +104,14 @@ export function createMockAttachmentBridgeNativeModule(): MockAttachmentBridgeNa
     emitDownloadProgress(event: DownloadProgressEvent) {
       listeners.forEach((listener) => listener(event));
     },
+    emitFoldChange() {
+      foldListeners.forEach((listener) => listener());
+    },
     listenerCount: () => listeners.size,
+    foldListenerCount: () => foldListeners.size,
     reset() {
       listeners.clear();
+      foldListeners.clear();
       webViewCookies.clear();
 
       mock.setWebViewCookies
@@ -140,13 +149,21 @@ export function createMockAttachmentBridgeNativeModule(): MockAttachmentBridgeNa
         bottom: 0,
         left: 0,
       }));
-      mock.addListener
-        .mockReset()
-        .mockImplementation((_eventName, listener) => {
-          listeners.add(listener);
+      mock.addListener.mockReset().mockImplementation((eventName, listener) => {
+        if (eventName === 'onFoldChange') {
+          const foldListener = listener as () => void;
+          foldListeners.add(foldListener);
 
-          return { remove: () => listeners.delete(listener) };
-        });
+          return { remove: () => foldListeners.delete(foldListener) };
+        }
+
+        const progressListener = listener as (
+          event: DownloadProgressEvent,
+        ) => void;
+        listeners.add(progressListener);
+
+        return { remove: () => listeners.delete(progressListener) };
+      });
     },
   } as MockAttachmentBridgeNativeModule;
 
@@ -167,6 +184,7 @@ export const {
   setWebViewCookies,
   clearWebViewCookies,
   addDownloadProgressListener,
+  addFoldChangeListener,
   startDownload,
   download,
   cancelDownload,

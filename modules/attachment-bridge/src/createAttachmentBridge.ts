@@ -34,6 +34,12 @@ export type AttachmentBridge = {
   addDownloadProgressListener(
     listener: (event: DownloadProgressEvent) => void,
   ): BridgeSubscription;
+  /**
+   * Fires when the iPhone Duo hinge changes status (closed, half-open, open), after which
+   * `getReservedRegions` reports the new fold. Never fires elsewhere, or when the native
+   * module predates it.
+   */
+  addFoldChangeListener(listener: () => void): BridgeSubscription;
   /** Starts a download and returns its id before it settles. */
   startDownload(options: DownloadOptions): StartedDownload;
   /**
@@ -184,6 +190,13 @@ export function createAttachmentBridge(
     },
     clearWebViewCookies: () => nativeModule.clearWebViewCookies(),
     addDownloadProgressListener,
+    addFoldChangeListener(listener) {
+      try {
+        return nativeModule.addListener('onFoldChange', listener);
+      } catch {
+        return { remove: () => {} };
+      }
+    },
     startDownload,
     download: (options) => startDownload(options).promise,
     cancelDownload,
