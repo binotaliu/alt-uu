@@ -15,10 +15,13 @@ export {
   type ErrorRetryViewProps,
 } from './components/ErrorRetryView';
 export { cn } from './cn';
+export { FoldSplit, type FoldSplitProps } from './components/FoldSplit';
 export { Icon, type IconProps } from './components/Icon';
 export { PageHeader, type PageHeaderProps } from './components/PageHeader';
 export {
   CornerInsetsContext,
+  DUO_CLOCK_OFFSET,
+  DUO_STATUS_AREA_WIDTH,
   DuoLayoutContext,
   NOT_FOLDABLE,
   type DuoDisplay,

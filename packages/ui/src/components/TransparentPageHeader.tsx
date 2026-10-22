@@ -3,6 +3,8 @@ import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
+  DUO_CLOCK_OFFSET,
+  DUO_STATUS_AREA_WIDTH,
   useCornerInsets,
   useDuoLayout,
   useHorizontalInsetsApplied,
@@ -10,16 +12,6 @@ import {
   useNavAboveHeader,
 } from '../responsive';
 import { Text } from './Text';
-
-/**
- * Width the system status area (time, connectivity) takes at the trailing end of the top
- * strip on the iPhone Duo inner display in portrait. No API reports it, so it is measured
- * from the simulator: widen it if the title row runs into the status icons.
- */
-export const DUO_STATUS_AREA_WIDTH = 140;
-
-/** The clock sits this far below the middle of the top strip (measured in the simulator). */
-const DUO_CLOCK_OFFSET = 9;
 
 export interface TransparentPageHeaderProps {
   title: string;

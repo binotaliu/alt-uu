@@ -43,7 +43,7 @@ export function BackButton({ href, onPress, className }: BackButtonProps) {
     <Pressable
       accessibilityRole="button"
       accessibilityLabel="返回"
-      hitSlop={8}
+      hitSlop={12}
       onPress={handlePress}
       className={className ?? 'items-center justify-center px-3 py-1.5'}
     >

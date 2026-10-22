@@ -112,3 +112,13 @@ export const DuoLayoutContext = createContext<DuoLayout>(NOT_FOLDABLE);
 export function useDuoLayout(): DuoLayout {
   return useContext(DuoLayoutContext);
 }
+
+/**
+ * Width the system status area (time, connectivity) takes at the trailing end of the top
+ * strip on the iPhone Duo inner display in portrait. No API reports it, so it is measured
+ * from the simulator: widen it if the title row runs into the status icons.
+ */
+export const DUO_STATUS_AREA_WIDTH = 140;
+
+/** The clock sits this far below the middle of the top strip (measured in the simulator). */
+export const DUO_CLOCK_OFFSET = 9;

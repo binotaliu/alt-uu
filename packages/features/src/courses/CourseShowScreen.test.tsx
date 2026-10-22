@@ -1,4 +1,11 @@
-import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
+import { DuoLayoutContext, type DuoLayout } from '@altuu/ui';
+import {
+  act,
+  fireEvent,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react-native';
 import { router, usePathname } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, Text } from 'react-native';
@@ -336,6 +343,89 @@ describe('CourseShowView', () => {
     expect(await screen.findByText('作業一')).toBeTruthy();
 
     jest.restoreAllMocks();
+  });
+
+  describe('on a folded iPhone Duo', () => {
+    const foldedLayout = (axis: 'vertical' | 'horizontal'): DuoLayout => ({
+      isFoldable: true,
+      display: 'inner',
+      foldFrame:
+        axis === 'vertical'
+          ? { x: 330, y: 0, width: 12, height: 900 }
+          : { x: 0, y: 450, width: 700, height: 12 },
+      foldAxis: axis,
+      sideBar: axis === 'vertical',
+      barEdge: 'right',
+      barWidth: 0,
+      barClearance: { top: 0, bottom: 0 },
+    });
+
+    it('puts the tabs left of a vertical fold and the body right of it', async () => {
+      await renderWithServices(
+        <DuoLayoutContext.Provider value={foldedLayout('vertical')}>
+          <CourseShowView cid="10" />
+        </DuoLayoutContext.Provider>,
+        services(),
+      );
+
+      expect(await screen.findByTestId('fold-split')).toBeTruthy();
+      expect(
+        within(screen.getByTestId('fold-split-first')).getByTestId(
+          'course-fold-tabs',
+        ),
+      ).toBeTruthy();
+      expect(
+        within(screen.getByTestId('fold-split-second')).queryByTestId(
+          'course-fold-tabs',
+        ),
+      ).toBeNull();
+    });
+
+    it('puts the tabs below a horizontal fold', async () => {
+      await renderWithServices(
+        <DuoLayoutContext.Provider value={foldedLayout('horizontal')}>
+          <CourseShowView cid="10" />
+        </DuoLayoutContext.Provider>,
+        services(),
+      );
+
+      expect(
+        within(await screen.findByTestId('fold-split-second')).getByTestId(
+          'course-fold-tabs',
+        ),
+      ).toBeTruthy();
+    });
+
+    it('does not split when the device is fully open', async () => {
+      await renderWithServices(
+        <DuoLayoutContext.Provider
+          value={{
+            ...foldedLayout('vertical'),
+            foldFrame: null,
+            foldAxis: null,
+          }}
+        >
+          <CourseShowView cid="10" />
+        </DuoLayoutContext.Provider>,
+        services(),
+      );
+
+      expect(await screen.findByTestId('course-tab-homework')).toBeTruthy();
+      expect(screen.queryByTestId('fold-split')).toBeNull();
+    });
+
+    it('still switches tabs from the pane', async () => {
+      await renderWithServices(
+        <DuoLayoutContext.Provider value={foldedLayout('vertical')}>
+          <CourseShowView cid="10" />
+        </DuoLayoutContext.Provider>,
+        services(),
+      );
+
+      await fireEvent.press(await screen.findByTestId('course-tab-homework'));
+
+      expect(await screen.findByText('作業一')).toBeTruthy();
+    });
   });
 
   it('falls back to materials for an unknown tab', () => {

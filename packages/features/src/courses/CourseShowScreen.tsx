@@ -1,8 +1,10 @@
 import {
+  FoldSplit,
   Icon,
   PageHeader,
   Screen,
   Text,
+  useDuoLayout,
   useIsTablet,
   type IconName,
 } from '@altuu/ui';
@@ -113,6 +115,7 @@ export function CourseShowView({
   const tasks = useCourseTasksCount();
   const queryClient = useQueryClient();
   const isTablet = useIsTablet();
+  const { foldFrame, foldAxis } = useDuoLayout();
   const { bottom: bottomInset } = useSafeAreaInsets();
   const pathname = usePathname();
   const refreshOnReturn = useRef(false);
@@ -185,7 +188,9 @@ export function CourseShowView({
         : 0;
 
   const sidebar = (
-    <View className="w-56 gap-1 self-start rounded-2xl border border-theme-200 bg-white/90 p-1 dark:border-zinc-700 dark:bg-zinc-900/90">
+    <View
+      className={`${foldFrame ? 'w-full' : 'w-56'} gap-1 self-start rounded-2xl border border-theme-200 bg-white/90 p-1 dark:border-zinc-700 dark:bg-zinc-900/90`}
+    >
       {courseTabs.map((tab) => {
         const selected = tab.id === activeTab;
         const badge = badgeFor(tab.id);
@@ -280,29 +285,57 @@ export function CourseShowView({
   const bodyScroll =
     activeTab === 'materials' ? materialsBody : otherBodyScroll;
 
+  const header = (
+    <PageHeader
+      title={course?.name || `課程 ${cid}`}
+      isLoading={courses.isPending}
+      backHref="/courses"
+      below={
+        course && (course.semester || course.courseType || course.className) ? (
+          <View className="flex-row items-center">
+            {course.semester ? (
+              <Text className="mr-2 shrink-0 text-sm font-medium text-theme-700 dark:text-zinc-300">
+                {course.semester}
+              </Text>
+            ) : null}
+            <CourseChips
+              courseType={course.courseType}
+              className={course.className}
+            />
+          </View>
+        ) : null
+      }
+    />
+  );
+
+  // Folded iPhone Duo: nothing interactive may cross the hinge, so the course navigation
+  // and the body become two panes either side of it; the header bar spans the window and
+  // keeps its content off the fold. Book posture (vertical fold): tabs left, body right.
+  // Tabletop posture (horizontal fold): body above, tabs below, since the lower half is
+  // the one to reach with a thumb.
+  if (foldFrame) {
+    const horizontal = foldAxis === 'horizontal';
+    const tabList = (
+      <ScrollView testID="course-fold-tabs" contentContainerClassName="p-3">
+        {sidebar}
+      </ScrollView>
+    );
+    const body = <View className="min-h-0 flex-1 px-3 pt-3">{bodyScroll}</View>;
+
+    return (
+      <Screen ignoreTopInset ignoreBottomInset>
+        {header}
+        <FoldSplit
+          first={horizontal ? body : tabList}
+          second={horizontal ? tabList : body}
+        />
+      </Screen>
+    );
+  }
+
   return (
     <Screen ignoreTopInset ignoreBottomInset>
-      <PageHeader
-        title={course?.name || `課程 ${cid}`}
-        isLoading={courses.isPending}
-        backHref="/courses"
-        below={
-          course &&
-          (course.semester || course.courseType || course.className) ? (
-            <View className="flex-row items-center">
-              {course.semester ? (
-                <Text className="mr-2 shrink-0 text-sm font-medium text-theme-700 dark:text-zinc-300">
-                  {course.semester}
-                </Text>
-              ) : null}
-              <CourseChips
-                courseType={course.courseType}
-                className={course.className}
-              />
-            </View>
-          ) : null
-        }
-      />
+      {header}
 
       {isTablet ? (
         <View className="mx-auto w-full max-w-6xl flex-1 flex-row gap-4 px-4 pt-4">
