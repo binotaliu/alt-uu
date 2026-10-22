@@ -35,6 +35,28 @@ describe('deriveDuoLayout', () => {
     ).toMatchObject({ isFoldable: true, display: 'outer', sideBar: true });
   });
 
+  it('puts the bar on the status side and clear of the camera block', () => {
+    const block = (x: number, y: number): ReservedRegion => ({
+      kind: 'occlusion',
+      active: true,
+      frame: { x, y, width: 84, height: 82 },
+    });
+
+    expect(
+      deriveDuoLayout([camera, block(0, 0)], { width: 678, height: 466 }),
+    ).toMatchObject({
+      barEdge: 'left',
+      barWidth: 84,
+      barClearance: { top: 90, bottom: 0 },
+    });
+    expect(
+      deriveDuoLayout([camera, block(594, 384)], { width: 678, height: 466 }),
+    ).toMatchObject({
+      barEdge: 'right',
+      barClearance: { top: 0, bottom: 90 },
+    });
+  });
+
   it('ignores a centred camera cut-out on a regular iPhone', () => {
     const island: ReservedRegion = {
       kind: 'occlusion',

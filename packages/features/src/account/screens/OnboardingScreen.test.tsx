@@ -69,6 +69,9 @@ describe('OnboardingScreen', () => {
       foldFrame: { x: 360, y: 0, width: 12, height: 800 },
       foldAxis: 'vertical',
       sideBar: false,
+      barEdge: 'right',
+      barWidth: 0,
+      barClearance: { top: 0, bottom: 0 },
     };
 
     await renderScreen(

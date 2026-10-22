@@ -84,6 +84,15 @@ export interface DuoLayout {
    * horizontal bars.
    */
   sideBar: boolean;
+  /**
+   * Edge of the side bar: the one the system keeps for the status area, which turns
+   * with the device (the camera side).
+   */
+  barEdge: 'left' | 'right';
+  /** Width the system reserves on `barEdge`, 0 when it reports none. */
+  barWidth: number;
+  /** Space the bar leaves at its ends for the status area / camera block. */
+  barClearance: { top: number; bottom: number };
 }
 
 export const NOT_FOLDABLE: DuoLayout = {
@@ -92,6 +101,9 @@ export const NOT_FOLDABLE: DuoLayout = {
   foldFrame: null,
   foldAxis: null,
   sideBar: false,
+  barEdge: 'right',
+  barWidth: 0,
+  barClearance: { top: 0, bottom: 0 },
 };
 
 /** Provided by the app shell; `NOT_FOLDABLE` without a provider. */

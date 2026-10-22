@@ -33,6 +33,9 @@ const sideBarLayout: DuoLayout = {
   foldFrame: null,
   foldAxis: null,
   sideBar: true,
+  barEdge: 'right',
+  barWidth: 84,
+  barClearance: { top: 0, bottom: 0 },
 };
 
 async function renderTabs(layout: DuoLayout, width = 390) {

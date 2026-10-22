@@ -11,6 +11,10 @@ function isSameLayout(a: DuoLayout, b: DuoLayout): boolean {
     a.display === b.display &&
     a.foldAxis === b.foldAxis &&
     a.sideBar === b.sideBar &&
+    a.barEdge === b.barEdge &&
+    a.barWidth === b.barWidth &&
+    a.barClearance.top === b.barClearance.top &&
+    a.barClearance.bottom === b.barClearance.bottom &&
     a.foldFrame?.x === b.foldFrame?.x &&
     a.foldFrame?.y === b.foldFrame?.y &&
     a.foldFrame?.width === b.foldFrame?.width &&

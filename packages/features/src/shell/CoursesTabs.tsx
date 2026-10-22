@@ -232,7 +232,7 @@ export function CoursesTabs() {
   const runtime = useServiceRuntime();
   const insets = useSafeAreaInsets();
   const isTablet = useIsTablet();
-  const { sideBar } = useDuoLayout();
+  const { sideBar, barEdge, barWidth, barClearance } = useDuoLayout();
   const nouToolsEnabled = useClientConfigStore(
     (state) => state.preferences.nouToolsIntegrationEnabled,
   );
@@ -269,36 +269,45 @@ export function CoursesTabs() {
   ));
 
   // iPhone Duo: iOS moves system bars to the side, but these bars are drawn here, so
-  // the rail is ours. The rail takes over the trailing safe-area inset from the page.
+  // the rail is ours. It sits on the edge the system keeps for the status area (the
+  // camera side, which turns with the device) and takes over that safe-area inset.
   if (sideBar) {
+    const onLeft = barEdge === 'left';
+    const page = (
+      <SafeAreaInsetsContext.Provider value={{ ...insets, [barEdge]: 0 }}>
+        <View className="flex-1">
+          <TabSlot />
+        </View>
+      </SafeAreaInsetsContext.Provider>
+    );
+
     return (
       <View className="flex-1 bg-theme-100 dark:bg-zinc-950">
         <Tabs style={{ flex: 1, flexDirection: 'row' }}>
-          <SafeAreaInsetsContext.Provider value={{ ...insets, right: 0 }}>
-            <View className="flex-1">
-              <TabSlot />
-            </View>
-          </SafeAreaInsetsContext.Provider>
+          {onLeft ? null : page}
           <TabList asChild>
             <View
               testID="tab-rail"
-              className="items-center justify-end gap-2 border-l border-theme-200 bg-white dark:border-zinc-700 dark:bg-zinc-900"
+              className={`items-center justify-end gap-2 border-theme-200 bg-white dark:border-zinc-700 dark:bg-zinc-900 ${
+                onLeft ? 'border-r' : 'border-l'
+              }`}
               // TabList defaults to a row with space-between; the rail is a column.
               style={{
                 flexDirection: 'column',
                 justifyContent: 'flex-end',
-                paddingTop: insets.top + 8,
-                paddingBottom: Math.max(insets.bottom, 12),
+                paddingTop: Math.max(insets.top + 8, barClearance.top),
+                paddingBottom: Math.max(insets.bottom, 12, barClearance.bottom),
                 // The system reserves this strip for the status area: match its width
                 // instead of adding to it, and centre the icons under it.
-                width: Math.max(insets.right, 64),
-                // The status icons centre about 6 pt inside the strip's leading edge.
-                paddingRight: 13,
+                width: barWidth || Math.max(insets[barEdge], 64),
+                // The status icons centre about 6 pt inside the strip's inner edge.
+                ...(onLeft ? { paddingLeft: 13 } : { paddingRight: 13 }),
               }}
             >
               {tabTriggers}
             </View>
           </TabList>
+          {onLeft ? page : null}
           <NouToolsEnableDialog
             visible={dialogOpen}
             onClose={() => setDialogOpen(false)}
