@@ -61,6 +61,10 @@ export type CapturedFrameImage =
   VideoThumbnail | { uri: string; width: number; height: number };
 
 export interface MaterialPlayerProps {
+  /** The player of the surrounding {@link MaterialPlayerHost}. */
+  player: VideoPlayer;
+  /** The source `player` was created from, for {@link MaterialPlayerHandle.reload}. */
+  source: VideoSource;
   videoUrl: string;
   isAudio: boolean;
   /** Now-playing title (the material). */
@@ -72,8 +76,6 @@ export interface MaterialPlayerProps {
   onEnded?: () => void;
   /** Fill the parent (no aspect ratio, corners or shadow) instead of a 16:9 card. */
   fill?: boolean;
-  /** Seconds to start from, for a player remounted by a layout change. Read once on mount. */
-  getStartAt?: () => number;
   ref?: Ref<MaterialPlayerHandle>;
 }
 
@@ -95,16 +97,67 @@ function readProgress(player: VideoPlayer): PlaybackProgress {
   };
 }
 
+/** What {@link MaterialPlayerHost} publishes for the {@link MaterialPlayer} views of `url`. */
+export interface MaterialPlayerSession {
+  url: string;
+  player: VideoPlayer;
+  source: VideoSource;
+}
+
+export interface MaterialPlayerHostProps {
+  videoUrl: string;
+  /** Now-playing title (the material). */
+  title: string;
+  /** Now-playing artist (the course). */
+  courseTitle: string;
+  onSessionChange: (session: MaterialPlayerSession | null) => void;
+}
+
+/**
+ * Owns the expo-video player of one material and renders nothing. It sits at a fixed spot of
+ * the page, so a layout change (rotation, folding the iPhone Duo) that moves the
+ * {@link MaterialPlayer} view to another place in the tree remounts the view only: the
+ * player keeps playing. Mount with `key={videoUrl}`: the source (and its metadata) is fixed
+ * for the lifetime of the player so a late title does not restart playback.
+ */
+export function MaterialPlayerHost({
+  videoUrl,
+  title,
+  courseTitle,
+  onSessionChange,
+}: MaterialPlayerHostProps) {
+  const [source] = useState<VideoSource>(() => ({
+    uri: videoUrl,
+    metadata: { title, artist: courseTitle },
+  }));
+  const [initialRate] = useState(() => usePlaybackRateStore.getState().rate);
+  const player = useVideoPlayer(source, (created) => {
+    created.timeUpdateEventInterval = 1;
+    created.showNowPlayingNotification = true;
+    created.staysActiveInBackground = true;
+    created.playbackRate = initialRate;
+    created.play();
+  });
+
+  useEffect(() => {
+    onSessionChange({ url: videoUrl, player, source });
+
+    return () => onSessionChange(null);
+  }, [onSessionChange, player, source, videoUrl]);
+
+  return null;
+}
+
 /**
  * expo-video replacement of the legacy native media player: inline video
  * with native controls, PiP (auto on background), fullscreen in landscape,
  * lock-screen / notification controls with material + course metadata,
- * background playback, and the custom audio card for 語音 courses.
- *
- * Mount with `key={videoUrl}`: the source (and its metadata) is fixed for
- * the lifetime of the player so a late title does not restart playback.
+ * background playback, and the custom audio card for 語音 courses. The view
+ * of the player a {@link MaterialPlayerHost} owns.
  */
 export function MaterialPlayer({
+  player,
+  source,
   videoUrl,
   isAudio,
   title,
@@ -112,39 +165,16 @@ export function MaterialPlayer({
   onProgress,
   onEnded,
   fill = false,
-  getStartAt,
   ref,
 }: MaterialPlayerProps) {
-  const [source] = useState<VideoSource>(() => ({
-    uri: videoUrl,
-    metadata: { title, artist: courseTitle },
-  }));
-  const storedRate = usePlaybackRateStore((state) => state.rate);
   const setStoredRate = usePlaybackRateStore((state) => state.setRate);
-  const [initialRate] = useState(storedRate);
-  const [initialTime] = useState(() => getStartAt?.() ?? 0);
-  const player = useVideoPlayer(source, (created) => {
-    created.timeUpdateEventInterval = 1;
-    created.showNowPlayingNotification = true;
-    created.staysActiveInBackground = true;
-    created.playbackRate = initialRate;
-
-    if (initialTime > 0) {
-      seekPlayer(created, initialTime);
-    }
-
-    created.play();
-  });
   const videoViewRef = useRef<VideoView>(null);
   const videoFrameRef = useRef<ComponentRef<typeof View>>(null);
   const isFullscreenRef = useRef(false);
   const scrubbingRef = useRef(false);
-  const [progress, setProgress] = useState<PlaybackProgress>({
-    currentTime: 0,
-    duration: 0,
-    rate: initialRate,
-    playing: false,
-  });
+  const [progress, setProgress] = useState<PlaybackProgress>(() =>
+    readProgress(player),
+  );
   const [failed, setFailed] = useState(false);
   const [reloading, setReloading] = useState(false);
   const onProgressRef = useRef(onProgress);

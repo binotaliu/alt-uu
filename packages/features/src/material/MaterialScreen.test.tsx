@@ -236,30 +236,33 @@ function setup(
 
   const queryClient = createTestQueryClient();
 
+  const screenTree = (scoid: string, layout: DuoLayout = NOT_FOLDABLE) => (
+    <SafeAreaProvider
+      initialMetrics={{
+        frame: { x: 0, y: 0, width: 390, height: 844 },
+        insets: { top: 0, left: 0, right: 0, bottom: 0 },
+      }}
+    >
+      <AppServicesProvider
+        services={fake.services}
+        queryClient={queryClient}
+        router={{ push: jest.fn(), replace: jest.fn() }}
+      >
+        <DuoLayoutContext.Provider value={layout}>
+          <MaterialScreen cid="C1" scoid={scoid} />
+        </DuoLayoutContext.Provider>
+      </AppServicesProvider>
+    </SafeAreaProvider>
+  );
+
   return {
     ...fake,
     record,
     getNodeContent,
     prepareMaterialFetch,
+    screenTree,
     renderScreen: (scoid: string, layout: DuoLayout = NOT_FOLDABLE) =>
-      render(
-        <SafeAreaProvider
-          initialMetrics={{
-            frame: { x: 0, y: 0, width: 390, height: 844 },
-            insets: { top: 0, left: 0, right: 0, bottom: 0 },
-          }}
-        >
-          <AppServicesProvider
-            services={fake.services}
-            queryClient={queryClient}
-            router={{ push: jest.fn(), replace: jest.fn() }}
-          >
-            <DuoLayoutContext.Provider value={layout}>
-              <MaterialScreen cid="C1" scoid={scoid} />
-            </DuoLayoutContext.Provider>
-          </AppServicesProvider>
-        </SafeAreaProvider>,
-      ),
+      render(screenTree(scoid, layout)),
   };
 }
 
@@ -432,7 +435,9 @@ describe('MaterialScreen', () => {
       const { renderScreen } = setup();
 
       await renderScreen('video', laptopFold);
-      await waitFor(() => expect(createdPlayers).toHaveLength(1));
+      await waitFor(() =>
+        expect(screen.getByTestId('video-view')).toBeTruthy(),
+      );
 
       expect(screen.getByTestId('video-control-bar')).toBeTruthy();
       expect(screen.getByTestId('fold-split-first')).toBeTruthy();
@@ -454,6 +459,34 @@ describe('MaterialScreen', () => {
       await waitFor(() =>
         expect(mockSetOptions).toHaveBeenCalledWith({ gestureEnabled: false }),
       );
+    });
+
+    it('keeps the same playing player across a fold', async () => {
+      const { screenTree } = setup();
+      const view = await render(screenTree('video'));
+
+      await waitFor(() => expect(createdPlayers).toHaveLength(1));
+
+      const player = createdPlayers[0];
+
+      if (player === undefined) {
+        throw new Error('no player');
+      }
+
+      player.currentTime = 42;
+
+      await view.rerender(screenTree('video', laptopFold));
+      await waitFor(() =>
+        expect(screen.getByTestId('video-control-bar')).toBeTruthy(),
+      );
+      await view.rerender(screenTree('video'));
+      await waitFor(() =>
+        expect(screen.queryByTestId('video-control-bar')).toBeNull(),
+      );
+
+      expect(createdPlayers).toHaveLength(1);
+      expect(player.currentTime).toBe(42);
+      expect(player.playing).toBe(true);
     });
 
     it('keeps the normal layout when the device is not folded', async () => {

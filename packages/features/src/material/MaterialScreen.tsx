@@ -79,7 +79,9 @@ import { MaterialViewer } from './MaterialViewer';
 import { useFrameCapture } from './player/FrameCaptureComposer';
 import {
   MaterialPlayer,
+  MaterialPlayerHost,
   type MaterialPlayerHandle,
+  type MaterialPlayerSession,
   type PlaybackProgress,
 } from './player/MaterialPlayer';
 import { usePlaybackRateStore } from './player/PlaybackRateMenu';
@@ -265,7 +267,8 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
   const { foldFrame, foldAxis } = useDuoLayout();
   // The latest playback state, kept only while the folded layout shows its own controls.
   const [playback, setPlayback] = useState<PlaybackProgress | null>(null);
-  const lastPositionRef = useRef(0);
+  const [playerSession, setPlayerSession] =
+    useState<MaterialPlayerSession | null>(null);
   const playerRef = useRef<MaterialPlayerHandle>(null);
   const youtubeRef = useRef<YoutubeEmbedHandle>(null);
   const playbackRef = useRef({ playing: false, lastCheckpointAt: 0 });
@@ -722,7 +725,6 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
 
   const handleProgress = useCallback(
     (progress: PlaybackProgress) => {
-      lastPositionRef.current = progress.currentTime;
       timer.updatePlaybackPosition(progress.currentTime);
       timer.updateMediaDuration(progress.duration);
 
@@ -947,6 +949,12 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
     [effectiveFontScale, queryClient, services],
   );
 
+  // The prompt seeks through the player view, which mounts once the host published its player.
+  const playerMounted =
+    isYoutube ||
+    (playerSession !== null &&
+      playerSession.url === displayedContent?.videoUrl);
+
   const handleResume = () => {
     const position = resume?.position;
 
@@ -1040,16 +1048,17 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
         onProgress={handleYoutubeProgress}
         onExternalLink={(url) => void openExternal(url)}
       />
-    ) : (
+    ) : playerSession?.url === content.videoUrl ? (
       <MaterialPlayer
         key={content.videoUrl}
         ref={playerRef}
+        player={playerSession.player}
+        source={playerSession.source}
         videoUrl={content.videoUrl as string}
         isAudio={isAudio}
         title={activeNodeText}
         courseTitle={courseTitle}
         fill={fill}
-        getStartAt={fill ? () => lastPositionRef.current : undefined}
         onProgress={(progress) => {
           handleProgress(progress);
 
@@ -1059,7 +1068,7 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
         }}
         onEnded={handleMediaEnded}
       />
-    );
+    ) : null;
 
   const playerSection = showPlayer ? (
     <View className="bg-theme-100 px-3 pb-2 pt-3 dark:bg-zinc-950">
@@ -1198,6 +1207,15 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
 
   return (
     <Screen testID="material-screen" ignoreTopInset ignoreBottomInset>
+      {showPlayer && !isYoutube && displayedContent?.videoUrl ? (
+        <MaterialPlayerHost
+          key={displayedContent.videoUrl}
+          videoUrl={displayedContent.videoUrl}
+          title={activeNodeText}
+          courseTitle={courseTitle}
+          onSessionChange={setPlayerSession}
+        />
+      ) : null}
       <PageHeader
         title={courseTitle}
         subtitle={activeNodeText || '檢視教材'}
@@ -1332,7 +1350,7 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
         onStop={() => setImmersiveRequested(false)}
       />
       <ResumePrompt
-        label={resume?.label ?? null}
+        label={playerMounted ? (resume?.label ?? null) : null}
         onResume={handleResume}
         onRestart={() => setResume(null)}
       />
