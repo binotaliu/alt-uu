@@ -292,6 +292,8 @@ export function CoursesTabs() {
                 // The system reserves this strip for the status area: match its width
                 // instead of adding to it, and centre the icons under it.
                 width: Math.max(insets.right, 64),
+                // The status icons centre about 6 pt inside the strip's leading edge.
+                paddingRight: 13,
               }}
             >
               {tabTriggers}

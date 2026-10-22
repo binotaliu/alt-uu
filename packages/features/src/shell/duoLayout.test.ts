@@ -23,6 +23,30 @@ describe('deriveDuoLayout', () => {
     expect(layout.display).toBe('other');
   });
 
+  it('recognises the closed outer display by its edge status strip', () => {
+    const strip: ReservedRegion = {
+      kind: 'occlusion',
+      active: true,
+      frame: { x: 382, y: 0, width: 84, height: 174 },
+    };
+
+    expect(
+      deriveDuoLayout([camera, strip], { width: 466, height: 678 }),
+    ).toMatchObject({ isFoldable: true, display: 'outer', sideBar: true });
+  });
+
+  it('ignores a centred camera cut-out on a regular iPhone', () => {
+    const island: ReservedRegion = {
+      kind: 'occlusion',
+      active: true,
+      frame: { x: 132, y: 11, width: 126, height: 37 },
+    };
+
+    expect(
+      deriveDuoLayout([island], { width: 390, height: 844 }).isFoldable,
+    ).toBe(false);
+  });
+
   it('puts the side bar on the outer display in any orientation', () => {
     expect(
       deriveDuoLayout([fold(false)], { width: 390, height: 844 }),
