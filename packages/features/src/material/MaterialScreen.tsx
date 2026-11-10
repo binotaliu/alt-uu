@@ -1,7 +1,10 @@
 import type { CourseMaterialNode, ParsedMaterialContent } from '@altuu/core';
 import {
+  Button,
+  Icon,
   PageHeader,
   Screen,
+  Sheet,
   Text,
   FoldSplit,
   ToggleSwitch,
@@ -225,6 +228,7 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
   const isTablet = useIsTablet();
   const { width, height } = useWindowDimensions();
   const [directoryOpen, setDirectoryOpen] = useState(false);
+  const [immersiveInfoOpen, setImmersiveInfoOpen] = useState(false);
   const learningTimes = useCourseLearningTimes(cid);
   const lastSeen = useLastSeenMaterial(cid);
 
@@ -1206,7 +1210,24 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
       <View className="rounded-2xl border border-theme-200 bg-white/90 px-4 dark:border-zinc-700 dark:bg-zinc-900">
         <ToggleSwitch
           label="沉浸式播放"
-          labelAccessory={isSubscribed ? null : <PremiumBadge />}
+          labelAccessory={
+            <>
+              <Pressable
+                testID="immersive-info-button"
+                accessibilityRole="button"
+                accessibilityLabel="沉浸式播放說明"
+                hitSlop={10}
+                onPress={() => setImmersiveInfoOpen(true)}
+              >
+                <Icon
+                  name="question-mark-circle"
+                  size={18}
+                  className="text-theme-600 dark:text-zinc-400"
+                />
+              </Pressable>
+              {isSubscribed ? null : <PremiumBadge />}
+            </>
+          }
           value={immersive}
           onValueChange={handleImmersiveChange}
         />
@@ -1358,6 +1379,29 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
         lastSeenDurationSeconds={lastSeen.data?.mediaDurationSeconds}
         onNodeSelect={(identifier) => void handleNodeSelect(identifier)}
       />
+      <Sheet
+        visible={immersiveInfoOpen}
+        onClose={() => setImmersiveInfoOpen(false)}
+        placement="center"
+      >
+        <View testID="immersive-info-sheet" className="px-5 py-4">
+          <Text className="text-lg font-semibold text-theme-900 dark:text-zinc-100">
+            沉浸式播放
+          </Text>
+          <Text className="mt-2 text-sm leading-6 text-theme-700 dark:text-zinc-400">
+            當你想沉迷於空大精彩的課程影片，只想盯著手機看、不想做其他事時，就可以開啟這個功能。
+          </Text>
+          <Text className="mt-2 text-sm leading-6 text-theme-700 dark:text-zinc-400">
+            這個時候 Alt UU 會幫你一部接著一部播放，讓你沉浸在空大的學術殿堂裡。
+          </Text>
+        </View>
+        <View className="flex-row justify-end border-t border-theme-200 px-5 py-4 dark:border-zinc-700">
+          <Button
+            label="我知道了"
+            onPress={() => setImmersiveInfoOpen(false)}
+          />
+        </View>
+      </Sheet>
       {frameCapture.composer}
       <SavingProgressToast visible={isSaving} />
       <ImmersiveCountdownToast

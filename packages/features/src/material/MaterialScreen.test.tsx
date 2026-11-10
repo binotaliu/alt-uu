@@ -765,6 +765,17 @@ describe('MaterialScreen 沉浸式播放', () => {
     await fireEvent.press(screen.getByLabelText('沉浸式播放'));
   };
 
+  it('explains the feature from the question mark button', async () => {
+    const { renderScreen } = setup();
+    await renderScreen();
+    await fireEvent.press(await screen.findByTestId('immersive-info-button'));
+    expect(await screen.findByTestId('immersive-info-sheet')).toBeTruthy();
+    await fireEvent.press(screen.getByText('我知道了'));
+    await waitFor(() =>
+      expect(screen.queryByTestId('immersive-info-sheet')).toBeNull(),
+    );
+  });
+
   it('sends non-subscribers to the subscription page', async () => {
     const { renderScreen } = setup();
 
