@@ -800,6 +800,23 @@ describe('MaterialScreen 沉浸式播放', () => {
     );
   });
 
+  it('still moves on when reporting the study time fails', async () => {
+    const { renderScreen, record } = setup({ plus: true });
+
+    record.mockRejectedValue(new Error('offline'));
+    await renderScreen('video');
+    await waitFor(() => expect(createdPlayers.length).toBe(1));
+    await toggleImmersive();
+
+    await act(async () => {
+      createdPlayers[0]?.emit('playToEnd');
+    });
+
+    await waitFor(() =>
+      expect(router.setParams).toHaveBeenCalledWith({ scoid: 'pdf' }),
+    );
+  });
+
   it('counts down 30 seconds on materials without media, then moves on', async () => {
     const { renderScreen } = setup({ plus: true });
 

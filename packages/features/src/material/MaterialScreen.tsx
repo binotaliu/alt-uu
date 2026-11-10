@@ -18,6 +18,7 @@ import {
   AppState,
   BackHandler,
   Linking,
+  Platform,
   Pressable,
   ScrollView,
   View,
@@ -651,6 +652,8 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
 
         try {
           await saveStudyTime(previousNode);
+        } catch {
+          // Best effort: a failed report must not strand the user (or 沉浸式播放) on this material.
         } finally {
           savingRef.current = false;
           setIsSaving(false);
@@ -677,9 +680,9 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
   );
 
   /** 沉浸式播放: on to the next material, or finish after the last one. */
-  const advanceImmersive = useCallback(() => {
+  const advanceImmersive = useCallback((): boolean => {
     if (!immersiveRef.current || savingRef.current) {
-      return;
+      return false;
     }
 
     if (next) {
@@ -688,6 +691,8 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
       setImmersiveRequested(false);
       useToastStore.getState().show('沉浸式播放已結束');
     }
+
+    return true;
   }, [handleNodeSelect, next]);
   const advanceImmersiveRef = useRef(advanceImmersive);
 
@@ -706,7 +711,20 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
     }
 
     finishedScoidRef.current = latest.current.activeNode?.identifier ?? null;
-    advanceImmersiveRef.current();
+
+    if (!advanceImmersiveRef.current()) {
+      // Blocked (a save is in flight): let a later end report try again instead of stalling.
+      finishedScoidRef.current = null;
+    }
+  }, []);
+
+  const handleVideoPictureInPictureStart = useCallback(() => {
+    // iOS cannot hand a Picture in Picture window over to the next material's player.
+    if (Platform.OS === 'ios' && immersiveRef.current) {
+      useToastStore
+        .getState()
+        .show('子母畫面中無法自動播放下一個教材，請回到 App 繼續');
+    }
   }, []);
 
   const handleImmersiveChange = (enabled: boolean) => {
@@ -1067,6 +1085,7 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
           }
         }}
         onEnded={handleMediaEnded}
+        onPictureInPictureStart={handleVideoPictureInPictureStart}
       />
     ) : null;
 
