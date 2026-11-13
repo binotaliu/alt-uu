@@ -1,14 +1,12 @@
 import type { AttachmentViewModel } from '@altuu/core';
-import { ConfirmDialog, Sheet, Text, Icon } from '@altuu/ui';
+import { ConfirmDialog, Text, Icon } from '@altuu/ui';
 import { Image, type ImageSource } from 'expo-image';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, View } from 'react-native';
 
-import {
-  isImageAttachment,
-  useAttachmentRequest,
-  useOpenAttachment,
-} from '../attachments';
+import { NoViewerSheet } from '../../courses/attachments/NoViewerSheet';
+import { useAttachmentDownload } from '../../courses/attachments/useAttachmentDownload';
+import { isImageAttachment, useAttachmentRequest } from '../attachments';
 
 export interface AttachmentSectionProps {
   cid: string;
@@ -33,7 +31,7 @@ export function AttachmentSection({
     new Set(),
   );
   const [pending, setPending] = useState<AttachmentViewModel | null>(null);
-  const opener = useOpenAttachment(cid);
+  const download = useAttachmentDownload();
 
   const isDisplayableImage = (attachment: AttachmentViewModel): boolean =>
     !!attachment.href &&
@@ -50,9 +48,11 @@ export function AttachmentSection({
     setPending(null);
 
     if (target?.href) {
-      opener.mutate({
-        href: target.href,
-        filename: target.filename,
+      void download.start({
+        source: 'hungu',
+        url: target.href,
+        cid,
+        fileName: target.filename,
       });
     }
   };
@@ -122,33 +122,34 @@ export function AttachmentSection({
         onCancel={() => setPending(null)}
       />
 
-      <Sheet
-        visible={opener.isPending}
-        onClose={() => undefined}
-        dismissOnBackdrop={false}
-        placement="center"
-      >
-        <View className="flex-row items-center gap-3 px-5 py-4">
+      {/* Inline, not a Modal: iOS cannot present QuickLook over a dismissing modal. */}
+      {download.state.status === 'downloading' ? (
+        <View className="mt-2 flex-row items-center gap-3">
           <ActivityIndicator />
-          <View className="min-w-0 flex-1">
-            <Text className="text-sm font-semibold text-theme-900 dark:text-zinc-100">
-              正在處理附件
-            </Text>
-            <Text className="mt-1 text-xs text-theme-700 dark:text-zinc-400">
-              正在下載附件，請稍候…
-            </Text>
-          </View>
+          <Text className="min-w-0 flex-1 text-xs text-theme-700 dark:text-zinc-400">
+            {download.state.progress !== null
+              ? `正在下載附件 ${Math.round(download.state.progress * 100)}%`
+              : '正在下載附件，請稍候…'}
+          </Text>
         </View>
-      </Sheet>
+      ) : null}
 
       <ConfirmDialog
-        isOpen={opener.isError}
+        isOpen={download.state.status === 'error'}
         title="下載失敗"
-        message={opener.error?.message ?? ''}
+        message={
+          download.state.status === 'error' ? download.state.message : ''
+        }
         confirmLabel="確定"
         cancelLabel="關閉"
-        onConfirm={() => opener.reset()}
-        onCancel={() => opener.reset()}
+        onConfirm={download.dismiss}
+        onCancel={download.dismiss}
+      />
+
+      <NoViewerSheet
+        visible={download.state.status === 'noViewer'}
+        onSave={() => void download.saveFile()}
+        onDismiss={download.dismiss}
       />
     </View>
   );

@@ -1,6 +1,4 @@
-import { download, previewFile } from '@altuu/attachment-bridge';
-
-import { useServiceMutation, useServiceQuery } from '../services';
+import { useServiceQuery } from '../services';
 
 const IMAGE_EXTENSIONS = new Set([
   'jpg',
@@ -54,29 +52,5 @@ export function useAttachmentRequest(
     enabled,
     staleTime: 5 * 60 * 1000,
     retry: false,
-  });
-}
-
-export interface OpenAttachmentVariables {
-  href: string;
-  filename: string | null;
-}
-
-/** Downloads an attachment with the session and hands it to the OS viewer. */
-export function useOpenAttachment(cid: string) {
-  return useServiceMutation<void, OpenAttachmentVariables>({
-    op: 'attachments.tasks',
-    mutationFn: async ({ href, filename }, services) => {
-      const request = await services.course.prepareMaterialFetch(href, {
-        cid,
-      });
-      const result = await download({
-        url: request.url,
-        headers: request.headers,
-        fileName: filename ?? undefined,
-      });
-
-      await previewFile(result.uri, result.mimeType);
-    },
   });
 }
