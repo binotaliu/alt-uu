@@ -120,8 +120,17 @@ export const webViewModule = (() => {
   return { __esModule: true, default: WebView, WebView };
 })();
 
+export const networkListeners = new Set<(state: { type: string }) => void>();
+
 export const expoNetworkModule = {
   NetworkStateType: { CELLULAR: 'CELLULAR', WIFI: 'WIFI' },
+  addNetworkStateListener: jest.fn(
+    (listener: (state: { type: string }) => void) => {
+      networkListeners.add(listener);
+
+      return { remove: () => networkListeners.delete(listener) };
+    },
+  ),
   getNetworkStateAsync: jest.fn(async () => ({
     type: 'WIFI',
     isConnected: true,

@@ -75,11 +75,17 @@ export function ResumePrompt({
 
 export interface CellularPromptProps {
   visible: boolean;
+  /** Label of the decline button; it leaves the material, unless turning on 沉浸式播放 asked. */
+  declineLabel?: string;
   onResolve: (allowed: boolean, dontAskAgain: boolean) => void;
 }
 
 /** 「使用行動網路播放？」 (legacy cellular confirmation). */
-export function CellularPrompt({ visible, onResolve }: CellularPromptProps) {
+export function CellularPrompt({
+  visible,
+  declineLabel = '返回課程',
+  onResolve,
+}: CellularPromptProps) {
   const [dontAskAgain, setDontAskAgain] = useState(false);
 
   const resolve = (allowed: boolean) => {
@@ -124,7 +130,7 @@ export function CellularPrompt({ visible, onResolve }: CellularPromptProps) {
         </Pressable>
         <PromptActions
           primaryLabel="繼續播放"
-          secondaryLabel="返回課程"
+          secondaryLabel={declineLabel}
           onPrimary={() => resolve(true)}
           onSecondary={() => resolve(false)}
         />

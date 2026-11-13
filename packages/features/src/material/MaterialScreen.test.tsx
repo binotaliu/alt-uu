@@ -27,11 +27,13 @@ import {
   createTestQueryClient,
   resetStores,
 } from '../testing/fakeServices';
+import { useImmersiveStoppedNotice } from './immersiveStoppedNotice';
 import { MaterialScreen } from './MaterialScreen';
 import { usePlaybackRateStore } from './player/PlaybackRateMenu';
 import {
   createdPlayers,
   expoNetworkModule,
+  networkListeners,
   webViewInstances,
 } from './testDoubles';
 
@@ -827,6 +829,55 @@ describe('MaterialScreen 沉浸式播放', () => {
     // iOS warns about Picture in Picture before switching on.
     await fireEvent.press(await screen.findByText('開啟'));
   };
+
+  it('asks once about cellular when turned on over mobile data', async () => {
+    useClientConfigStore.setState((state) => ({
+      preferences: {
+        ...state.preferences,
+        cellularPlaybackWarningEnabled: true,
+      },
+    }));
+    expoNetworkModule.getNetworkStateAsync.mockResolvedValue({
+      type: 'CELLULAR',
+      isConnected: true,
+    });
+    const { renderScreen } = setup({ plus: true });
+
+    await renderScreen('html');
+    await waitFor(() => expect(screen.queryByText('Alt UU+')).toBeNull());
+    await fireEvent.press(screen.getByLabelText('沉浸式播放'));
+    expect(await screen.findByText('使用行動網路播放？')).toBeTruthy();
+
+    await fireEvent.press(screen.getByText('不開啟'));
+    expect(
+      screen.getByLabelText('沉浸式播放').props.accessibilityState,
+    ).toEqual(expect.objectContaining({ checked: false }));
+  });
+
+  it('stops and explains when the network switches to cellular', async () => {
+    useClientConfigStore.setState((state) => ({
+      preferences: {
+        ...state.preferences,
+        cellularPlaybackWarningEnabled: true,
+      },
+    }));
+    expoNetworkModule.getNetworkStateAsync.mockResolvedValue({
+      type: 'WIFI',
+      isConnected: true,
+    });
+    const { renderScreen } = setup({ plus: true });
+
+    await renderScreen('html');
+    await toggleImmersive();
+    await waitFor(() => expect(networkListeners.size).toBe(1));
+
+    await act(async () => {
+      networkListeners.forEach((listener) => listener({ type: 'CELLULAR' }));
+    });
+
+    await waitFor(() => expect(router.back).toHaveBeenCalled());
+    expect(useImmersiveStoppedNotice.getState().open).toBe(true);
+  });
 
   it('explains the feature from the question mark button', async () => {
     const { renderScreen } = setup();

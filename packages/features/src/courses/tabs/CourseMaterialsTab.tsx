@@ -4,6 +4,7 @@ import { ScrollView, View } from 'react-native';
 
 import { Card, Skeleton } from '../components/primitives';
 import { useCourseLearningTimes, useLastSeenMaterial } from '../courseQueries';
+import { ImmersiveStoppedDialog } from '../../material/immersiveStoppedNotice';
 import { MaterialDirectory } from '../MaterialDirectory';
 import { ErrorRetry } from '../../shell/ErrorRetry';
 
@@ -53,16 +54,19 @@ export function CourseMaterialsTab({
   }
 
   return (
-    <Card className="shrink overflow-hidden p-0">
-      <MaterialDirectory
-        className="shrink"
-        refreshControl={refreshControl}
-        selectedCid={cid}
-        nodes={learningTimes.data}
-        lastSeenIdentifier={lastSeen.data?.activityId ?? null}
-        lastSeenPositionSeconds={lastSeen.data?.positionSeconds}
-        lastSeenDurationSeconds={lastSeen.data?.mediaDurationSeconds}
-      />
-    </Card>
+    <>
+      <Card className="shrink overflow-hidden p-0">
+        <MaterialDirectory
+          className="shrink"
+          refreshControl={refreshControl}
+          selectedCid={cid}
+          nodes={learningTimes.data}
+          lastSeenIdentifier={lastSeen.data?.activityId ?? null}
+          lastSeenPositionSeconds={lastSeen.data?.positionSeconds}
+          lastSeenDurationSeconds={lastSeen.data?.mediaDurationSeconds}
+        />
+      </Card>
+      <ImmersiveStoppedDialog />
+    </>
   );
 }

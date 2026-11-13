@@ -42,6 +42,7 @@ import { useServiceRuntime } from '../services/AppServicesProvider';
 import { useAppPreferences, useIsSubscribed } from '../services/hooks';
 import { asServiceError } from '../services/serviceError';
 import { useToastStore } from '../services/stores';
+import { useImmersiveStoppedNotice } from './immersiveStoppedNotice';
 import { ErrorRetry } from '../shell/ErrorRetry';
 import { openExternalUrl, openInAppBrowser } from '../shell/openUrl';
 import {
@@ -270,6 +271,7 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
   const [isSubpageLoading, setIsSubpageLoading] = useState(false);
   const [readyScoid, setReadyScoid] = useState<string | null>(null);
   const [cellularOpen, setCellularOpen] = useState(false);
+  const [cellularForImmersive, setCellularForImmersive] = useState(false);
   const cellularResolveRef = useRef<((allowed: boolean) => void) | null>(null);
   const [resume, setResume] = useState<{
     position: number;
@@ -434,7 +436,8 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
   );
 
   const ensureCellularPlaybackAllowed = useCallback(async () => {
-    if (!preferences.cellularPlaybackWarningEnabled) {
+    // 沉浸式播放 asked once when it was turned on; a later switch to cellular ends it instead.
+    if (immersiveRef.current || !preferences.cellularPlaybackWarningEnabled) {
       return true;
     }
 
@@ -676,6 +679,43 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
     return () => subscription.remove();
   }, [handleBack]);
 
+  // 沉浸式播放 was allowed on Wi-Fi (or confirmed once on cellular): a switch to cellular after
+  // that would spend mobile data unasked, so stop and explain.
+  const cellularWarningEnabled = preferences.cellularPlaybackWarningEnabled;
+
+  useEffect(() => {
+    if (!immersive || !cellularWarningEnabled) {
+      return;
+    }
+
+    let onCellular = true;
+    let active = true;
+
+    void isOnCellularNetwork().then((value) => {
+      onCellular = value;
+    });
+
+    const subscription = Network.addNetworkStateListener((state) => {
+      const nowOnCellular = state.type === Network.NetworkStateType.CELLULAR;
+
+      if (!active || !nowOnCellular || onCellular) {
+        onCellular = nowOnCellular;
+
+        return;
+      }
+
+      onCellular = true;
+      setImmersiveRequested(false);
+      useImmersiveStoppedNotice.getState().show();
+      void handleBack();
+    });
+
+    return () => {
+      active = false;
+      subscription.remove();
+    };
+  }, [cellularWarningEnabled, handleBack, immersive]);
+
   const handleNodeSelect = useCallback(
     async (identifier: string) => {
       if (identifier === activeScoid || savingRef.current) {
@@ -764,11 +804,23 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
     }
   };
 
-  const handleImmersiveChange = (enabled: boolean) => {
+  const handleImmersiveChange = async (enabled: boolean) => {
     if (enabled && !isSubscribed) {
       router.push('/courses/account/subscription');
 
       return;
+    }
+
+    if (enabled) {
+      setCellularForImmersive(true);
+
+      const allowed = await ensureCellularPlaybackAllowed();
+
+      setCellularForImmersive(false);
+
+      if (!allowed) {
+        return;
+      }
     }
 
     if (enabled && Platform.OS === 'ios') {
@@ -1265,7 +1317,7 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
             </>
           }
           value={immersive}
-          onValueChange={handleImmersiveChange}
+          onValueChange={(enabled) => void handleImmersiveChange(enabled)}
         />
       </View>
     </View>
@@ -1466,6 +1518,7 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
       />
       <CellularPrompt
         visible={cellularOpen}
+        declineLabel={cellularForImmersive ? '不開啟' : undefined}
         onResolve={(allowed, dontAskAgain) =>
           void resolveCellularPrompt(allowed, dontAskAgain)
         }
