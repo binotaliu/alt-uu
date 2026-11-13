@@ -763,16 +763,37 @@ describe('MaterialScreen 沉浸式播放', () => {
   const toggleImmersive = async () => {
     await waitFor(() => expect(screen.queryByText('Alt UU+')).toBeNull());
     await fireEvent.press(screen.getByLabelText('沉浸式播放'));
+    // iOS warns about Picture in Picture before switching on.
+    await fireEvent.press(await screen.findByText('開啟'));
   };
 
   it('explains the feature from the question mark button', async () => {
     const { renderScreen } = setup();
-    await renderScreen();
+    await renderScreen('html');
     await fireEvent.press(await screen.findByTestId('immersive-info-button'));
     expect(await screen.findByTestId('immersive-info-sheet')).toBeTruthy();
     await fireEvent.press(screen.getByText('我知道了'));
     await waitFor(() =>
       expect(screen.queryByTestId('immersive-info-sheet')).toBeNull(),
+    );
+  });
+
+  it('warns about Picture in Picture on iOS before switching on', async () => {
+    const { renderScreen } = setup({ plus: true });
+    await renderScreen('html');
+    await waitFor(() => expect(screen.queryByText('Alt UU+')).toBeNull());
+
+    await fireEvent.press(screen.getByLabelText('沉浸式播放'));
+    expect(await screen.findByText('開啟沉浸式播放？')).toBeTruthy();
+    expect(
+      screen.getByLabelText('沉浸式播放').props.accessibilityState,
+    ).toEqual(expect.objectContaining({ checked: false }));
+
+    await fireEvent.press(screen.getByText('開啟'));
+    await waitFor(() =>
+      expect(
+        screen.getByLabelText('沉浸式播放').props.accessibilityState,
+      ).toEqual(expect.objectContaining({ checked: true })),
     );
   });
 

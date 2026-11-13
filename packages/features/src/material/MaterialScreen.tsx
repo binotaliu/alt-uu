@@ -1,6 +1,7 @@
 import type { CourseMaterialNode, ParsedMaterialContent } from '@altuu/core';
 import {
   Button,
+  ConfirmDialog,
   Icon,
   PageHeader,
   Screen,
@@ -263,6 +264,7 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
   const videoRate = usePlaybackRateStore((state) => state.rate);
   const isSubscribed = useIsSubscribed();
   const [immersiveRequested, setImmersiveRequested] = useState(false);
+  const [immersivePipWarningOpen, setImmersivePipWarningOpen] = useState(false);
   const [idleSecondsLeft, setIdleSecondsLeft] = useState<number | null>(null);
   // 沉浸式播放 is an Alt UU+ feature: a lapsed subscription switches it off.
   const immersive = immersiveRequested && isSubscribed;
@@ -722,14 +724,13 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
     }
   }, []);
 
-  const handleVideoPictureInPictureStart = useCallback(() => {
-    // iOS cannot hand a Picture in Picture window over to the next material's player.
-    if (Platform.OS === 'ios' && immersiveRef.current) {
-      useToastStore
-        .getState()
-        .show('子母畫面中無法自動播放下一個教材，請回到 App 繼續');
+  const applyImmersive = (enabled: boolean) => {
+    setImmersiveRequested(enabled);
+
+    if (enabled) {
+      setResume(null);
     }
-  }, []);
+  };
 
   const handleImmersiveChange = (enabled: boolean) => {
     if (enabled && !isSubscribed) {
@@ -738,11 +739,14 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
       return;
     }
 
-    setImmersiveRequested(enabled);
+    if (enabled && Platform.OS === 'ios') {
+      // iOS cannot hand a Picture in Picture window over to the next material's player.
+      setImmersivePipWarningOpen(true);
 
-    if (enabled) {
-      setResume(null);
+      return;
     }
+
+    applyImmersive(enabled);
   };
 
   const handleProgress = useCallback(
@@ -1089,7 +1093,6 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
           }
         }}
         onEnded={handleMediaEnded}
-        onPictureInPictureStart={handleVideoPictureInPictureStart}
       />
     ) : null;
 
@@ -1402,6 +1405,17 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
           />
         </View>
       </Sheet>
+      <ConfirmDialog
+        isOpen={immersivePipWarningOpen}
+        title="開啟沉浸式播放？"
+        message="在 iOS 上，影片進入子母畫面後無法自動接著播放下一個教材。請不要使用子母畫面，並保持 App 在前景。"
+        confirmLabel="開啟"
+        onCancel={() => setImmersivePipWarningOpen(false)}
+        onConfirm={() => {
+          setImmersivePipWarningOpen(false);
+          applyImmersive(true);
+        }}
+      />
       {frameCapture.composer}
       <SavingProgressToast visible={isSaving} />
       <ImmersiveCountdownToast

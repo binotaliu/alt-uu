@@ -74,8 +74,6 @@ export interface MaterialPlayerProps {
   onProgress?: (progress: PlaybackProgress) => void;
   /** Playback reached the end of the media. */
   onEnded?: () => void;
-  /** The video entered Picture in Picture. */
-  onPictureInPictureStart?: () => void;
   /** Fill the parent (no aspect ratio, corners or shadow) instead of a 16:9 card. */
   fill?: boolean;
   ref?: Ref<MaterialPlayerHandle>;
@@ -166,7 +164,6 @@ export function MaterialPlayer({
   courseTitle,
   onProgress,
   onEnded,
-  onPictureInPictureStart,
   fill = false,
   ref,
 }: MaterialPlayerProps) {
@@ -415,7 +412,6 @@ export function MaterialPlayer({
             enable: true,
             orientation: 'landscape',
           }}
-          onPictureInPictureStart={onPictureInPictureStart}
           onFullscreenEnter={() => {
             isFullscreenRef.current = true;
           }}
