@@ -650,6 +650,50 @@ describe('MaterialScreen landscape directory', () => {
   });
 });
 
+describe('MaterialScreen fullscreen video', () => {
+  const reactNative =
+    jest.requireActual<typeof import('react-native')>('react-native');
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('keeps the layout while fullscreen rotates the window wide', async () => {
+    const getSpy = jest.spyOn(reactNative.Dimensions, 'get');
+    getSpy.mockReturnValue({ width: 393, height: 852, scale: 3, fontScale: 1 });
+    const { renderScreen } = setup();
+
+    await renderScreen('video');
+    await waitFor(() => expect(screen.getByTestId('video-view')).toBeTruthy());
+    const videoView = screen.getByTestId('video-view');
+
+    await act(async () => {
+      (
+        videoView.props as { onFullscreenEnter: () => void }
+      ).onFullscreenEnter();
+    });
+    getSpy.mockReturnValue({ width: 852, height: 393, scale: 3, fontScale: 1 });
+    await act(async () => {
+      reactNative.Dimensions.set({
+        window: { width: 852, height: 393, scale: 3, fontScale: 1 },
+      });
+    });
+
+    // A tablet-width layout would be a different tree: no 切換教材, a sidebar instead.
+    expect(screen.getByTestId('material-switch-button')).toBeTruthy();
+    expect(screen.queryByTestId('material-sidebar')).toBeNull();
+
+    await act(async () => {
+      (
+        screen.getByTestId('video-view').props as {
+          onFullscreenExit: () => void;
+        }
+      ).onFullscreenExit();
+    });
+    expect(screen.getByTestId('material-sidebar')).toBeTruthy();
+  });
+});
+
 describe('MaterialScreen downloads', () => {
   it('downloads with the session cookies and previews the file', async () => {
     const { renderScreen, prepareMaterialFetch } = setup();

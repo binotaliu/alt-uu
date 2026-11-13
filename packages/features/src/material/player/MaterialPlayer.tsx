@@ -72,6 +72,12 @@ export interface MaterialPlayerProps {
   /** Now-playing artist (the course). */
   courseTitle: string;
   onProgress?: (progress: PlaybackProgress) => void;
+  /**
+   * Fullscreen began or ended. The page keeps its layout fixed meanwhile: rotating
+   * into landscape would otherwise swap the layout and remount this view, which
+   * dismisses the fullscreen presentation.
+   */
+  onFullscreenChange?: (isFullscreen: boolean) => void;
   /** Playback reached the end of the media. */
   onEnded?: () => void;
   /** Fill the parent (no aspect ratio, corners or shadow) instead of a 16:9 card. */
@@ -164,6 +170,7 @@ export function MaterialPlayer({
   courseTitle,
   onProgress,
   onEnded,
+  onFullscreenChange,
   fill = false,
   ref,
 }: MaterialPlayerProps) {
@@ -414,9 +421,11 @@ export function MaterialPlayer({
           }}
           onFullscreenEnter={() => {
             isFullscreenRef.current = true;
+            onFullscreenChange?.(true);
           }}
           onFullscreenExit={() => {
             isFullscreenRef.current = false;
+            onFullscreenChange?.(false);
             void ScreenOrientation.unlockAsync().catch(() => undefined);
           }}
           accessibilityLabel={title}

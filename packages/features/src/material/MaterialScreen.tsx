@@ -104,6 +104,21 @@ export interface MaterialScreenProps {
 /** Throttle of the crash-recovery checkpoint while media plays. */
 const CHECKPOINT_INTERVAL_MS = 15_000;
 
+/** `value`, except it stays at what it was when `held` turned on, until `held` ends. */
+function useHeldWhile<T>(
+  value: T,
+  held: boolean,
+  isEqual: (a: T, b: T) => boolean = Object.is,
+): T {
+  const [snapshot, setSnapshot] = useState(value);
+
+  if (!held && !isEqual(snapshot, value)) {
+    setSnapshot(value);
+  }
+
+  return held ? snapshot : value;
+}
+
 function paletteFor(accent: string, isDark: boolean): MaterialHtmlPalette {
   const shades =
     accentPalettes[accent as keyof typeof accentPalettes] ??
@@ -226,8 +241,16 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
   const preferences = useAppPreferences();
   const isDark = useIsDark();
   const insets = useSafeAreaInsets();
-  const isTablet = useIsTablet();
-  const { width, height } = useWindowDimensions();
+  const [isPlayerFullscreen, setIsPlayerFullscreen] = useState(false);
+  // Fullscreen rotates the window; a layout swap then would remount the video view and
+  // dismiss the fullscreen it just entered, so the layout holds still meanwhile.
+  const isTablet = useHeldWhile(useIsTablet(), isPlayerFullscreen);
+  const windowSize = useWindowDimensions();
+  const { width, height } = useHeldWhile(
+    { width: windowSize.width, height: windowSize.height },
+    isPlayerFullscreen,
+    (a, b) => a.width === b.width && a.height === b.height,
+  );
   const [directoryOpen, setDirectoryOpen] = useState(false);
   const [immersiveInfoOpen, setImmersiveInfoOpen] = useState(false);
   const learningTimes = useCourseLearningTimes(cid);
@@ -271,7 +294,16 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
   const immersiveRef = useRef(immersive);
   const finishedScoidRef = useRef<string | null>(null);
 
-  const { foldFrame, foldAxis } = useDuoLayout();
+  const { foldFrame, foldAxis } = useHeldWhile(
+    useDuoLayout(),
+    isPlayerFullscreen,
+    (a, b) =>
+      a.foldAxis === b.foldAxis &&
+      a.foldFrame?.x === b.foldFrame?.x &&
+      a.foldFrame?.y === b.foldFrame?.y &&
+      a.foldFrame?.width === b.foldFrame?.width &&
+      a.foldFrame?.height === b.foldFrame?.height,
+  );
   // The latest playback state, kept only while the folded layout shows its own controls.
   const [playback, setPlayback] = useState<PlaybackProgress | null>(null);
   const [playerSession, setPlayerSession] =
@@ -1093,6 +1125,7 @@ export function MaterialScreen({ cid, scoid }: MaterialScreenProps) {
           }
         }}
         onEnded={handleMediaEnded}
+        onFullscreenChange={setIsPlayerFullscreen}
       />
     ) : null;
 
