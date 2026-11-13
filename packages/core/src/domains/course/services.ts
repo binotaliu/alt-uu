@@ -283,6 +283,51 @@ export function createCourseServices(deps: CourseServicesDeps) {
       syncCurrentCourse.sync(cid, force),
 
     /**
+     * Run `action` while the HUNGU session is in `courseId`, then put it
+     * back. `add-course-post` looks the board up in the current course, so a
+     * 共用版 post has to enter that course first (issue #11). Restoring keeps
+     * homework and materials on the course the user is viewing. A failed
+     * restore is reported via `onError` and does not hide the action's result.
+     */
+    async withSessionCourse<T>(
+      courseId: string,
+      action: () => Promise<T>,
+    ): Promise<T> {
+      const previous = syncCurrentCourse.currentCourseId(
+        await currentAccountId(),
+      );
+
+      if (previous === courseId) {
+        return action();
+      }
+
+      const restore = async (): Promise<void> => {
+        if (previous === null || previous === '') {
+          return;
+        }
+
+        try {
+          await syncCurrentCourse.sync(previous, true);
+        } catch (error) {
+          deps.onError?.(error);
+        }
+      };
+
+      try {
+        await syncCurrentCourse.sync(courseId);
+      } catch (error) {
+        await restore();
+        throw error;
+      }
+
+      try {
+        return await action();
+      } finally {
+        await restore();
+      }
+    },
+
+    /**
      * Wire to HunguSessionAuthenticator `afterRememberedLogin`: the new
      * web session has no current course, so re-enter the last one.
      */

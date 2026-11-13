@@ -177,6 +177,7 @@ export function DiscussThreadScreen({
     op: 'discuss.posts',
     mutationFn: (variables: { subject: string; content: string }, services) =>
       services.discuss.createPost({
+        courseId: boardCid,
         boardId: bid,
         subject: variables.subject,
         content: variables.content,

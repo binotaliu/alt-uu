@@ -577,3 +577,69 @@ describe('playback progress reads', () => {
     });
   });
 });
+
+describe('withSessionCourse', () => {
+  const goCourseCids = (
+    requests: Array<{ url: string }>,
+  ): Array<string | undefined> =>
+    requests
+      .filter((request) => request.url.includes('action=go-course'))
+      .map((request) => /cid=([^&]+)/.exec(request.url)?.[1]);
+
+  it('enters the board course for the action and restores the one being viewed', async () => {
+    const { services, requests } = await createCourseHarness({
+      routes: goCourseRoutes,
+    });
+
+    await services.syncCurrentCourse('10053155');
+    requests.length = 0;
+
+    const order: string[] = [];
+    await services.withSessionCourse('10051465', async () => {
+      order.push('post');
+    });
+
+    expect(order).toEqual(['post']);
+    expect(goCourseCids(requests)).toEqual(['10051465', '10053155']);
+  });
+
+  it('does not go-course when the session is already in that course', async () => {
+    const { services, requests } = await createCourseHarness({
+      routes: goCourseRoutes,
+    });
+
+    await services.syncCurrentCourse('10051465');
+    requests.length = 0;
+
+    await expect(
+      services.withSessionCourse('10051465', async () => 'ok'),
+    ).resolves.toBe('ok');
+    expect(describeRequests(requests)).toEqual([]);
+  });
+
+  it('restores the viewed course when the action fails', async () => {
+    const { services, requests } = await createCourseHarness({
+      routes: goCourseRoutes,
+    });
+
+    await services.syncCurrentCourse('10053155');
+    requests.length = 0;
+
+    await expect(
+      services.withSessionCourse('10051465', async () => {
+        throw new Error('post failed');
+      }),
+    ).rejects.toThrow('post failed');
+    expect(goCourseCids(requests)).toEqual(['10051465', '10053155']);
+  });
+
+  it('leaves the session on the board course when none was current', async () => {
+    const { services, requests } = await createCourseHarness({
+      routes: goCourseRoutes,
+    });
+
+    await services.withSessionCourse('10051465', async () => 'posted');
+
+    expect(goCourseCids(requests)).toEqual(['10051465']);
+  });
+});

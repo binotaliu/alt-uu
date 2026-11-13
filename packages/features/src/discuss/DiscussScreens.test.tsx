@@ -237,6 +237,7 @@ describe('DiscussBoardScreen', () => {
 
     await waitFor(() =>
       expect(discuss.createPost).toHaveBeenCalledWith({
+        courseId: '20',
         boardId: 'b1',
         subject: '新文章',
         content: '你好',
@@ -394,6 +395,7 @@ describe('DiscussThreadScreen', () => {
 
     await waitFor(() =>
       expect(discuss.createPost).toHaveBeenCalledWith({
+        courseId: '20',
         boardId: 'b1',
         subject: '回覆',
         content: '我的回覆',

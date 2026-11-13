@@ -259,6 +259,8 @@ async function build(): Promise<AppServices> {
     client: hungu.discuss,
     db,
     sanitizeHtml: sanitizeDiscussHtml,
+    withSessionCourse: (courseId, action) =>
+      course.withSessionCourse(courseId, action),
   });
 
   // The subscription and the preference store depend on each other

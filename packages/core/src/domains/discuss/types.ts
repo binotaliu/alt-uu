@@ -74,6 +74,8 @@ export type DiscussMutationPayload = Record<string, unknown>;
 
 /** Reply-to fields and attachments come straight from the compose screen. */
 export interface CreatePostInput {
+  /** Course the board belongs to, not necessarily the course being viewed. */
+  courseId: string;
   boardId: string;
   subject: string;
   content: string;

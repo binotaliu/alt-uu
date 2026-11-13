@@ -17,7 +17,10 @@ import {
 import { createTestContext, type TestContext } from '../../../test/db/helpers';
 import { UserFacingHttpError } from '../../errors/errors';
 import { sha256Hex } from './blockedContents';
-import { createDiscussServices } from './discussServices';
+import {
+  createDiscussServices,
+  type DiscussServicesDeps,
+} from './discussServices';
 
 const session = (): HunguSessionData => ({
   baseUrl: 'https://uu.nou.edu.tw/xmlapi/index.php',
@@ -41,7 +44,13 @@ describe('discuss services', () => {
     ctx = await createTestContext();
   });
 
-  const setup = (routes: Parameters<typeof createFakeFetch>[0]) => {
+  const setup = (
+    routes: Parameters<typeof createFakeFetch>[0],
+    withSessionCourse: DiscussServicesDeps['withSessionCourse'] = (
+      _courseId,
+      action,
+    ) => action(),
+  ) => {
     const store = new InMemorySessionStore<HunguSession>(1);
     void store.put(session());
     const fake = createFakeFetch(routes);
@@ -55,6 +64,7 @@ describe('discuss services', () => {
       client: new HunguDiscussClient(client),
       db: ctx.db,
       sanitizeHtml: fakeSanitizeHtml,
+      withSessionCourse,
     });
 
     return { services, requests: fake.requests };
@@ -177,6 +187,7 @@ describe('discuss services', () => {
     );
 
     const created = await services.createPost({
+      courseId: '1001',
       boardId: 'B-1',
       subject: '新文章',
       content: '文章內容',
@@ -208,13 +219,72 @@ describe('discuss services', () => {
     );
   });
 
+  it('enters the board course for the post and restores it afterwards', async () => {
+    const events: string[] = [];
+    const { services, requests } = setup(
+      [['*', { body: { code: 0, data: { post_id: 'P-1' } } }]],
+      async (courseId, action) => {
+        events.push(`enter:${courseId}`);
+
+        try {
+          return await action();
+        } finally {
+          events.push('restore');
+        }
+      },
+    );
+
+    await services.createPost({
+      courseId: '10051465',
+      boardId: '1000132998',
+      subject: 's',
+      content: 'c',
+    });
+
+    expect(events).toEqual(['enter:10051465', 'restore']);
+    expect(requests).toHaveLength(1);
+    expect(requests[0].url).toContain('action=add-course-post');
+    expect(JSON.parse(requests[0].body!).board_id).toBe('1000132998');
+  });
+
+  it('restores the session course when HUNGU rejects the post', async () => {
+    const events: string[] = [];
+    const { services } = setup(
+      [['*', { body: { code: 1, message: 'Board not found.' } }]],
+      async (courseId, action) => {
+        events.push(`enter:${courseId}`);
+
+        try {
+          return await action();
+        } finally {
+          events.push('restore');
+        }
+      },
+    );
+
+    await expect(
+      services.createPost({
+        courseId: '10051465',
+        boardId: '1000132998',
+        subject: 's',
+        content: 'c',
+      }),
+    ).rejects.toThrow('發佈失敗，請稍後再試（Board not found.）');
+    expect(events).toEqual(['enter:10051465', 'restore']);
+  });
+
   it('rejects a post HUNGU answers with a non-zero code', async () => {
     const { services } = setup([
       ['*', { body: { code: 1, message: 'no permission' } }],
     ]);
 
     await expect(
-      services.createPost({ boardId: 'B-1', subject: 's', content: 'c' }),
+      services.createPost({
+        courseId: '1001',
+        boardId: 'B-1',
+        subject: 's',
+        content: 'c',
+      }),
     ).rejects.toThrow('發佈失敗，請稍後再試（no permission）');
   });
 
@@ -222,6 +292,7 @@ describe('discuss services', () => {
     const { services, requests } = setup([['*', { body: { code: 0 } }]]);
 
     await services.createPost({
+      courseId: '1001',
       boardId: 'B-1',
       subject: 's',
       content: ' <b>"hi" & \'x\'</b>\r\nline2\nline3 ',
@@ -259,8 +330,22 @@ describe('discuss services', () => {
       'Course ID, Board ID, and Node ID are required',
     );
     await rejects(
-      services.createPost({ boardId: 'b', subject: '  ', content: 'c' }),
-      'bid, subject and content are required',
+      services.createPost({
+        courseId: '1',
+        boardId: 'b',
+        subject: '  ',
+        content: 'c',
+      }),
+      'cid, bid, subject and content are required',
+    );
+    await rejects(
+      services.createPost({
+        courseId: '  ',
+        boardId: 'b',
+        subject: 's',
+        content: 'c',
+      }),
+      'cid, bid, subject and content are required',
     );
     await rejects(
       services.updatePost('p', { subject: '', content: null }),

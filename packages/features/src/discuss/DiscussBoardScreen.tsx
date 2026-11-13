@@ -61,6 +61,7 @@ export function DiscussBoardScreen({
     op: 'discuss.nodes',
     mutationFn: (variables: { subject: string; content: string }, services) =>
       services.discuss.createPost({
+        courseId: boardCid,
         boardId: bid,
         subject: variables.subject,
         content: variables.content,

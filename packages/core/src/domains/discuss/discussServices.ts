@@ -32,6 +32,16 @@ export interface DiscussServicesDeps {
    * bodies. Injected so core does not depend on the course domain's sanitizer.
    */
   sanitizeHtml: (html: string) => string;
+  /**
+   * Run `action` with the HUNGU session entered into `courseId`, then restore
+   * the course that was current. `add-course-post` looks the board up in that
+   * session course; a 共用版 board is not the course the user is viewing
+   * (issue #11). Wired to course `withSessionCourse` in the composition root.
+   */
+  withSessionCourse: <T>(
+    courseId: string,
+    action: () => Promise<T>,
+  ) => Promise<T>;
 }
 
 type Row = Record<string, unknown>;
@@ -77,7 +87,7 @@ function optionalString(value: unknown): string | null {
  * validation of the Discuss*Controller classes.
  */
 export function createDiscussServices(deps: DiscussServicesDeps) {
-  const { client, db, sanitizeHtml } = deps;
+  const { client, db, sanitizeHtml, withSessionCourse } = deps;
 
   async function fetchWhispers(
     boardId: string,
@@ -276,24 +286,32 @@ export function createDiscussServices(deps: DiscussServicesDeps) {
     },
 
     async createPost(input: CreatePostInput): Promise<DiscussMutationPayload> {
+      const courseId = normalizeInput(input.courseId) ?? '';
       const boardId = normalizeInput(input.boardId) ?? '';
       const subject = normalizeInput(input.subject) ?? '';
       const content = normalizeInput(input.content) ?? '';
 
-      if (boardId === '' || subject === '' || content === '') {
-        bad('bid, subject and content are required');
+      if (
+        courseId === '' ||
+        boardId === '' ||
+        subject === '' ||
+        content === ''
+      ) {
+        bad('cid, bid, subject and content are required');
       }
 
-      const result = await client.createPost({
-        boardId,
-        subject,
-        content: nl2br(htmlSpecialChars(content)),
-        replyContent: normalizeInput(input.replyContent),
-        replyPostId: normalizeInput(input.replyPostId),
-        attaches: (input.attaches ?? []) as never[],
-      });
+      return withSessionCourse(courseId, async () => {
+        const result = await client.createPost({
+          boardId,
+          subject,
+          content: nl2br(htmlSpecialChars(content)),
+          replyContent: normalizeInput(input.replyContent),
+          replyPostId: normalizeInput(input.replyPostId),
+          attaches: (input.attaches ?? []) as never[],
+        });
 
-      return assertAccepted(result.payload, '發佈失敗，請稍後再試');
+        return assertAccepted(result.payload, '發佈失敗，請稍後再試');
+      });
     },
 
     async updatePost(
