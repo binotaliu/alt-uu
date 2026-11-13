@@ -103,6 +103,11 @@ function readProgress(player: VideoPlayer): PlaybackProgress {
   };
 }
 
+const AUTOPLAY_LOAD_RETRIES = 3;
+const AUTOPLAY_RETRY_DELAY_MS = 1500;
+const AUTOPLAY_WATCHDOG_MS = 2000;
+const AUTOPLAY_WATCHDOG_TICKS = 8;
+
 /** What {@link MaterialPlayerHost} publishes for the {@link MaterialPlayer} views of `url`. */
 export interface MaterialPlayerSession {
   url: string;
@@ -144,6 +149,60 @@ export function MaterialPlayerHost({
     created.playbackRate = initialRate;
     created.play();
   });
+
+  // The single play() above can be lost (the source was not ready yet, a transient load error,
+  // audio focus not granted yet), which strands 沉浸式播放 on a material that never starts.
+  // Until playback has begun once, play again whenever the source becomes ready, retry a failed
+  // load, and keep a short watchdog.
+  const hasStartedRef = useRef(false);
+  const loadRetriesRef = useRef(0);
+
+  useEventListener(player, 'playingChange', ({ isPlaying }) => {
+    if (isPlaying) {
+      hasStartedRef.current = true;
+    }
+  });
+  useEventListener(player, 'statusChange', ({ status }) => {
+    if (hasStartedRef.current) {
+      return;
+    }
+
+    if (status === 'readyToPlay') {
+      player.play();
+    } else if (
+      status === 'error' &&
+      loadRetriesRef.current < AUTOPLAY_LOAD_RETRIES
+    ) {
+      loadRetriesRef.current += 1;
+      setTimeout(() => {
+        if (!hasStartedRef.current) {
+          void player
+            .replaceAsync(source)
+            .then(() => player.play())
+            .catch(() => undefined);
+        }
+      }, AUTOPLAY_RETRY_DELAY_MS * loadRetriesRef.current);
+    }
+  });
+
+  useEffect(() => {
+    let attempts = 0;
+    const watchdog = setInterval(() => {
+      attempts += 1;
+
+      if (hasStartedRef.current || attempts > AUTOPLAY_WATCHDOG_TICKS) {
+        clearInterval(watchdog);
+
+        return;
+      }
+
+      if (player.status === 'readyToPlay' && !player.playing) {
+        player.play();
+      }
+    }, AUTOPLAY_WATCHDOG_MS);
+
+    return () => clearInterval(watchdog);
+  }, [player]);
 
   useEffect(() => {
     onSessionChange({ url: videoUrl, player, source });

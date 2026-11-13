@@ -353,6 +353,23 @@ describe('MaterialScreen', () => {
     expect(screen.queryByText('接續上次播放？')).toBeNull();
   });
 
+  it('plays again once the source is ready when the first play was lost', async () => {
+    const { renderScreen } = setup({ progressSeconds: 2 });
+
+    await renderScreen('video');
+
+    await waitFor(() => expect(createdPlayers.length).toBe(1));
+    const player = createdPlayers[0];
+
+    player.playing = false;
+    player.play.mockClear();
+    await act(async () => {
+      player.emit('statusChange', { status: 'readyToPlay' });
+    });
+
+    expect(player.play).toHaveBeenCalled();
+  });
+
   it('does not offer to resume short positions', async () => {
     const { renderScreen } = setup({ progressSeconds: 2 });
 
