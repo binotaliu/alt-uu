@@ -1,9 +1,10 @@
-import { Text, Icon, type IconName } from '@altuu/ui';
+import { ConfirmDialog, Text, Icon, type IconName } from '@altuu/ui';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Linking, View } from 'react-native';
 
 import {
+  useAccounts,
   useAppConfig,
   useAppPreferences,
   useUpdatePreferences,
@@ -21,6 +22,10 @@ import {
   PillSwitch,
   SwitchCard,
 } from '../components/primitives';
+import {
+  useRemoveAccount,
+  useRemoveAllAccounts,
+} from '../hooks/useAccountActions';
 import { useDiagnosticRecording } from '../hooks/useDiagnosticRecording';
 import { clearDownloadedAttachments } from '../lib/files';
 import { CONTACT_EMAIL_URL, POLICY_URLS } from '../lib/links';
@@ -85,6 +90,12 @@ export function SettingsScreen() {
   const sessionStatus = useClientConfigStore((state) => state.sessionStatus);
   const { open: openWhatsNew } = useWhatsNew();
   const recording = useDiagnosticRecording();
+  const accounts = useAccounts();
+  const removeAccount = useRemoveAccount();
+  const removeAllAccounts = useRemoveAllAccounts();
+  const [pendingLogout, setPendingLogout] = useState<'current' | 'all' | null>(
+    null,
+  );
 
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const [isBuildNumberRevealed, setBuildNumberRevealed] = useState(false);
@@ -180,6 +191,28 @@ export function SettingsScreen() {
         },
       ],
     );
+  };
+
+  const activeAccount = accounts.data?.find((account) => account.isActive);
+  const hasMultipleAccounts = (accounts.data?.length ?? 0) > 1;
+  const isLoggingOut = removeAccount.isPending || removeAllAccounts.isPending;
+
+  const confirmLogout = async () => {
+    const mode = pendingLogout;
+    setPendingLogout(null);
+
+    try {
+      if (mode === 'all') {
+        await removeAllAccounts.mutateAsync();
+      } else if (mode === 'current' && activeAccount) {
+        await removeAccount.mutateAsync(activeAccount.id);
+      }
+    } catch (error) {
+      Alert.alert(
+        '登出失敗',
+        error instanceof Error ? error.message : '登出失敗，請稍後再試。',
+      );
+    }
   };
 
   const data = config.data;
@@ -316,6 +349,33 @@ export function SettingsScreen() {
         ) : null}
       </Card>
 
+      {activeAccount ? (
+        <Card>
+          <CardTitle>登出帳號</CardTitle>
+          <CardDescription>
+            {hasMultipleAccounts
+              ? '登出後會移除該帳號在此裝置上的所有資料。'
+              : '登出後會移除此帳號在此裝置上的所有資料，需要重新登入才能使用。'}
+          </CardDescription>
+          <View className="mt-3 gap-2">
+            <OutlineButton
+              icon="arrow-right-on-rectangle"
+              label="登出目前帳號"
+              disabled={isLoggingOut}
+              onPress={() => setPendingLogout('current')}
+            />
+            {hasMultipleAccounts ? (
+              <OutlineButton
+                icon="arrow-right-on-rectangle"
+                label="登出所有帳號"
+                disabled={isLoggingOut}
+                onPress={() => setPendingLogout('all')}
+              />
+            ) : null}
+          </View>
+        </Card>
+      ) : null}
+
       <Card>
         <CardTitle>聯絡資訊與政策</CardTitle>
         <View className="mt-2 gap-2">
@@ -372,6 +432,20 @@ export function SettingsScreen() {
           ))}
         </View>
       </Card>
+
+      <ConfirmDialog
+        isOpen={pendingLogout !== null}
+        title={pendingLogout === 'all' ? '登出所有帳號' : '登出目前帳號'}
+        message={
+          pendingLogout === 'all'
+            ? '確定要登出此裝置上的所有帳號嗎？'
+            : '確定要登出目前的帳號嗎？'
+        }
+        confirmLabel="登出"
+        danger
+        onConfirm={() => void confirmLogout()}
+        onCancel={() => setPendingLogout(null)}
+      />
     </SubPage>
   );
 }

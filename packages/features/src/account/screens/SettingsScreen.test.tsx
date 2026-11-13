@@ -2,7 +2,7 @@ import { fireEvent, screen, waitFor } from '@testing-library/react-native';
 import { router } from 'expo-router';
 
 import { useWhatsNewStore } from '../../services/stores';
-import { resetStores } from '../../testing/fakeServices';
+import { account, resetStores } from '../../testing/fakeServices';
 import { renderScreen, withServices } from '../testing';
 import { SettingsScreen } from './SettingsScreen';
 
@@ -11,9 +11,13 @@ jest.mock('../lib/files', () => ({ clearDownloadedAttachments: jest.fn() }));
 beforeEach(() => {
   resetStores();
   (router.push as jest.Mock).mockClear();
+  (router.replace as jest.Mock).mockClear();
 });
 
-function setup({ materialSourceViewerEnabled = false } = {}) {
+function setup({
+  materialSourceViewerEnabled = false,
+  accounts = [] as ReturnType<typeof account>[],
+} = {}) {
   const appConfig = {
     appearance: 'system',
     accentColor: 'warm',
@@ -24,7 +28,14 @@ function setup({ materialSourceViewerEnabled = false } = {}) {
     frameworkVersion: '58',
     materialSourceViewerEnabled,
   };
+  let remaining = accounts;
+  const remove = jest.fn(async (id: number) => {
+    remaining = remaining.filter((item) => item.id !== id);
+
+    return remaining;
+  });
   const { services, state } = withServices({
+    account: { list: async () => remaining, remove },
     appConfig: { get: async () => appConfig },
     diagnostics: {
       getRecordingStatus: async () => ({
@@ -45,7 +56,7 @@ function setup({ materialSourceViewerEnabled = false } = {}) {
     },
   });
 
-  return { services, state };
+  return { services, state, remove };
 }
 
 describe('SettingsScreen', () => {
@@ -107,5 +118,34 @@ describe('SettingsScreen', () => {
 
     await fireEvent.press(screen.getByText('檢視新功能'));
     expect(useWhatsNewStore.getState().isOpen).toBe(true);
+  });
+
+  it('offers only "logout current" with a single account', async () => {
+    const { services, remove } = setup({
+      accounts: [account(1, { isActive: true })],
+    });
+    await renderScreen(<SettingsScreen />, services);
+
+    expect(await screen.findByText('登出目前帳號')).toBeTruthy();
+    expect(screen.queryByText('登出所有帳號')).toBeNull();
+
+    await fireEvent.press(screen.getByText('登出目前帳號'));
+    await fireEvent.press(screen.getByText('登出'));
+
+    await waitFor(() => expect(remove).toHaveBeenCalledWith(1));
+  });
+
+  it('logs out every account, the active one last', async () => {
+    const { services, remove } = setup({
+      accounts: [account(1, { isActive: true }), account(2)],
+    });
+    await renderScreen(<SettingsScreen />, services);
+
+    await fireEvent.press(await screen.findByText('登出所有帳號'));
+    await fireEvent.press(screen.getByText('登出'));
+
+    await waitFor(() => expect(remove).toHaveBeenCalledTimes(2));
+    expect(remove.mock.calls.map(([id]) => id)).toEqual([2, 1]);
+    expect(router.replace).toHaveBeenCalledWith('/login');
   });
 });

@@ -141,3 +141,31 @@ export function useRemoveAccount() {
     },
   });
 }
+
+/**
+ * Signs out of every account on this device (non-active ones first, so the
+ * active one's removal performs the single reset / redirect to login).
+ */
+export function useRemoveAllAccounts() {
+  const queryClient = useQueryClient();
+
+  return useServiceMutation<void, void>({
+    op: 'accounts.remove',
+    mutationFn: async (_input, services) => {
+      const accounts = await services.account.list();
+      const ordered = [...accounts].sort(
+        (a, b) => Number(a.isActive) - Number(b.isActive),
+      );
+      let remaining = accounts;
+
+      for (const account of ordered) {
+        remaining = await services.account.remove(account.id);
+      }
+
+      queryClient.setQueryData(queryKeys.accounts, remaining);
+      await queryClient.resetQueries();
+      useClientConfigStore.getState().setSession('unauthenticated');
+      router.replace('/login');
+    },
+  });
+}
