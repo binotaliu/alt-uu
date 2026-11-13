@@ -3,9 +3,10 @@ import {
   resetAttachmentBridgeMock,
 } from '@altuu/attachment-bridge/mock';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react-native';
-import { Linking } from 'react-native';
+import { Linking, Platform } from 'react-native';
 
 import { renderWithServices } from '../testUtils';
+import * as Print from 'expo-print';
 import { BrowserScreen, isDownloadUrl } from './BrowserScreen';
 
 interface CapturedWebViewProps {
@@ -20,6 +21,7 @@ interface CapturedWebViewProps {
   onOpenWindow: (event: object) => void;
   onFileDownload: (event: object) => void;
   onError: (event: object) => void;
+  onMessage: (event: object) => void;
 }
 
 let mockParams: Record<string, string> = {};
@@ -35,6 +37,10 @@ const mockWebViewApi = {
 jest.mock('@altuu/attachment-bridge', () =>
   jest.requireActual('@altuu/attachment-bridge/mock'),
 );
+jest.mock('expo-print', () => ({
+  printAsync: jest.fn(async () => undefined),
+  printToFileAsync: jest.fn(async () => ({ uri: 'file:///cache/Print/x.pdf' })),
+}));
 jest.mock('expo-router', () => ({
   router: {
     push: jest.fn(),
@@ -200,7 +206,7 @@ describe('BrowserScreen chrome and navigation', () => {
   it('shows the page title, progress and drives back / forward', async () => {
     const props = await open();
 
-    expect(screen.getByText('App 內瀏覽器')).toBeTruthy();
+    expect(screen.getByText('網頁')).toBeTruthy();
     await act(async () => {
       props.onNavigationStateChange({
         url: 'https://uu.nou.edu.tw/page2',
@@ -291,6 +297,155 @@ describe('BrowserScreen chrome and navigation', () => {
 
     expect(screen.getByText('載入失敗')).toBeTruthy();
     expect(screen.getByText('net::ERR_INTERNET_DISCONNECTED')).toBeTruthy();
+  });
+});
+
+describe('BrowserScreen on Android PDFs', () => {
+  const originalOS = Platform.OS;
+
+  beforeEach(() => {
+    Platform.OS = 'android';
+  });
+
+  afterEach(() => {
+    Platform.OS = originalOS;
+  });
+
+  it('downloads a PDF initial url instead of loading it in the WebView', async () => {
+    mockParams = { url: 'https://noustud.nou.edu.tw/exam/a.pdf' };
+    await renderWithServices(<BrowserScreen />, services());
+
+    await waitFor(() => expect(mockNativeModule.download).toHaveBeenCalled());
+    expect(mockNativeModule.download.mock.calls[0][0].url).toBe(
+      'https://noustud.nou.edu.tw/exam/a.pdf',
+    );
+    expect(screen.queryByTestId('webview')).toBeNull();
+  });
+
+  it('intercepts PDF links even though Android sends no navigationType', async () => {
+    mockParams = { url: 'https://uu.nou.edu.tw/page' };
+    await renderWithServices(<BrowserScreen />, services());
+    const props = await loadedWebView();
+
+    expect(
+      props.onShouldStartLoadWithRequest({
+        url: 'https://uu.nou.edu.tw/files/a.pdf',
+        isTopFrame: true,
+      }),
+    ).toBe(false);
+    await waitFor(() => expect(mockNativeModule.download).toHaveBeenCalled());
+  });
+});
+
+describe('BrowserScreen PDF actions', () => {
+  it('offers save and print for a PDF document and runs them on the downloaded file', async () => {
+    mockParams = {
+      url: 'https://noustud.nou.edu.tw/exam?id=1',
+      fileName: '民法 - 114-1 - 正參.pdf',
+    };
+    await renderWithServices(<BrowserScreen />, services());
+    const props = await loadedWebView();
+
+    expect(screen.queryByLabelText('列印')).toBeNull();
+
+    await act(async () => {
+      props.onMessage({
+        nativeEvent: { data: 'altuu:contentType:application/pdf' },
+      });
+    });
+
+    expect(screen.queryByLabelText('上一頁')).toBeNull();
+    expect(screen.queryByLabelText('下一頁')).toBeNull();
+
+    fireEvent.press(screen.getByLabelText('儲存到檔案'));
+    await waitFor(() => expect(mockNativeModule.saveFile).toHaveBeenCalled());
+    expect(mockNativeModule.download.mock.calls[0][0].url).toBe(
+      'https://noustud.nou.edu.tw/exam?id=1',
+    );
+    expect(mockNativeModule.download.mock.calls[0][0].fileName).toBe(
+      '民法 - 114-1 - 正參.pdf',
+    );
+
+    fireEvent.press(screen.getByLabelText('列印'));
+    await waitFor(() => expect(mockNativeModule.printFile).toHaveBeenCalled());
+  });
+
+  it('shows the print error', async () => {
+    mockParams = { url: 'https://noustud.nou.edu.tw/exam/a.pdf' };
+    mockNativeModule.printFile.mockRejectedValueOnce(new Error('無法列印'));
+    await renderWithServices(<BrowserScreen />, services());
+    await loadedWebView();
+
+    fireEvent.press(screen.getByLabelText('列印'));
+
+    expect(await screen.findByText('無法列印')).toBeTruthy();
+  });
+});
+
+describe('BrowserScreen HTML page export', () => {
+  const params = {
+    url: 'https://uu.nou.edu.tw/exam/1',
+    title: '第一次練習',
+    fileName: '第一次練習.pdf',
+    exportPdf: '1',
+  };
+
+  const answerSnapshot = async (html: string) => {
+    await waitFor(() =>
+      expect(mockWebViewApi.injectJavaScript).toHaveBeenCalled(),
+    );
+    await act(async () => {
+      mockWebViewProps.current.onMessage({
+        nativeEvent: { data: `altuu:html:${html}` },
+      });
+    });
+  };
+
+  it('shows the given title and keeps back / forward', async () => {
+    mockParams = params;
+    await renderWithServices(<BrowserScreen />, services());
+    await loadedWebView();
+
+    expect(screen.getByText('第一次練習')).toBeTruthy();
+    expect(screen.getByLabelText('上一頁')).toBeTruthy();
+  });
+
+  it('renders the page to a PDF and saves it under the given name', async () => {
+    mockParams = params;
+    await renderWithServices(<BrowserScreen />, services());
+    await loadedWebView();
+
+    fireEvent.press(screen.getByLabelText('儲存到檔案'));
+    await answerSnapshot('<html>練習</html>');
+
+    await waitFor(() => expect(mockNativeModule.saveFile).toHaveBeenCalled());
+    expect(Print.printToFileAsync).toHaveBeenCalledWith(
+      expect.objectContaining({ html: '<html>練習</html>' }),
+    );
+    expect(mockNativeModule.saveFile.mock.calls[0][1]).toBe('第一次練習.pdf');
+  });
+
+  it('prints the page html', async () => {
+    mockParams = params;
+    await renderWithServices(<BrowserScreen />, services());
+    await loadedWebView();
+
+    fireEvent.press(screen.getByLabelText('列印'));
+    await answerSnapshot('<html>練習</html>');
+
+    await waitFor(() =>
+      expect(Print.printAsync).toHaveBeenCalledWith({
+        html: '<html>練習</html>',
+      }),
+    );
+  });
+
+  it('offers no export for pages that did not ask for it', async () => {
+    mockParams = { url: 'https://uu.nou.edu.tw/page' };
+    await renderWithServices(<BrowserScreen />, services());
+    await loadedWebView();
+
+    expect(screen.queryByLabelText('列印')).toBeNull();
   });
 });
 

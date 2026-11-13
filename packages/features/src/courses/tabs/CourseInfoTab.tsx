@@ -56,16 +56,16 @@ function formatExamTime(
 
 export function examLinks(
   exam: PreviousExam,
-): Array<{ key: string; label: string; href: string }> {
-  const candidates: Array<[string, string, string | null]> = [
-    ['midterm-a', '期中正參', exam.midtermReferencePrimary],
-    ['midterm-b', '期中副參', exam.midtermReferenceSecondary],
-    ['final-a', '期末正參', exam.finalReferencePrimary],
-    ['final-b', '期末副參', exam.finalReferenceSecondary],
+): Array<{ key: string; label: string; href: string; kind: '正參' | '副參' }> {
+  const candidates: Array<[string, string, '正參' | '副參', string | null]> = [
+    ['midterm-a', '期中正參', '正參', exam.midtermReferencePrimary],
+    ['midterm-b', '期中副參', '副參', exam.midtermReferenceSecondary],
+    ['final-a', '期末正參', '正參', exam.finalReferencePrimary],
+    ['final-b', '期末副參', '副參', exam.finalReferenceSecondary],
   ];
 
-  return candidates.flatMap(([key, label, href]) =>
-    href ? [{ key, label, href }] : [],
+  return candidates.flatMap(([key, label, kind, href]) =>
+    href ? [{ key, label, href, kind }] : [],
   );
 }
 
@@ -179,7 +179,12 @@ function NouToolsSections({ course }: { course: NouToolsCourse }) {
                     key={`${exam.term}-${link.key}`}
                     label={link.label}
                     onPress={() =>
-                      openInAppBrowser(`${PREVIOUS_EXAM_BASE_URL}${link.href}`)
+                      openInAppBrowser(
+                        `${PREVIOUS_EXAM_BASE_URL}${link.href}`,
+                        {
+                          fileName: `${course.courseName} - ${exam.term} - ${link.kind}.pdf`,
+                        },
+                      )
                     }
                   />
                 ))}

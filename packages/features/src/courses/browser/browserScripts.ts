@@ -55,3 +55,36 @@ export function buildBeforeContentLoadedScript(
 
   return `${parts.join('\n')}\ntrue;`;
 }
+
+export const HTML_SNAPSHOT_PREFIX = 'altuu:html:';
+
+/**
+ * Posts a script-free copy of the page (current form state included, with a
+ * `<base>` so relative links resolve) back through `onMessage`, for PDF export.
+ */
+export const htmlSnapshotScript = `(function () {
+    try {
+        document.querySelectorAll('input').forEach(function (el) {
+            if (el.type === 'checkbox' || el.type === 'radio') {
+                if (el.checked) { el.setAttribute('checked', ''); } else { el.removeAttribute('checked'); }
+            } else {
+                el.setAttribute('value', el.value);
+            }
+        });
+        document.querySelectorAll('textarea').forEach(function (el) { el.textContent = el.value; });
+        document.querySelectorAll('option').forEach(function (el) {
+            if (el.selected) { el.setAttribute('selected', ''); } else { el.removeAttribute('selected'); }
+        });
+        var copy = document.documentElement.cloneNode(true);
+        copy.querySelectorAll('script').forEach(function (el) { el.remove(); });
+        var head = copy.querySelector('head');
+        if (head) {
+            var base = document.createElement('base');
+            base.href = document.baseURI;
+            head.insertBefore(base, head.firstChild);
+        }
+        window.ReactNativeWebView.postMessage(${JSON.stringify(HTML_SNAPSHOT_PREFIX)} + '<!DOCTYPE html>' + copy.outerHTML);
+    } catch (e) {
+        window.ReactNativeWebView.postMessage(${JSON.stringify(HTML_SNAPSHOT_PREFIX)});
+    }
+})(); true;`;

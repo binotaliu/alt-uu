@@ -197,6 +197,21 @@ class AttachmentBridgeModule : Module() {
       }
     }.runOnQueue(Queues.MAIN)
 
+    AsyncFunction("printFile") { uri: String, jobName: String? ->
+      val activity = appContext.currentActivity ?: throw AttachmentBridgeException.noPresenter()
+      val source = resolveSource(uri)
+      val name = AttachmentFileNaming.sanitize(jobName ?: "")
+        ?: source.lastPathSegment
+        ?: AttachmentFileNaming.FALLBACK_BASE_NAME
+      val printManager = activity.getSystemService(Context.PRINT_SERVICE) as? android.print.PrintManager
+        ?: throw AttachmentBridgeException.printFailed("此裝置不支援列印。")
+
+      printManager.print(name, PdfFilePrintAdapter(context, source, name), null)
+
+      // The print job runs in the system UI; there is no completion callback.
+      mapOf("printed" to true)
+    }.runOnQueue(Queues.MAIN)
+
     OnActivityResult { _, payload ->
       if (payload.requestCode != SAVE_REQUEST_CODE) {
         return@OnActivityResult

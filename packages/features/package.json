@@ -29,6 +29,7 @@
     "expo-clipboard": "*",
     "expo-image": "*",
     "expo-network": "*",
+    "expo-print": "58.0.6",
     "expo-router": "*",
     "expo-screen-orientation": "*",
     "expo-sharing": "*",

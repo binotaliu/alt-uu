@@ -25,6 +25,8 @@ export interface PageHeaderProps {
   left?: ReactNode;
   right?: ReactNode;
   below?: ReactNode;
+  /** For bars inside an iOS sheet, which already starts below the status bar. */
+  ignoreTopInset?: boolean;
 }
 
 /** Legacy PageHeader: white bar with a bottom border, back button, title and subtitle. */
@@ -38,6 +40,7 @@ export function PageHeader({
   left,
   right,
   below,
+  ignoreTopInset = false,
 }: PageHeaderProps) {
   const insets = useSafeAreaInsets();
   const corner = useCornerInsets();
@@ -127,7 +130,9 @@ export function PageHeader({
     <View
       className="flex-row items-stretch border-b border-theme-200 bg-white pl-4 pr-4 dark:border-zinc-700/80 dark:bg-zinc-900"
       style={{
-        paddingTop: insets.top + (isFoldable ? DUO_CORNER_MARGIN : 0),
+        paddingTop:
+          (ignoreTopInset ? 8 : insets.top) +
+          (isFoldable ? DUO_CORNER_MARGIN : 0),
         ...barStyle,
       }}
     >

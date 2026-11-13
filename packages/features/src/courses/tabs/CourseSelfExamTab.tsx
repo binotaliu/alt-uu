@@ -47,9 +47,14 @@ export function CourseSelfExamTab({
     return <EmptyNotice>目前沒有可顯示的自我練習。</EmptyNotice>;
   }
 
-  const open = (url: string) => {
+  const open = (url: string, title: string) => {
     onOpenedInAppBrowser?.();
-    openInAppBrowser(url, { cssPreset: 'homework' });
+    openInAppBrowser(url, {
+      cssPreset: 'homework',
+      title,
+      fileName: `${title}.pdf`,
+      exportAsPdf: true,
+    });
   };
 
   return (
@@ -73,13 +78,13 @@ export function CourseSelfExamTab({
             <CardButton
               label="進行練習"
               disabled={!item.actionUrl}
-              onPress={() => item.actionUrl && open(item.actionUrl)}
+              onPress={() => item.actionUrl && open(item.actionUrl, item.title)}
             />
             <CardButton
               label="檢視結果"
               variant="outline"
               disabled={!item.resultUrl}
-              onPress={() => item.resultUrl && open(item.resultUrl)}
+              onPress={() => item.resultUrl && open(item.resultUrl, item.title)}
             />
           </View>
 

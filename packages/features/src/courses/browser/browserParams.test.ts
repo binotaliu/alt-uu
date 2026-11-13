@@ -9,6 +9,9 @@ describe('parseBrowserParams', () => {
         method: 'GET',
         postForm: {},
         cssPreset: null,
+        fileName: null,
+        title: null,
+        exportAsPdf: false,
       },
     });
   });
@@ -32,6 +35,9 @@ describe('parseBrowserParams', () => {
         method: 'POST',
         postForm: { b: 'x y', a: '2' },
         cssPreset: 'homework',
+        fileName: null,
+        title: null,
+        exportAsPdf: false,
       },
     });
   });
@@ -77,5 +83,29 @@ describe('encodeFormBody', () => {
     expect(encodeFormBody({ b: 'a b', a: '中&=' })).toBe(
       'a=%E4%B8%AD%26%3D&b=a+b',
     );
+  });
+
+  it('keeps the preferred file name', () => {
+    const result = parseBrowserParams({
+      url: 'https://a.test/1',
+      fileName: ' 民法 - 114-1 - 正參.pdf ',
+    });
+
+    expect(result.ok && result.request.fileName).toBe(
+      '民法 - 114-1 - 正參.pdf',
+    );
+  });
+
+  it('reads the title and the PDF export flag', () => {
+    const result = parseBrowserParams({
+      url: 'https://a.test/1',
+      title: ' 第一次練習 ',
+      exportPdf: '1',
+    });
+
+    expect(result.ok && result.request).toMatchObject({
+      title: '第一次練習',
+      exportAsPdf: true,
+    });
   });
 });

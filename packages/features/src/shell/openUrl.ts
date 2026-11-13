@@ -10,6 +10,12 @@ export interface InAppBrowserOptions {
   postForm?: Record<string, string>;
   /** Mobile restyle for the legacy 教務系統 / 數位學習平台 pages. */
   cssPreset?: InAppBrowserCssPreset;
+  /** Name for files saved, printed or downloaded from this page. */
+  fileName?: string;
+  /** Title shown in the header instead of the page's own title. */
+  title?: string;
+  /** Offers 儲存為 PDF / 列印 for this HTML page. */
+  exportAsPdf?: boolean;
 }
 
 /**
@@ -29,6 +35,18 @@ export function openInAppBrowser(
 
   if (options.cssPreset !== undefined) {
     params.css = options.cssPreset;
+  }
+
+  if (options.fileName !== undefined) {
+    params.fileName = options.fileName;
+  }
+
+  if (options.title !== undefined) {
+    params.title = options.title;
+  }
+
+  if (options.exportAsPdf) {
+    params.exportPdf = '1';
   }
 
   router.push({ pathname: '/browser', params });

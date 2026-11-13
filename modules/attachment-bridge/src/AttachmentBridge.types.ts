@@ -113,6 +113,11 @@ export type SaveFileResult = {
   saved: boolean;
 };
 
+export type PrintFileResult = {
+  /** `false` when the user dismissed the print panel. */
+  printed: boolean;
+};
+
 export const ATTACHMENT_BRIDGE_ERROR_CODES = [
   'ERR_INVALID_URL',
   'ERR_INVALID_COOKIE',
@@ -127,6 +132,7 @@ export const ATTACHMENT_BRIDGE_ERROR_CODES = [
   'ERR_NO_PRESENTER',
   'ERR_SAVE_IN_PROGRESS',
   'ERR_SAVE_FAILED',
+  'ERR_PRINT_FAILED',
   'ERR_LEGACY_READ_FAILED',
   'ERR_FRAME_CAPTURE_FAILED',
 ] as const;
@@ -157,6 +163,7 @@ export interface AttachmentBridgeNativeModule {
     fileName: string,
     mimeType: string | null,
   ): Promise<SaveFileResult>;
+  printFile(uri: string, jobName: string | null): Promise<PrintFileResult>;
   readLegacyNativePhpAppKey(): Promise<string | null>;
   fileExists(path: string): Promise<boolean>;
   captureVideoFrame(url: string, seconds: number): Promise<VideoFrameResult>;

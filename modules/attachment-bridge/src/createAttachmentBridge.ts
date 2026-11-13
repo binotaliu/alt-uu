@@ -8,6 +8,7 @@ import type {
   DownloadResult,
   NativeBridgeCookie,
   ReservedRegion,
+  PrintFileResult,
   SaveFileResult,
   StartedDownload,
   VideoFrameResult,
@@ -64,6 +65,12 @@ export type AttachmentBridge = {
     fileName: string,
     mimeType?: string,
   ): Promise<SaveFileResult>;
+  /**
+   * Opens the system print panel for a local PDF or image. `printed` is
+   * `false` when the user cancelled (iOS); Android reports `true` once the
+   * job is handed to the print service.
+   */
+  printFile(uri: string, jobName?: string): Promise<PrintFileResult>;
   /**
    * Reads (never modifies) the Laravel `APP_KEY` the old NativePHP app
    * generated on this device: iOS Keychain generic password (service =
@@ -204,6 +211,8 @@ export function createAttachmentBridge(
       rethrowNormalized(nativeModule.previewFile(uri, mimeType ?? null)),
     saveFile: (uri, fileName, mimeType) =>
       rethrowNormalized(nativeModule.saveFile(uri, fileName, mimeType ?? null)),
+    printFile: (uri, jobName) =>
+      rethrowNormalized(nativeModule.printFile(uri, jobName ?? null)),
     readLegacyNativePhpAppKey: () =>
       rethrowNormalized(nativeModule.readLegacyNativePhpAppKey()),
     fileExists: (path) => rethrowNormalized(nativeModule.fileExists(path)),

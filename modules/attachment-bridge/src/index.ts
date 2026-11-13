@@ -25,6 +25,7 @@ export const {
   cancelDownload,
   previewFile,
   saveFile,
+  printFile,
   readLegacyNativePhpAppKey,
   fileExists,
   captureVideoFrame,

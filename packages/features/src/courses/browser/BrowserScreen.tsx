@@ -1,4 +1,10 @@
-import { setWebViewCookies } from '@altuu/attachment-bridge';
+import {
+  download,
+  printFile,
+  saveFile,
+  setWebViewCookies,
+  type DownloadResult,
+} from '@altuu/attachment-bridge';
 import {
   Button,
   PageHeader,
@@ -8,6 +14,7 @@ import {
   type IconName,
 } from '@altuu/ui';
 import { router, useLocalSearchParams } from 'expo-router';
+import * as Print from 'expo-print';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -21,6 +28,7 @@ import {
 import type {
   FileDownloadEvent,
   WebViewErrorEvent,
+  WebViewMessageEvent,
   ShouldStartLoadRequest,
   WebViewNavigation,
   WebViewOpenWindowEvent,
@@ -35,7 +43,11 @@ import {
   parseBrowserParams,
   type BrowserRequest,
 } from './browserParams';
-import { buildBeforeContentLoadedScript } from './browserScripts';
+import {
+  buildBeforeContentLoadedScript,
+  HTML_SNAPSHOT_PREFIX,
+  htmlSnapshotScript,
+} from './browserScripts';
 import { TypedWebView, type WebViewHandle } from '../../shell/TypedWebView';
 import {
   loadDownloadCookies,
@@ -44,7 +56,7 @@ import {
 } from './browserSession';
 import { hostOf } from '../../shell/url';
 
-const DEFAULT_TITLE = 'App 內瀏覽器';
+const DEFAULT_TITLE = '網頁';
 
 /** Schemes the WebView renders itself; everything else goes to the system. */
 const WEB_SCHEME = /^(https?|about|blob|data):/i;
@@ -58,6 +70,12 @@ export function isDownloadUrl(url: string): boolean {
 
   return DOWNLOAD_EXTENSION.test(url) || DOWNLOAD_EXTENSION.test(path);
 }
+
+/** Reports the loaded document's MIME type; iOS renders PDFs natively. */
+const DOCUMENT_TYPE_SCRIPT = `window.ReactNativeWebView.postMessage('altuu:contentType:' + document.contentType); true;`;
+const DOCUMENT_TYPE_PREFIX = 'altuu:contentType:';
+
+const PDF_PATH = /\.pdf$/i;
 
 function fileNameFromUrl(url: string): string | undefined {
   const path = url.split(/[?#]/)[0] ?? '';
@@ -114,6 +132,10 @@ export function BrowserView({ request }: BrowserViewProps) {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
   const attachment = useAttachmentDownload();
+  const [isPdfDocument, setIsPdfDocument] = useState(false);
+  const [exporting, setExporting] = useState<'save' | 'print' | null>(null);
+  const htmlSnapshotWaiter = useRef<((html: string) => void) | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   // Seed the HUNGU session into the platform cookie store before loading.
   useEffect(() => {
@@ -200,13 +222,37 @@ export function BrowserView({ request }: BrowserViewProps) {
       await attachment.start({
         source: 'direct',
         url,
-        fileName: fileNameFromUrl(url),
+        fileName:
+          url === request.url
+            ? (request.fileName ?? fileNameFromUrl(url))
+            : fileNameFromUrl(url),
         headers: { Referer: currentUrl },
         cookies,
       });
     },
-    [attachment, currentUrl, services, session],
+    [attachment, currentUrl, request, services, session],
   );
+
+  // Android's WebView cannot render PDFs and never asks
+  // onShouldStartLoadWithRequest for the first URL, so download it directly.
+  const downloadsInitialUrl =
+    Platform.OS === 'android' &&
+    request.method !== 'POST' &&
+    isDownloadUrl(request.url);
+  const initialDownloadStarted = useRef(false);
+
+  useEffect(() => {
+    if (!downloadsInitialUrl || session === null) {
+      return;
+    }
+
+    if (initialDownloadStarted.current) {
+      return;
+    }
+
+    initialDownloadStarted.current = true;
+    void startDownload(request.url);
+  }, [downloadsInitialUrl, request.url, session, startDownload]);
 
   const handleShouldStart = (event: ShouldStartLoadRequest): boolean => {
     const { url } = event;
@@ -223,7 +269,9 @@ export function BrowserView({ request }: BrowserViewProps) {
     if (
       Platform.OS === 'android' &&
       event.isTopFrame !== false &&
-      event.navigationType === 'click' &&
+      // navigationType is iOS-only; Android reports it as undefined.
+      (event.navigationType === undefined ||
+        event.navigationType === 'click') &&
       isDownloadUrl(url)
     ) {
       void startDownload(url);
@@ -254,29 +302,164 @@ export function BrowserView({ request }: BrowserViewProps) {
     ).catch(() => undefined);
   };
 
+  // Save to Files / print act on the PDF itself, so fetch it with the session.
+  const exportCurrentFile = async (action: 'save' | 'print') => {
+    if (exporting !== null) {
+      return;
+    }
+
+    setExporting(action);
+    setExportError(null);
+
+    try {
+      const cookies = await loadDownloadCookies(
+        services,
+        session ?? { baseUrl: null, cookies: [] },
+        currentUrl,
+      );
+      const file: DownloadResult = await download({
+        url: currentUrl,
+        headers: { Referer: currentUrl },
+        cookies,
+        fileName: request.fileName ?? fileNameFromUrl(currentUrl),
+      });
+
+      if (action === 'save') {
+        await saveFile(file.uri, file.fileName, file.mimeType);
+      } else {
+        await printFile(file.uri, file.fileName);
+      }
+    } catch (error) {
+      setExportError(
+        error instanceof Error && error.message
+          ? error.message
+          : action === 'save'
+            ? '儲存失敗，請稍後再試。'
+            : '列印失敗，請稍後再試。',
+      );
+    } finally {
+      setExporting(null);
+    }
+  };
+
+  // Asks the page for a script-free HTML copy (see htmlSnapshotScript).
+  const snapshotPage = () =>
+    new Promise<string>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        htmlSnapshotWaiter.current = null;
+        reject(new Error('無法讀取頁面內容。'));
+      }, 10000);
+
+      htmlSnapshotWaiter.current = (html) => {
+        clearTimeout(timeout);
+        htmlSnapshotWaiter.current = null;
+
+        if (html) {
+          resolve(html);
+        } else {
+          reject(new Error('無法讀取頁面內容。'));
+        }
+      };
+      webViewRef.current?.injectJavaScript(htmlSnapshotScript);
+    });
+
+  // 自我練習 pages are HTML: render them to PDF on the device.
+  const exportCurrentPage = async (action: 'save' | 'print') => {
+    if (exporting !== null) {
+      return;
+    }
+
+    setExporting(action);
+    setExportError(null);
+
+    try {
+      const html = await snapshotPage();
+
+      if (action === 'print') {
+        await Print.printAsync({ html });
+      } else {
+        const { uri } = await Print.printToFileAsync({
+          html,
+          width: 595,
+          height: 842,
+        });
+
+        await saveFile(
+          uri,
+          request.fileName ?? `${DEFAULT_TITLE}.pdf`,
+          'application/pdf',
+        );
+      }
+    } catch (error) {
+      setExportError(
+        error instanceof Error && error.message
+          ? error.message
+          : action === 'save'
+            ? '儲存失敗，請稍後再試。'
+            : '列印失敗，請稍後再試。',
+      );
+    } finally {
+      setExporting(null);
+    }
+  };
+
+  const showPdfActions =
+    isPdfDocument || PDF_PATH.test(currentUrl.split(/[?#]/)[0] ?? '');
+  const showPageExportActions = request.exportAsPdf && !showPdfActions;
+  const runExport = (action: 'save' | 'print') =>
+    void (showPageExportActions
+      ? exportCurrentPage(action)
+      : exportCurrentFile(action));
   const downloading = attachment.state.status === 'downloading';
 
   return (
     <Screen ignoreTopInset ignoreBottomInset>
       <PageHeader
-        title={navigation?.title?.trim() || DEFAULT_TITLE}
+        title={
+          request.title ||
+          navigation?.title?.trim() ||
+          request.fileName?.replace(/\.pdf$/i, '') ||
+          DEFAULT_TITLE
+        }
+        // The iOS modal sheet already sits below the status bar.
+        ignoreTopInset={Platform.OS === 'ios'}
         subtitle={hostOf(currentUrl) || null}
         showBack={false}
         left={<HeaderButton label="完成" icon="x-mark" onPress={close} />}
         right={
           <>
-            <HeaderButton
-              label="上一頁"
-              icon="arrow-left"
-              disabled={!canGoBack}
-              onPress={() => webViewRef.current?.goBack()}
-            />
-            <HeaderButton
-              label="下一頁"
-              icon="arrow-right"
-              disabled={!navigation?.canGoForward}
-              onPress={() => webViewRef.current?.goForward()}
-            />
+            {showPdfActions ? null : (
+              <>
+                <HeaderButton
+                  label="上一頁"
+                  icon="arrow-left"
+                  disabled={!canGoBack}
+                  onPress={() => webViewRef.current?.goBack()}
+                />
+                <HeaderButton
+                  label="下一頁"
+                  icon="arrow-right"
+                  disabled={!navigation?.canGoForward}
+                  onPress={() => webViewRef.current?.goForward()}
+                />
+              </>
+            )}
+            {showPdfActions || showPageExportActions ? (
+              <>
+                <HeaderButton
+                  label="儲存到檔案"
+                  icon="arrow-down-tray"
+                  disabled={exporting !== null}
+                  onPress={() => runExport('save')}
+                />
+                <HeaderButton
+                  label="列印"
+                  icon="printer"
+                  disabled={exporting !== null}
+                  onPress={() => runExport('print')}
+                />
+              </>
+            ) : null}
             <HeaderButton label="分享網址" icon="share" onPress={share} />
           </>
         }
@@ -303,7 +486,7 @@ export function BrowserView({ request }: BrowserViewProps) {
       )}
 
       <View className="flex-1">
-        {session === null ? (
+        {session === null || downloadsInitialUrl ? (
           <View className="flex-1 items-center justify-center">
             <ActivityIndicator />
           </View>
@@ -317,6 +500,24 @@ export function BrowserView({ request }: BrowserViewProps) {
             onLoadProgress={(event: WebViewProgressEvent) =>
               setProgress(event.nativeEvent.progress)
             }
+            injectedJavaScript={DOCUMENT_TYPE_SCRIPT}
+            onMessage={(event: WebViewMessageEvent) => {
+              const data = event.nativeEvent.data;
+
+              if (data.startsWith(HTML_SNAPSHOT_PREFIX)) {
+                htmlSnapshotWaiter.current?.(
+                  data.slice(HTML_SNAPSHOT_PREFIX.length),
+                );
+
+                return;
+              }
+
+              if (data.startsWith(DOCUMENT_TYPE_PREFIX)) {
+                setIsPdfDocument(
+                  data.slice(DOCUMENT_TYPE_PREFIX.length) === 'application/pdf',
+                );
+              }
+            }}
             onLoadStart={() => setLoadError(null)}
             onNavigationStateChange={setNavigation}
             onShouldStartLoadWithRequest={handleShouldStart}
@@ -352,21 +553,31 @@ export function BrowserView({ request }: BrowserViewProps) {
           </View>
         ) : null}
 
-        {downloading || attachment.state.status === 'error' ? (
+        {downloading ||
+        exporting !== null ||
+        exportError !== null ||
+        attachment.state.status === 'error' ? (
           <View className="absolute inset-x-3 bottom-4 flex-row items-center gap-3 rounded-xl border border-theme-200 bg-white px-4 py-3 dark:border-zinc-700 dark:bg-zinc-800">
-            {downloading ? <ActivityIndicator /> : null}
+            {downloading || exporting !== null ? <ActivityIndicator /> : null}
             <Text className="min-w-0 flex-1 text-sm">
-              {attachment.state.status === 'error'
-                ? attachment.state.message
-                : attachment.state.status === 'downloading' &&
-                    attachment.state.progress !== null
-                  ? `下載中 ${Math.round(attachment.state.progress * 100)}%`
-                  : '下載中...'}
+              {exportError !== null
+                ? exportError
+                : exporting !== null
+                  ? '準備檔案中...'
+                  : attachment.state.status === 'error'
+                    ? attachment.state.message
+                    : attachment.state.status === 'downloading' &&
+                        attachment.state.progress !== null
+                      ? `下載中 ${Math.round(attachment.state.progress * 100)}%`
+                      : '下載中...'}
             </Text>
-            {attachment.state.status === 'error' ? (
+            {exportError !== null || attachment.state.status === 'error' ? (
               <Pressable
                 accessibilityRole="button"
-                onPress={attachment.dismiss}
+                onPress={() => {
+                  setExportError(null);
+                  attachment.dismiss();
+                }}
               >
                 <Text className="text-sm font-semibold text-theme-700 dark:text-zinc-300">
                   關閉

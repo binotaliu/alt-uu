@@ -6,6 +6,11 @@ export interface BrowserRequest {
   /** Only set for POST. */
   postForm: Record<string, string>;
   cssPreset: InAppBrowserCssPreset | null;
+  /** Preferred file name for save / print / download of this page. */
+  fileName: string | null;
+  title: string | null;
+  /** The HTML page can be saved as PDF or printed. */
+  exportAsPdf: boolean;
 }
 
 export type BrowserParamsResult =
@@ -74,7 +79,15 @@ export function parseBrowserParams(params: RawParams): BrowserParamsResult {
 
   return {
     ok: true,
-    request: { url, method: effectiveMethod, postForm, cssPreset },
+    request: {
+      url,
+      method: effectiveMethod,
+      postForm,
+      cssPreset,
+      fileName: first(params.fileName)?.trim() || null,
+      title: first(params.title)?.trim() || null,
+      exportAsPdf: first(params.exportPdf) === '1',
+    },
   };
 }
 

@@ -6,6 +6,7 @@ public final class AttachmentBridgeModule: Module {
   private var downloader: AttachmentDownloader?
   private let previewPresenter = AttachmentPreviewPresenter()
   private let savePresenter = AttachmentSavePresenter()
+  private let printPresenter = AttachmentPrintPresenter()
   private var hingeObserver: AnyObject?
 
   public func definition() -> ModuleDefinition {
@@ -245,6 +246,12 @@ public final class AttachmentBridgeModule: Module {
       }
 
       try self.savePresenter.present(fileURL: fileURL, fileName: fileName, from: presenter, promise: promise)
+    }.runOnQueue(.main)
+
+    AsyncFunction("printFile") { (uri: String, jobName: String?, promise: Promise) in
+      let fileURL = try resolveLocalFileURL(uri)
+
+      try self.printPresenter.present(fileURL: fileURL, jobName: jobName, promise: promise)
     }.runOnQueue(.main)
   }
 

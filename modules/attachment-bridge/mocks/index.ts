@@ -95,6 +95,7 @@ export function createMockAttachmentBridgeNativeModule(): MockAttachmentBridgeNa
     cancelDownload: jest.fn(),
     previewFile: jest.fn(),
     saveFile: jest.fn(),
+    printFile: jest.fn(),
     readLegacyNativePhpAppKey: jest.fn(),
     fileExists: jest.fn(),
     captureVideoFrame: jest.fn(),
@@ -133,6 +134,9 @@ export function createMockAttachmentBridgeNativeModule(): MockAttachmentBridgeNa
       mock.saveFile
         .mockReset()
         .mockImplementation(async () => ({ saved: true }));
+      mock.printFile
+        .mockReset()
+        .mockImplementation(async () => ({ printed: true }));
       mock.readLegacyNativePhpAppKey
         .mockReset()
         .mockImplementation(async () => null);
@@ -190,6 +194,7 @@ export const {
   cancelDownload,
   previewFile,
   saveFile,
+  printFile,
   readLegacyNativePhpAppKey,
   fileExists,
   captureVideoFrame,

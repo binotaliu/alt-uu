@@ -75,6 +75,12 @@ internal class AttachmentBridgeException(
     fun saveInProgress() =
       AttachmentBridgeException("ERR_SAVE_IN_PROGRESS", "已有儲存對話框開啟中。")
 
+    fun printFailed(reason: String?, cause: Throwable? = null) = AttachmentBridgeException(
+      "ERR_PRINT_FAILED",
+      if (reason.isNullOrBlank()) "無法列印檔案。" else "無法列印檔案：$reason",
+      cause
+    )
+
     fun saveFailed(reason: String?, cause: Throwable? = null) = AttachmentBridgeException(
       "ERR_SAVE_FAILED",
       if (reason.isNullOrBlank()) "無法儲存檔案。" else "無法儲存檔案：$reason",

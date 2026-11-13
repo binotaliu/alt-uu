@@ -120,3 +120,27 @@ internal final class AttachmentSavePresenter: NSObject, UIDocumentPickerDelegate
     finish(saved: false)
   }
 }
+
+/// Prints a local PDF or image through the system print panel. Must be used on the main thread.
+internal final class AttachmentPrintPresenter {
+  func present(fileURL: URL, jobName: String?, promise: Promise) throws {
+    guard UIPrintInteractionController.canPrint(fileURL) else {
+      throw AttachmentBridgeException.printFailed("此檔案類型無法列印。")
+    }
+
+    let printInfo = UIPrintInfo(dictionary: nil)
+    printInfo.outputType = .general
+    printInfo.jobName = AttachmentFileNaming.sanitize(jobName ?? "") ?? fileURL.lastPathComponent
+
+    let controller = UIPrintInteractionController.shared
+    controller.printInfo = printInfo
+    controller.printingItem = fileURL
+    controller.present(animated: true) { _, completed, error in
+      if let error {
+        promise.reject(AttachmentBridgeException.printFailed(error.localizedDescription))
+      } else {
+        promise.resolve(["printed": completed])
+      }
+    }
+  }
+}

@@ -65,6 +65,10 @@ internal final class AttachmentBridgeException: Exception, @unchecked Sendable {
     AttachmentBridgeException("ERR_LEGACY_READ_FAILED", "無法讀取舊版 App 資料：\(reason)")
   }
 
+  static func printFailed(_ reason: String) -> AttachmentBridgeException {
+    AttachmentBridgeException("ERR_PRINT_FAILED", "無法列印檔案：\(reason)")
+  }
+
   static func saveFailed(_ reason: String) -> AttachmentBridgeException {
     AttachmentBridgeException("ERR_SAVE_FAILED", "無法儲存檔案：\(reason)")
   }
