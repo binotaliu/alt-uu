@@ -26,8 +26,8 @@ export function createSchoolPortalServices(deps: {
     credentialsStore: deps.credentialsStore,
   });
 
-  proxy.setReauthenticationHandler(() =>
-    authenticator.attemptRememberedLogin(),
+  proxy.setReauthenticationHandler((accountId) =>
+    authenticator.attemptRememberedLogin(accountId),
   );
 
   return { proxy, authenticator, client: new SchoolPortalClient(proxy) };

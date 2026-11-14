@@ -16,6 +16,7 @@ import {
   createMaterialPreferenceServices,
   createModerationServices,
   createNouToolsServices,
+  resolveAccountLabelFor,
   createPlaybackServices,
   createSchoolPortalDomainServices,
   createSchoolPortalServices,
@@ -226,6 +227,19 @@ async function build(): Promise<AppServices> {
     },
     portalBaseUrl: defaultSchoolPortalConfig.baseUrl,
     listCourses: listSchoolPortalCourses,
+    listAccounts: async () =>
+      Promise.all(
+        (await storage.credentials.all()).map(async (account) => ({
+          accountId: account.id,
+          username: account.username,
+          label: await resolveAccountLabelFor(
+            storage.hunguSessions,
+            account,
+            account.id,
+          ),
+        })),
+      ),
+    onError: (error) => console.warn('School portal error', error),
   });
   course = createCourseServices({
     client: hungu.course,

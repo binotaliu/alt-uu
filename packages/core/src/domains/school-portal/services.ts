@@ -3,7 +3,11 @@ import {
   normalizeTermCode,
 } from '../course/support/courseNameMatcher';
 import { createGetCourseClassSessionInfo } from './classSessionInfo';
-import type { SchoolPortalDomainDeps } from './deps';
+import type {
+  SchoolPortalAccount,
+  SchoolPortalAccountScope,
+  SchoolPortalDomainDeps,
+} from './deps';
 import { SchoolPortalExamInfoRepository } from './examInfoRepository';
 import {
   SchoolPortalGradeRepository,
@@ -17,6 +21,7 @@ import type {
   SchoolPortalCourseExamScopes,
   SchoolPortalExamInfo,
   SchoolPortalGrade,
+  SchoolPortalAccountTag,
 } from './types';
 
 /** Only 正考 categories are regular exams; 補考/重補修考 are excluded. */
@@ -40,18 +45,19 @@ export function createSchoolPortalDomainServices(deps: SchoolPortalDomainDeps) {
     (await deps.listCourses()).find((item) => item.courseId === courseId) ??
     null;
 
-  /** GetAllCourseGrades (GET /api/grades). */
-  const getAllCourseGrades = async (): Promise<SchoolPortalGrade[]> => {
+  const gradesFor = async (
+    scope: SchoolPortalAccountScope,
+  ): Promise<SchoolPortalGrade[]> => {
     const rows = [];
     const seenKeys = new Set<string>();
 
-    for (const grade of await gradeRepository.currentSemesterGrades()) {
+    for (const grade of await gradeRepository.currentSemesterGrades(scope)) {
       seenKeys.add(`${grade.termCode}|${grade.normalizedCourseName}`);
       rows.push(grade);
     }
 
     // The historical page also tends to list the current semester.
-    for (const grade of await gradeRepository.historicalGrades()) {
+    for (const grade of await gradeRepository.historicalGrades(scope)) {
       const key = `${grade.termCode}|${grade.normalizedCourseName}`;
 
       if (seenKeys.has(key)) {
@@ -66,6 +72,40 @@ export function createSchoolPortalDomainServices(deps: SchoolPortalDomainDeps) {
 
     return rows.map(gradeToViewModel);
   };
+
+  /**
+   * Runs `fetchFor` for the active account, or for every account when
+   * `allAccounts` is set and more than one exists. A failing account is
+   * reported and skipped; rows carry their account.
+   */
+  const forAccounts = async <T extends SchoolPortalAccountTag>(
+    options: SchoolPortalAccountsOptions,
+    fetchFor: (scope: SchoolPortalAccountScope) => Promise<T[]>,
+  ): Promise<T[]> => {
+    const accounts =
+      options.allAccounts === true ? await deps.listAccounts() : [];
+
+    if (accounts.length <= 1) {
+      return fetchFor({});
+    }
+
+    const rows: T[] = [];
+
+    for (const account of accounts) {
+      try {
+        rows.push(...tagRows(account, await fetchFor(scopeOf(account))));
+      } catch (error) {
+        deps.onError?.(error);
+      }
+    }
+
+    return rows;
+  };
+
+  /** GetAllCourseGrades (GET /api/grades), optionally for every account. */
+  const getAllCourseGrades = (
+    options: SchoolPortalAccountsOptions = {},
+  ): Promise<SchoolPortalGrade[]> => forAccounts(options, gradesFor);
 
   /** GetCourseSemesterGrade. */
   const getCourseSemesterGrade = async (
@@ -128,20 +168,28 @@ export function createSchoolPortalDomainServices(deps: SchoolPortalDomainDeps) {
   };
 
   /** 考試命題範圍 per course, for the 考試資訊 page (no legacy counterpart). */
-  const getExamScopes = async (): Promise<SchoolPortalCourseExamScopes[]> => {
-    const page = await examInfoRepository.currentSemesterExamInfo();
+  const examScopesFor = async (
+    scope: SchoolPortalAccountScope,
+  ): Promise<SchoolPortalCourseExamScopes[]> => {
+    const page = await examInfoRepository.currentSemesterExamInfo(scope);
 
     return page.courses
       .filter((course) => course.scopes.length > 0)
       .map((course) => ({
         courseName: course.courseName,
-        scopes: course.scopes.map((scope) => ({ ...scope })),
+        scopes: course.scopes.map((entry) => ({ ...entry })),
       }));
   };
 
-  /** GetExamAgenda (GET /api/exam-agenda): the `items` array. */
-  const getExamAgenda = async (): Promise<SchoolPortalExamAgendaItem[]> => {
-    const page = await examInfoRepository.currentSemesterExamInfo();
+  const getExamScopes = (
+    options: SchoolPortalAccountsOptions = {},
+  ): Promise<SchoolPortalCourseExamScopes[]> =>
+    forAccounts(options, examScopesFor);
+
+  const examAgendaFor = async (
+    scope: SchoolPortalAccountScope,
+  ): Promise<SchoolPortalExamAgendaItem[]> => {
+    const page = await examInfoRepository.currentSemesterExamInfo(scope);
     const items: SchoolPortalExamAgendaItem[] = [];
 
     for (const course of page.courses) {
@@ -170,6 +218,12 @@ export function createSchoolPortalDomainServices(deps: SchoolPortalDomainDeps) {
       .sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0))
       .map(({ item }) => item);
   };
+
+  /** GetExamAgenda (GET /api/exam-agenda): the `items` array. */
+  const getExamAgenda = (
+    options: SchoolPortalAccountsOptions = {},
+  ): Promise<SchoolPortalExamAgendaItem[]> =>
+    forAccounts(options, examAgendaFor);
 
   /** GET /api/courses/{cid}/grades: `grade` or null on unknown course / failure. */
   const getCourseGrade = async (
@@ -232,6 +286,26 @@ export function createSchoolPortalDomainServices(deps: SchoolPortalDomainDeps) {
 export type SchoolPortalDomainServices = ReturnType<
   typeof createSchoolPortalDomainServices
 >;
+
+export interface SchoolPortalAccountsOptions {
+  /** Every stored account instead of the active one (needs 2+ accounts). */
+  allAccounts?: boolean;
+}
+
+const scopeOf = (account: SchoolPortalAccount): SchoolPortalAccountScope => ({
+  accountId: account.accountId,
+  username: account.username,
+});
+
+const tagRows = <T extends SchoolPortalAccountTag>(
+  account: SchoolPortalAccount,
+  rows: T[],
+): T[] =>
+  rows.map((row) => ({
+    ...row,
+    accountId: account.accountId,
+    accountLabel: account.label,
+  }));
 
 function compareStrings(a: string, b: string): number {
   return a < b ? -1 : a > b ? 1 : 0;

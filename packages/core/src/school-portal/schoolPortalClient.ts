@@ -1,4 +1,4 @@
-import type { CredentialsStore } from '../session/types';
+import type { AccountId, CredentialsStore } from '../session/types';
 import type {
   SchoolPortalPageResult,
   SchoolPortalProxyClient,
@@ -12,20 +12,36 @@ export class SchoolPortalClient {
     return this.proxy.fetchHtmlPage('/device/compliant/qryass/index');
   }
 
-  fetchCurrentSemesterGradesPage(): Promise<SchoolPortalPageResult> {
-    return this.proxy.fetchHtmlPage('/device/compliant/qryscore/index');
+  fetchCurrentSemesterGradesPage(
+    accountId?: AccountId,
+  ): Promise<SchoolPortalPageResult> {
+    return this.proxy.fetchHtmlPage(
+      '/device/compliant/qryscore/index',
+      true,
+      accountId,
+    );
   }
 
-  fetchHistoricalGradesPage(): Promise<SchoolPortalPageResult> {
-    return this.proxy.fetchHtmlPage('/device/compliant/qryscore2/index');
+  fetchHistoricalGradesPage(
+    accountId?: AccountId,
+  ): Promise<SchoolPortalPageResult> {
+    return this.proxy.fetchHtmlPage(
+      '/device/compliant/qryscore2/index',
+      true,
+      accountId,
+    );
   }
 
   fetchClassSessionInfoPage(): Promise<SchoolPortalPageResult> {
     return this.proxy.fetchHtmlPage('/device/compliant/qryper/index');
   }
 
-  fetchExamInfoPage(): Promise<SchoolPortalPageResult> {
-    return this.proxy.fetchHtmlPage('/device/compliant/qryexm/index');
+  fetchExamInfoPage(accountId?: AccountId): Promise<SchoolPortalPageResult> {
+    return this.proxy.fetchHtmlPage(
+      '/device/compliant/qryexm/index',
+      true,
+      accountId,
+    );
   }
 }
 
@@ -41,13 +57,18 @@ export class SchoolPortalSessionAuthenticator {
     },
   ) {}
 
-  async attemptRememberedLogin(): Promise<boolean> {
-    const credentials = await this.deps.credentialsStore.get();
+  /** `accountId` omitted means the active account. */
+  async attemptRememberedLogin(accountId?: AccountId): Promise<boolean> {
+    const credentials = await this.deps.credentialsStore.get(accountId);
 
     if (credentials === null) {
       return false;
     }
 
-    return this.deps.proxy.login(credentials.username, credentials.password);
+    return this.deps.proxy.login(
+      credentials.username,
+      credentials.password,
+      accountId,
+    );
   }
 }

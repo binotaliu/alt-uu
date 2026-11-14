@@ -53,6 +53,7 @@ async function setup(
       options.username === undefined ? 'u1001' : options.username,
     portalBaseUrl: 'https://nouapp.nou.edu.tw',
     listCourses: async () => options.courses ?? [],
+    listAccounts: async () => [],
   });
 
   return { ...context, services, calls };

@@ -2,7 +2,7 @@ import {
   normalizeCourseName,
   normalizeTermCode,
 } from '../course/support/courseNameMatcher';
-import type { SchoolPortalDomainDeps } from './deps';
+import type { SchoolPortalAccountScope, SchoolPortalDomainDeps } from './deps';
 import { CACHE_TTL_SECONDS, HISTORICAL_CACHE_TTL_SECONDS } from './deps';
 import {
   anonymousScope,
@@ -28,32 +28,50 @@ const HISTORICAL_CACHE_KEY_PREFIX = 'alt-uu:school-portal:historical-grades:';
 export class SchoolPortalGradeRepository {
   constructor(private readonly deps: SchoolPortalDomainDeps) {}
 
-  async currentSemesterGrades(): Promise<ParsedPortalItem[]> {
+  async currentSemesterGrades(
+    scope: SchoolPortalAccountScope = {},
+  ): Promise<ParsedPortalItem[]> {
     return this.deps.cache.remember(
-      await this.cacheKey(CACHE_KEY_PREFIX),
+      await this.cacheKey(CACHE_KEY_PREFIX, scope),
       CACHE_TTL_SECONDS,
       async () => {
-        const page = await this.deps.client.fetchCurrentSemesterGradesPage();
+        const page = await this.deps.client.fetchCurrentSemesterGradesPage(
+          scope.accountId,
+        );
 
         return page.status >= 400 ? [] : parseGrades(page.body);
       },
     );
   }
 
-  async historicalGrades(): Promise<ParsedPortalItem[]> {
+  async historicalGrades(
+    scope: SchoolPortalAccountScope = {},
+  ): Promise<ParsedPortalItem[]> {
     return this.deps.cache.remember(
-      await this.cacheKey(HISTORICAL_CACHE_KEY_PREFIX),
+      await this.cacheKey(HISTORICAL_CACHE_KEY_PREFIX, scope),
       HISTORICAL_CACHE_TTL_SECONDS,
       async () => {
-        const page = await this.deps.client.fetchHistoricalGradesPage();
+        const page = await this.deps.client.fetchHistoricalGradesPage(
+          scope.accountId,
+        );
 
         return page.status >= 400 ? [] : parseHistoricalGrades(page.body);
       },
     );
   }
 
-  private async cacheKey(prefix: string): Promise<string> {
-    return prefix + anonymousScope(await this.deps.getProfileUsername());
+  private async cacheKey(
+    prefix: string,
+    scope: SchoolPortalAccountScope,
+  ): Promise<string> {
+    return (
+      prefix +
+      anonymousScope(
+        scope.accountId === undefined
+          ? await this.deps.getProfileUsername()
+          : scope.username,
+      )
+    );
   }
 }
 

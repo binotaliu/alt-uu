@@ -51,7 +51,8 @@ export interface SchoolPortalProxyClientDeps {
  */
 export class SchoolPortalProxyClient {
   private readonly transport: HttpTransport;
-  private reauthenticationHandler: (() => Promise<boolean>) | null = null;
+  private reauthenticationHandler:
+    ((accountId?: AccountId) => Promise<boolean>) | null = null;
 
   constructor(private readonly deps: SchoolPortalProxyClientDeps) {
     this.transport = new HttpTransport({
@@ -63,7 +64,9 @@ export class SchoolPortalProxyClient {
     });
   }
 
-  setReauthenticationHandler(handler: (() => Promise<boolean>) | null): void {
+  setReauthenticationHandler(
+    handler: ((accountId?: AccountId) => Promise<boolean>) | null,
+  ): void {
     this.reauthenticationHandler = handler;
   }
 
@@ -166,7 +169,7 @@ export class SchoolPortalProxyClient {
     if (
       canRetryOnFailure &&
       looksLikeLoginPage(response.body) &&
-      (await this.reauthenticate())
+      (await this.reauthenticate(accountId))
     ) {
       return this.fetchHtmlPage(path, false, accountId);
     }
@@ -256,13 +259,13 @@ export class SchoolPortalProxyClient {
     });
   }
 
-  private async reauthenticate(): Promise<boolean> {
+  private async reauthenticate(accountId?: AccountId): Promise<boolean> {
     if (this.reauthenticationHandler === null) {
       return false;
     }
 
     try {
-      return await this.reauthenticationHandler();
+      return await this.reauthenticationHandler(accountId);
     } catch {
       return false;
     }

@@ -89,29 +89,11 @@ export function createNouToolsServices(deps: NouToolsServicesDeps) {
     return sessions;
   }
 
-  async function resolveAccountLabel(
+  const resolveAccountLabel = (
     account: { nickname: string | null; username: string } | null,
     accountId: AccountId | null,
-  ): Promise<string> {
-    if (account === null) {
-      return '';
-    }
-
-    if (account.nickname !== null && account.nickname !== '') {
-      return account.nickname;
-    }
-
-    const session =
-      accountId === null ? null : await deps.hunguSessions.get(accountId);
-    const profile = session?.profile;
-    const displayName =
-      isRecord(profile) &&
-      typeof (profile as JsonObject).display_name === 'string'
-        ? ((profile as JsonObject).display_name as string)
-        : '';
-
-    return displayName !== '' ? displayName : account.username;
-  }
+  ): Promise<string> =>
+    resolveAccountLabelFor(deps.hunguSessions, account, accountId);
 
   return {
     client,
@@ -219,4 +201,33 @@ function stringOrNull(value: unknown): string | null {
 /** PHP `$array[$key] ?? null`. */
 function valueOrNull(value: unknown): unknown {
   return value === undefined ? null : value;
+}
+
+/**
+ * Display label of an account: its nickname, else the HUNGU profile display
+ * name, else the username (shared by every all-accounts view).
+ */
+export async function resolveAccountLabelFor(
+  hunguSessions: Pick<SessionStore<HunguSession>, 'get'>,
+  account: { nickname: string | null; username: string } | null,
+  accountId: AccountId | null,
+): Promise<string> {
+  if (account === null) {
+    return '';
+  }
+
+  if (account.nickname !== null && account.nickname !== '') {
+    return account.nickname;
+  }
+
+  const session =
+    accountId === null ? null : await hunguSessions.get(accountId);
+  const profile = session?.profile;
+  const displayName =
+    isRecord(profile) &&
+    typeof (profile as JsonObject).display_name === 'string'
+      ? ((profile as JsonObject).display_name as string)
+      : '';
+
+  return displayName !== '' ? displayName : account.username;
 }

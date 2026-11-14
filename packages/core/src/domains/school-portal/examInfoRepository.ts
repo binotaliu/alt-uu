@@ -4,7 +4,7 @@ import {
   normalizeCourseName,
   normalizeTermCode,
 } from '../course/support/courseNameMatcher';
-import type { SchoolPortalDomainDeps } from './deps';
+import type { SchoolPortalAccountScope, SchoolPortalDomainDeps } from './deps';
 import { CACHE_TTL_SECONDS } from './deps';
 import {
   anonymousScope,
@@ -47,12 +47,19 @@ const emptyPage = (): ParsedExamInfoPage => ({
 export class SchoolPortalExamInfoRepository {
   constructor(private readonly deps: SchoolPortalDomainDeps) {}
 
-  async currentSemesterExamInfo(): Promise<ParsedExamInfoPage> {
+  async currentSemesterExamInfo(
+    scope: SchoolPortalAccountScope = {},
+  ): Promise<ParsedExamInfoPage> {
     const key =
-      CACHE_KEY_PREFIX + anonymousScope(await this.deps.getProfileUsername());
+      CACHE_KEY_PREFIX +
+      anonymousScope(
+        scope.accountId === undefined
+          ? await this.deps.getProfileUsername()
+          : scope.username,
+      );
 
     return this.deps.cache.remember(key, CACHE_TTL_SECONDS, async () => {
-      const page = await this.deps.client.fetchExamInfoPage();
+      const page = await this.deps.client.fetchExamInfoPage(scope.accountId);
 
       return page.status >= 400 ? emptyPage() : parseExamInfo(page.body);
     });

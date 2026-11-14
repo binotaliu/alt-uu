@@ -199,6 +199,41 @@ describe('SchoolPortalProxyClient', () => {
     expect(requests.at(-1)?.headers.cookie).toBe('JSESSIONID=post; X=1');
   });
 
+  it("re-logs in with another account's credentials and stores its session", async () => {
+    const fake = createFakeFetch([
+      ...loginRoutes(),
+      [
+        'https://nouapp.nou.edu.tw/device/compliant/qryexm/index',
+        [{ body: '<input name="loginUser">' }, { body: '<table>exam</table>' }],
+      ],
+    ]);
+    const sessionStore = new InMemorySessionStore<SchoolPortalSession>(1);
+    const { client } = createSchoolPortalServices({
+      fetch: fake.fetch,
+      config: defaultSchoolPortalConfig,
+      sessionStore,
+      credentialsStore: {
+        get: async (accountId) =>
+          accountId === 2
+            ? { username: 'other', password: 'other-pw' }
+            : { username: 'active', password: 'active-pw' },
+        put: async () => {},
+      },
+    });
+
+    expect(await client.fetchExamInfoPage(2)).toEqual({
+      status: 200,
+      body: '<table>exam</table>',
+    });
+    expect(
+      fake.requests.some((r) => String(r.body).includes('loginUser=other')),
+    ).toBe(true);
+    expect(sessionStore.sessions.get(2)?.cookies).toMatchObject({
+      JSESSIONID: 'post',
+    });
+    expect(sessionStore.sessions.has(1)).toBe(false);
+  });
+
   it('returns the login page when re-login fails', async () => {
     const { client, requests } = setup(
       [['*', { body: '<input name="loginUser">' }]],

@@ -1,5 +1,12 @@
 /** View model shapes mirror legacy resources/js/types/generated.d.ts (camelCase). */
-export interface SchoolPortalGrade {
+
+/** Set on rows of an all-accounts request only. */
+export interface SchoolPortalAccountTag {
+  accountId?: number;
+  accountLabel?: string;
+}
+
+export interface SchoolPortalGrade extends SchoolPortalAccountTag {
   courseName: string;
   semesterLabel: string;
   credits: string | null;
@@ -42,12 +49,12 @@ export interface SchoolPortalExamInfo {
   scopes: SchoolPortalExamScope[];
 }
 
-export interface SchoolPortalCourseExamScopes {
+export interface SchoolPortalCourseExamScopes extends SchoolPortalAccountTag {
   courseName: string;
   scopes: SchoolPortalExamScope[];
 }
 
-export interface SchoolPortalExamAgendaItem {
+export interface SchoolPortalExamAgendaItem extends SchoolPortalAccountTag {
   courseName: string;
   category: string;
   date: string | null;
