@@ -5,13 +5,12 @@ import { View } from 'react-native';
 
 import {
   AccountScopeSwitch,
-  AccountSectionHeader,
+  AccountLabel,
 } from '../../courses/components/primitives';
 import { ErrorRetry } from '../../shell/ErrorRetry';
 import { SubPage } from '../components/SubPage';
 import { Card } from '../components/primitives';
 import { LoadingCard, EmptyCard } from '../components/states';
-import { groupByAccount } from '../lib/accountGroups';
 import {
   useGrades,
   useHasMultipleAccounts,
@@ -35,23 +34,22 @@ function semesterSortKey(label: string): number | null {
 
 /** Groups grades per semester, newest semester first. */
 export function groupBySemester(grades: SchoolPortalGrade[]): SemesterGroup[] {
-  const groups: SemesterGroup[] = [];
+  // Keyed by label, not consecutive: an all-accounts list repeats a semester
+  // once per account.
+  const byLabel = new Map<string, SemesterGroup>();
 
   for (const grade of grades) {
-    const last = groups[groups.length - 1];
+    const group = byLabel.get(grade.semesterLabel) ?? {
+      semesterLabel: grade.semesterLabel,
+      grades: [],
+    };
 
-    if (last && last.semesterLabel === grade.semesterLabel) {
-      last.grades.push(grade);
-    } else {
-      groups.push({
-        semesterLabel: grade.semesterLabel,
-        grades: [grade],
-      });
-    }
+    group.grades.push(grade);
+    byLabel.set(grade.semesterLabel, group);
   }
 
   // Array#sort is stable, so unparsable labels keep their portal order.
-  return groups.sort((a, b) => {
+  return [...byLabel.values()].sort((a, b) => {
     const keyA = semesterSortKey(a.semesterLabel);
     const keyB = semesterSortKey(b.semesterLabel);
 
@@ -143,12 +141,8 @@ export function GradesScreen() {
   const hasMultipleAccounts = useHasMultipleAccounts();
   const allAccounts = hasMultipleAccounts && showAllAccounts;
   const grades = useGrades(allAccounts);
-  const accountGroups = useMemo(
-    () =>
-      groupByAccount(grades.data ?? []).map((account) => ({
-        ...account,
-        semesters: groupBySemester(account.items),
-      })),
+  const groups = useMemo(
+    () => groupBySemester(grades.data ?? []),
     [grades.data],
   );
 
@@ -168,58 +162,54 @@ export function GradesScreen() {
           retrying={grades.isFetching}
           onRetry={() => void grades.refetch()}
         />
-      ) : accountGroups.length === 0 ? (
+      ) : groups.length === 0 ? (
         <EmptyCard>查無成績資料。</EmptyCard>
       ) : (
-        accountGroups.map((account) => (
-          <View key={account.accountId ?? 'active'} className="gap-4">
-            {allAccounts && account.label ? (
-              <AccountSectionHeader label={account.label} />
-            ) : null}
-            {account.semesters.map((group) => (
-              <View key={group.semesterLabel} className="gap-2">
-                <Text className="px-1 text-sm font-semibold text-theme-700 dark:text-zinc-400">
-                  {group.semesterLabel}
-                </Text>
-                {group.grades.map((grade, index) => (
-                  <Card key={`${group.semesterLabel}-${index}`}>
-                    <View className="flex-row items-center justify-between gap-3">
-                      <View className="min-w-0 flex-1">
-                        <Text className="text-base font-medium text-theme-900 dark:text-zinc-100">
-                          {grade.courseName}
-                        </Text>
-                        <View className="mt-2">
-                          <DetailRow
-                            items={labelled([
-                              {
-                                label: '學分數',
-                                value: grade.credits,
-                              },
-                            ])}
-                          />
-                        </View>
-                        <DetailRow
-                          items={labelled([
-                            {
-                              label: '平時成績',
-                              value: grade.regularAverage,
-                            },
-                            {
-                              label: '期中成績',
-                              value: grade.midtermScore,
-                            },
-                            {
-                              label: '期末成績',
-                              value: grade.finalScore,
-                            },
-                          ])}
-                        />
-                      </View>
-                      <SemesterGrade value={grade.semesterGrade} />
+        groups.map((group) => (
+          <View key={group.semesterLabel} className="gap-2">
+            <Text className="px-1 text-sm font-semibold text-theme-700 dark:text-zinc-400">
+              {group.semesterLabel}
+            </Text>
+            {group.grades.map((grade, index) => (
+              <Card key={`${group.semesterLabel}-${index}`}>
+                <View className="flex-row items-center justify-between gap-3">
+                  <View className="min-w-0 flex-1">
+                    {allAccounts && grade.accountLabel ? (
+                      <AccountLabel label={grade.accountLabel} />
+                    ) : null}
+                    <Text className="text-base font-medium text-theme-900 dark:text-zinc-100">
+                      {grade.courseName}
+                    </Text>
+                    <View className="mt-2">
+                      <DetailRow
+                        items={labelled([
+                          {
+                            label: '學分數',
+                            value: grade.credits,
+                          },
+                        ])}
+                      />
                     </View>
-                  </Card>
-                ))}
-              </View>
+                    <DetailRow
+                      items={labelled([
+                        {
+                          label: '平時成績',
+                          value: grade.regularAverage,
+                        },
+                        {
+                          label: '期中成績',
+                          value: grade.midtermScore,
+                        },
+                        {
+                          label: '期末成績',
+                          value: grade.finalScore,
+                        },
+                      ])}
+                    />
+                  </View>
+                  <SemesterGrade value={grade.semesterGrade} />
+                </View>
+              </Card>
             ))}
           </View>
         ))

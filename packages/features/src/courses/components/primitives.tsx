@@ -154,13 +154,13 @@ export function AccountScopeSwitch({
   );
 }
 
-/** Heading of one account's block in an all-accounts list. */
-export function AccountSectionHeader({ label }: { label: string }) {
+/** Account name shown above a course name in an all-accounts list. */
+export function AccountLabel({ label }: { label: string }) {
   return (
-    <View className="self-start rounded-full bg-theme-100 px-3 py-1 dark:bg-zinc-800">
+    <View className="-ml-2 mb-1 max-w-full self-start rounded-full bg-theme-100 px-2 py-0.5 dark:bg-zinc-800">
       <Text
         numberOfLines={1}
-        className="text-sm font-semibold text-theme-900 dark:text-zinc-100"
+        className="text-[11px] font-medium text-theme-800 dark:text-zinc-400"
       >
         {label}
       </Text>

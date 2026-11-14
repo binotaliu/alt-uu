@@ -93,6 +93,52 @@ describe('exam agenda grouping', () => {
   });
 });
 
+describe('all-accounts grouping', () => {
+  it('groups grades of different accounts under one semester', () => {
+    const row = (
+      semesterLabel: string,
+      courseName: string,
+      accountId: number,
+    ) => ({ semesterLabel, courseName, accountId }) as never;
+    const groups = groupBySemester([
+      row('114 學年上學期', 'A1', 1),
+      row('113 學年下學期', 'A2', 1),
+      row('114 學年上學期', 'B1', 2),
+    ]);
+
+    expect(
+      groups.map((group) => [
+        group.semesterLabel,
+        group.grades.map((grade) => grade.courseName),
+      ]),
+    ).toEqual([
+      ['114 學年上學期', ['A1', 'B1']],
+      ['113 學年下學期', ['A2']],
+    ]);
+  });
+
+  it('groups exams of different accounts by term, then date, then time', () => {
+    const item = (courseName: string, category: string, time: string) =>
+      ({
+        courseName,
+        category,
+        date: '2026年11月07日(星期六)',
+        time,
+        room: null,
+      }) as never;
+    const groups = groupExamAgenda([
+      item('A late', '期中考(正考)', '1900~2050'),
+      item('A final', '期末考(正考)', '1500~1610'),
+      item('B early', '期中考(正考)', '1500~1610'),
+    ]);
+
+    expect(groups.map((group) => group.label)).toEqual(['期中考', '期末考']);
+    expect(
+      groups[0].dateGroups[0].items.map((entry) => entry.courseName),
+    ).toEqual(['B early', 'A late']);
+  });
+});
+
 describe('findExamScopes by account', () => {
   it('keeps same-named courses of different accounts apart', () => {
     const scopes = [

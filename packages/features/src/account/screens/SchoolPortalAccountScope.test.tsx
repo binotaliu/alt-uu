@@ -70,7 +70,7 @@ describe('GradesScreen account scope', () => {
     expect(screen.queryByText('所有帳號')).toBeNull();
   });
 
-  it('lists every account under its own heading in 所有帳號', async () => {
+  it('lists the grades of every account with an account label in 所有帳號', async () => {
     const { services, getAllCourseGrades } = setupGrades(2);
     await renderScreen(<GradesScreen />, services);
 
@@ -92,7 +92,7 @@ describe('GradesScreen account scope', () => {
 });
 
 describe('ExamInfoScreen account scope', () => {
-  it('requests agenda and scopes for every account and labels each block', async () => {
+  it('requests agenda and scopes for every account and labels each course', async () => {
     const getExamAgenda = jest.fn(
       async ({ allAccounts }: { allAccounts?: boolean } = {}) =>
         allAccounts
