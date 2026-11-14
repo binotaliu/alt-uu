@@ -209,6 +209,10 @@ export function createSchoolPortalDomainServices(deps: SchoolPortalDomainDeps) {
           date: schedule.date,
           time: schedule.time,
           room: schedule.room,
+          ...(schedule.campus !== undefined ? { campus: schedule.campus } : {}),
+          ...(schedule.address !== undefined
+            ? { address: schedule.address }
+            : {}),
         });
       }
     }

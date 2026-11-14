@@ -1,5 +1,5 @@
+import { isTag, isText, type Element } from 'domhandler';
 import { textContent } from 'domutils';
-import type { Element } from 'domhandler';
 import {
   normalizeCourseName,
   normalizeTermCode,
@@ -10,7 +10,6 @@ import {
   anonymousScope,
   descendants,
   divsWithClass,
-  elementChildren,
   firstTitleButtonText,
   hasClass,
   normalizeText,
@@ -163,11 +162,11 @@ function collectScheduleEntries(
     courseFor(courses, currentCourseName)?.schedules.push(currentEntry);
   };
 
-  for (const child of elementChildren(body)) {
-    if (hasClass(child, 'title')) {
+  for (const row of entryRows(body)) {
+    if (hasClass(row, 'title')) {
       flush();
       currentCourseName = stripCourseTitleMarker(
-        normalizeText(textContent(child)),
+        normalizeText(textContent(row)),
       );
       currentEntry = {
         category,
@@ -180,28 +179,59 @@ function collectScheduleEntries(
       continue;
     }
 
-    if (currentEntry === null || !hasClass(child, 'detail')) {
+    if (currentEntry === null) {
       continue;
     }
 
-    const [label, value] = splitDetail(textContent(child));
-
-    switch (label) {
-      case '日期':
-        currentEntry.date = value;
-        break;
-      case '時間':
-        currentEntry.time = value;
-        break;
-      case '教室代號':
-        currentEntry.room = value;
-        break;
-      default:
-        currentEntry.note = label !== '' ? `${label}：${value}` : value;
+    for (const line of detailLines(row)) {
+      applyScheduleLine(currentEntry, line);
     }
   }
 
   flush();
+}
+
+function applyScheduleLine(
+  entry: SchoolPortalExamSchedule,
+  line: string,
+): void {
+  const [label, value] = splitDetail(line);
+
+  switch (label) {
+    case '日期':
+      entry.date = value;
+      break;
+    case '時間':
+      entry.time = value;
+      break;
+    case '教室代號':
+      entry.room = value;
+      break;
+    case '考試校區':
+      entry.campus = value;
+      appendNote(entry, label, value);
+      break;
+    case '考試地址':
+      entry.address = value;
+      appendNote(entry, label, value);
+      break;
+    default:
+      appendNote(entry, label, value);
+  }
+}
+
+function appendNote(
+  entry: SchoolPortalExamSchedule,
+  label: string,
+  value: string,
+): void {
+  const formatted = label !== '' ? `${label}：${value}` : value;
+
+  if (formatted === '') {
+    return;
+  }
+
+  entry.note = entry.note === null ? formatted : `${entry.note}\n${formatted}`;
 }
 
 function collectScopeEntries(
@@ -223,29 +253,118 @@ function collectScopeEntries(
     });
   };
 
-  for (const child of elementChildren(body)) {
-    if (hasClass(child, 'title')) {
+  for (const row of entryRows(body)) {
+    if (hasClass(row, 'title')) {
       flush();
       currentCourseName = stripCourseTitleMarker(
-        normalizeText(textContent(child)),
+        normalizeText(textContent(row)),
       );
       currentScope = null;
 
       continue;
     }
 
-    if (currentCourseName === null || !hasClass(child, 'detail')) {
+    if (currentCourseName === null) {
       continue;
     }
 
-    const text = normalizeText(textContent(child));
+    const text = normalizeText(textContent(row));
     currentScope = currentScope === null ? text : `${currentScope} ${text}`;
   }
 
   flush();
 }
 
-/** Course titles under "考試資訊" are prefixed with a "◉ " bullet. */
+/**
+ * Title and detail rows under an accordion body, in document order.
+ *
+ * The captured qryexm page puts them directly in `.accordion-body`. A later
+ * page can wrap each course (`div` around `.title` + `.detail`) and look the
+ * same: the beige/gray bars are the title and detail themselves. Only walking
+ * direct children then drops every exam, and the screen shows 查無考試資訊.
+ * A title or detail nested inside another is the inner markup of that row,
+ * not a new row.
+ */
+function entryRows(body: Element): Element[] {
+  return descendants(body, (element) => {
+    if (!hasClass(element, 'title') && !hasClass(element, 'detail')) {
+      return false;
+    }
+
+    let parent = element.parent;
+
+    while (parent !== null && parent !== body) {
+      if (
+        isTag(parent) &&
+        (hasClass(parent, 'title') || hasClass(parent, 'detail'))
+      ) {
+        return false;
+      }
+
+      parent = parent.parent;
+    }
+
+    return true;
+  });
+}
+
+/**
+ * One label/value line per block inside a detail. The live page uses one
+ * `.detail` per field, but also nests the text in an inner `div`, and a
+ * single detail can hold several lines. Reading only the first colon of the
+ * whole text leaves `time` null, and a 正考 with no time is dropped.
+ */
+function detailLines(detail: Element): string[] {
+  const lines: string[] = [];
+  let directText = '';
+
+  const flushDirect = (): void => {
+    const line = normalizeText(directText);
+
+    if (line !== '') {
+      lines.push(line);
+    }
+
+    directText = '';
+  };
+
+  for (const node of detail.children) {
+    if (isTag(node)) {
+      if (node.name === 'br') {
+        flushDirect();
+        continue;
+      }
+
+      const line = normalizeText(textContent(node));
+
+      if (line !== '') {
+        lines.push(line);
+      }
+
+      continue;
+    }
+
+    if (isText(node)) {
+      directText += node.data;
+    }
+  }
+
+  flushDirect();
+
+  if (lines.length > 0) {
+    return lines;
+  }
+
+  const text = normalizeText(textContent(detail));
+
+  return text === '' ? [] : [text];
+}
+
+/**
+ * Course titles under 考試資訊 are prefixed with a circle bullet. The captured
+ * page uses "◉ "; the 115上 page renders a "◎"-like marker. Either way the
+ * name used to match 命題範圍 must not include it.
+ */
 function stripCourseTitleMarker(title: string): string {
-  return title.replace(/^◉\s*/u, '').trim();
+  return title.replace(/^[◉◎○●•∙◦]\s*/u, '').trim();
 }

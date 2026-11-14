@@ -242,7 +242,84 @@ describe('parity: GET /api/exam-agenda', () => {
 
     expect(await services.getExamAgenda()).toEqual([]);
   });
+
+  it('reads a time that shares a detail with the date, so the exam is not dropped', async () => {
+    const { services } = await setup({
+      exam: {
+        body: qryexmPage(`<div class="title">◉ 無痛學AI</div>
+<div class="detail">
+<div>日期：2026年11月08日(星期日)</div>
+<div>時間：0830~0940第1節</div>
+<div>教室代號：4007(2HZ002)</div>
+</div>`),
+      },
+    });
+
+    expect(await services.getExamAgenda()).toEqual([
+      {
+        courseName: '無痛學AI',
+        category: '期中考(正考)',
+        date: '2026年11月08日(星期日)',
+        time: '0830~0940第1節',
+        room: '4007(2HZ002)',
+      },
+    ]);
+  });
+
+  it('keeps 正考 rows when each course is wrapped, and keeps 校區/地址', async () => {
+    const { services } = await setup({
+      exam: { body: qryexmPage(wrappedCourse, flatCourse) },
+    });
+
+    expect(await services.getExamAgenda()).toEqual([
+      {
+        courseName: '無痛學AI',
+        category: '期中考(正考)',
+        date: '2026年11月08日(星期日)',
+        time: '0830~0940第1節',
+        room: '4007(2HZ002)',
+        campus: 'H蘆洲校區(校本部)',
+        address: '新北市蘆洲區中正路172號',
+      },
+      {
+        courseName: '整合行銷傳播',
+        category: '期中考(正考)',
+        date: '2026年11月08日(星期日)',
+        time: '1000~1110第2節',
+        room: '5012(2HZ001)',
+      },
+    ]);
+  });
 });
+
+/** 115上 qryexm shape: nested accordion, circle bullet, one field per detail. */
+const qryexmPage = (
+  ...courses: string[]
+): string => `<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml"><body class="QryexmModule"><div id="container">
+<div class="year-box"><div class="year">115學年上學期</div></div>
+<div class="accordion" id="accordion-courses-exmtime"><div class="accordion-item">
+<h2 class="accordion-header"><button class="accordion-button" type="button">考試時間</button></h2>
+<div class="accordion-collapse collapse"><div class="accordion-body p-0">
+<div class="accordion" id="accordion-courses"><div class="accordion-item">
+<h2 class="accordion-header"><button class="accordion-button" type="button">期中考(正考)</button></h2>
+<div class="accordion-collapse collapse"><div class="accordion-body p-0">
+${courses.join('')}
+</div></div></div></div></div></div></div></div></div></body></html>`;
+
+const wrappedCourse = `<div class="course">
+<div class="title">◎ 無痛學AI</div>
+<div class="detail"><div>日期：2026年11月08日(星期日)</div></div>
+<div class="detail"><div>時間：0830~0940第1節</div></div>
+<div class="detail"><div>教室代號：4007(2HZ002)</div></div>
+<div class="detail"><div>考試校區：H蘆洲校區(校本部)</div></div>
+<div class="detail"><div>考試地址：新北市蘆洲區中正路172號</div></div>
+</div>`;
+
+const flatCourse = `<div class="title">◉ 整合行銷傳播</div>
+<div class="detail"><div>日期：2026年11月08日(星期日)</div></div>
+<div class="detail"><div>時間：1000~1110第2節</div></div>
+<div class="detail"><div>教室代號：5012(2HZ001)</div></div>`;
 
 describe('parity: GET /api/courses/{cid}/grades', () => {
   const courses = [course('9001', '114下', '假課程甲')];

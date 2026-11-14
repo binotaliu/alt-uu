@@ -35,6 +35,10 @@ export interface SchoolPortalExamSchedule {
   time: string | null;
   room: string | null;
   note: string | null;
+  /** Omitted when the portal page has no 考試校區 row. */
+  campus?: string;
+  /** Omitted when the portal page has no 考試地址 row. */
+  address?: string;
 }
 
 export interface SchoolPortalExamScope {
@@ -60,6 +64,10 @@ export interface SchoolPortalExamAgendaItem extends SchoolPortalAccountTag {
   date: string | null;
   time: string | null;
   room: string | null;
+  /** Omitted when the portal page has no 考試校區 row. */
+  campus?: string;
+  /** Omitted when the portal page has no 考試地址 row. */
+  address?: string;
 }
 
 export interface SchoolPortalHomeworkNotice {

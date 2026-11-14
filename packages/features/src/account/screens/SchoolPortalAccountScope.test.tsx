@@ -122,4 +122,23 @@ describe('ExamInfoScreen account scope', () => {
       expect(getExamScopes).toHaveBeenLastCalledWith({ allAccounts: true }),
     );
   });
+
+  it('shows 校區 and 地址 from the portal schedule', async () => {
+    const { services } = withServices({
+      account: { list: async () => [account(1, { isActive: true })] },
+      schoolPortalDomain: {
+        getExamAgenda: async () => [
+          exam('無痛學AI', {
+            campus: 'H蘆洲校區(校本部)',
+            address: '新北市蘆洲區中正路172號',
+          }),
+        ],
+        getExamScopes: async () => [],
+      },
+    });
+    await renderScreen(<ExamInfoScreen />, services);
+
+    expect(await screen.findByText('H蘆洲校區(校本部)')).toBeTruthy();
+    expect(screen.getByText('新北市蘆洲區中正路172號')).toBeTruthy();
+  });
 });

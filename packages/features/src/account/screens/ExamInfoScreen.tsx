@@ -252,6 +252,26 @@ export function ExamInfoScreen() {
                                 </Text>
                               </View>
                             ) : null}
+                            {item.campus ? (
+                              <View className="flex-row items-center gap-1">
+                                <Text className="text-xs text-theme-700 dark:text-zinc-400">
+                                  校區
+                                </Text>
+                                <Text className="text-xs font-medium text-theme-900 dark:text-zinc-200">
+                                  {item.campus}
+                                </Text>
+                              </View>
+                            ) : null}
+                            {item.address ? (
+                              <View className="flex-row items-center gap-1">
+                                <Text className="text-xs text-theme-700 dark:text-zinc-400">
+                                  地址
+                                </Text>
+                                <Text className="text-xs font-medium text-theme-900 dark:text-zinc-200">
+                                  {item.address}
+                                </Text>
+                              </View>
+                            ) : null}
                           </View>
                           {examScopes.length > 0 ? (
                             <View className="mt-2 gap-1 border-t border-theme-200 pt-2 dark:border-zinc-700">
