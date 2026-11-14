@@ -1,13 +1,21 @@
 import type { SchoolPortalGrade } from '@altuu/core';
 import { Text } from '@altuu/ui';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { View } from 'react-native';
 
-import { useServiceQuery } from '../../services/useServiceQuery';
+import {
+  AccountScopeSwitch,
+  AccountSectionHeader,
+} from '../../courses/components/primitives';
 import { ErrorRetry } from '../../shell/ErrorRetry';
 import { SubPage } from '../components/SubPage';
 import { Card } from '../components/primitives';
 import { LoadingCard, EmptyCard } from '../components/states';
+import { groupByAccount } from '../lib/accountGroups';
+import {
+  useGrades,
+  useHasMultipleAccounts,
+} from '../hooks/useSchoolPortalQueries';
 
 interface SemesterGroup {
   semesterLabel: string;
@@ -131,19 +139,27 @@ function SemesterGrade({ value }: { value: string | null }) {
 
 /** Legacy Account/Grades.vue. */
 export function GradesScreen() {
-  const grades = useServiceQuery<SchoolPortalGrade[]>({
-    op: 'schoolPortal.grades',
-    queryKey: ['account', 'grades'],
-    queryFn: (services) => services.schoolPortalDomain.getAllCourseGrades(),
-    staleTime: 0,
-  });
-  const groups = useMemo(
-    () => groupBySemester(grades.data ?? []),
+  const [showAllAccounts, setShowAllAccounts] = useState(false);
+  const hasMultipleAccounts = useHasMultipleAccounts();
+  const allAccounts = hasMultipleAccounts && showAllAccounts;
+  const grades = useGrades(allAccounts);
+  const accountGroups = useMemo(
+    () =>
+      groupByAccount(grades.data ?? []).map((account) => ({
+        ...account,
+        semesters: groupBySemester(account.items),
+      })),
     [grades.data],
   );
 
   return (
     <SubPage title="我的成績" backHref="/courses/account">
+      {hasMultipleAccounts ? (
+        <AccountScopeSwitch
+          showAllAccounts={showAllAccounts}
+          onChange={setShowAllAccounts}
+        />
+      ) : null}
       {grades.isPending ? (
         <LoadingCard>載入成績中…</LoadingCard>
       ) : grades.error ? (
@@ -152,51 +168,58 @@ export function GradesScreen() {
           retrying={grades.isFetching}
           onRetry={() => void grades.refetch()}
         />
-      ) : groups.length === 0 ? (
+      ) : accountGroups.length === 0 ? (
         <EmptyCard>查無成績資料。</EmptyCard>
       ) : (
-        groups.map((group) => (
-          <View key={group.semesterLabel} className="gap-2">
-            <Text className="px-1 text-sm font-semibold text-theme-700 dark:text-zinc-400">
-              {group.semesterLabel}
-            </Text>
-            {group.grades.map((grade, index) => (
-              <Card key={`${group.semesterLabel}-${index}`}>
-                <View className="flex-row items-center justify-between gap-3">
-                  <View className="min-w-0 flex-1">
-                    <Text className="text-base font-medium text-theme-900 dark:text-zinc-100">
-                      {grade.courseName}
-                    </Text>
-                    <View className="mt-2">
-                      <DetailRow
-                        items={labelled([
-                          {
-                            label: '學分數',
-                            value: grade.credits,
-                          },
-                        ])}
-                      />
+        accountGroups.map((account) => (
+          <View key={account.accountId ?? 'active'} className="gap-4">
+            {allAccounts && account.label ? (
+              <AccountSectionHeader label={account.label} />
+            ) : null}
+            {account.semesters.map((group) => (
+              <View key={group.semesterLabel} className="gap-2">
+                <Text className="px-1 text-sm font-semibold text-theme-700 dark:text-zinc-400">
+                  {group.semesterLabel}
+                </Text>
+                {group.grades.map((grade, index) => (
+                  <Card key={`${group.semesterLabel}-${index}`}>
+                    <View className="flex-row items-center justify-between gap-3">
+                      <View className="min-w-0 flex-1">
+                        <Text className="text-base font-medium text-theme-900 dark:text-zinc-100">
+                          {grade.courseName}
+                        </Text>
+                        <View className="mt-2">
+                          <DetailRow
+                            items={labelled([
+                              {
+                                label: '學分數',
+                                value: grade.credits,
+                              },
+                            ])}
+                          />
+                        </View>
+                        <DetailRow
+                          items={labelled([
+                            {
+                              label: '平時成績',
+                              value: grade.regularAverage,
+                            },
+                            {
+                              label: '期中成績',
+                              value: grade.midtermScore,
+                            },
+                            {
+                              label: '期末成績',
+                              value: grade.finalScore,
+                            },
+                          ])}
+                        />
+                      </View>
+                      <SemesterGrade value={grade.semesterGrade} />
                     </View>
-                    <DetailRow
-                      items={labelled([
-                        {
-                          label: '平時成績',
-                          value: grade.regularAverage,
-                        },
-                        {
-                          label: '期中成績',
-                          value: grade.midtermScore,
-                        },
-                        {
-                          label: '期末成績',
-                          value: grade.finalScore,
-                        },
-                      ])}
-                    />
-                  </View>
-                  <SemesterGrade value={grade.semesterGrade} />
-                </View>
-              </Card>
+                  </Card>
+                ))}
+              </View>
             ))}
           </View>
         ))

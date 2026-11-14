@@ -4,6 +4,7 @@ import { Pressable, View } from 'react-native';
 import type { ServiceError } from '../services/serviceError';
 import { ErrorRetry } from '../shell/ErrorRetry';
 import {
+  AccountScopeSwitch,
   Card,
   CardGrid,
   EmptyNotice,
@@ -21,11 +22,6 @@ import {
   type DisplayTimezone,
   type FlattenedLiveSession,
 } from './liveSessions';
-
-const accountScopeOptions = [
-  { value: false, label: '目前帳號' },
-  { value: true, label: '所有帳號' },
-] as const;
 
 const timezoneOptions = [
   { value: 'taiwan', label: '台灣時區' },
@@ -254,13 +250,10 @@ export function LiveSessionsView(props: LiveSessionsViewProps) {
   return (
     <View className="gap-4">
       {hasMultipleAccounts ? (
-        <View className="w-full max-w-lg self-center">
-          <SegmentedControl
-            options={accountScopeOptions}
-            value={showAllAccounts}
-            onChange={props.onShowAllAccountsChange}
-          />
-        </View>
+        <AccountScopeSwitch
+          showAllAccounts={showAllAccounts}
+          onChange={props.onShowAllAccountsChange}
+        />
       ) : null}
 
       {!isSystemUtcPlus8 ? (

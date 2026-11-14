@@ -93,6 +93,26 @@ describe('exam agenda grouping', () => {
   });
 });
 
+describe('findExamScopes by account', () => {
+  it('keeps same-named courses of different accounts apart', () => {
+    const scopes = [
+      {
+        accountId: 1,
+        courseName: 'A',
+        scopes: [{ category: '期中考試範圍', scope: '甲帳號範圍' }],
+      },
+      {
+        accountId: 2,
+        courseName: 'A',
+        scopes: [{ category: '期中考試範圍', scope: '乙帳號範圍' }],
+      },
+    ];
+
+    expect(findExamScopes(scopes, 'A', '期中考', 2)).toEqual(['乙帳號範圍']);
+    expect(findExamScopes(scopes, 'A', '期中考', 3)).toEqual([]);
+  });
+});
+
 describe('findExamScopes', () => {
   const scopes = [
     {

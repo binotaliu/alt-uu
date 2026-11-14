@@ -127,6 +127,47 @@ export function SegmentedControl<T extends string | boolean>({
   );
 }
 
+const accountScopeOptions = [
+  { value: false, label: '目前帳號' },
+  { value: true, label: '所有帳號' },
+] as const;
+
+/**
+ * 目前帳號 / 所有帳號 switch shared by 視訊面授, 成績資訊 and 考試資訊. Render
+ * it only when more than one account exists.
+ */
+export function AccountScopeSwitch({
+  showAllAccounts,
+  onChange,
+}: {
+  showAllAccounts: boolean;
+  onChange: (value: boolean) => void;
+}) {
+  return (
+    <View className="w-full max-w-lg self-center">
+      <SegmentedControl
+        options={accountScopeOptions}
+        value={showAllAccounts}
+        onChange={onChange}
+      />
+    </View>
+  );
+}
+
+/** Heading of one account's block in an all-accounts list. */
+export function AccountSectionHeader({ label }: { label: string }) {
+  return (
+    <View className="self-start rounded-full bg-theme-100 px-3 py-1 dark:bg-zinc-800">
+      <Text
+        numberOfLines={1}
+        className="text-sm font-semibold text-theme-900 dark:text-zinc-100"
+      >
+        {label}
+      </Text>
+    </View>
+  );
+}
+
 /** Small primary action button used inside cards. */
 export function CardButton({
   label,
