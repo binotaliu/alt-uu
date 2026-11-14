@@ -1,5 +1,10 @@
 import { formatSchoolPortalTimeRange } from '../../courses/format';
-import { findExamScopes, groupExamAgenda } from '../screens/ExamInfoScreen';
+import {
+  examEndsAt,
+  findExamScopes,
+  groupExamAgenda,
+  splitExamsByStatus,
+} from '../screens/ExamInfoScreen';
 import { groupBySemester, isScorePassing } from '../screens/GradesScreen';
 import { summarize } from '../screens/ConnectivityDiagnosticsScreen';
 import { storeDisclosure } from '../screens/SubscriptionScreen';
@@ -90,6 +95,44 @@ describe('exam agenda grouping', () => {
       '2026年12月13日(星期日)',
       '2026年12月20日(星期日)',
     ]);
+  });
+});
+
+describe('exam status sections', () => {
+  const exam = (courseName: string, date: string | null, time: string | null) =>
+    ({ courseName, category: '期中考(正考)', date, time, room: null }) as never;
+
+  it('parses the exam end as Taiwan time', () => {
+    expect(
+      examEndsAt(
+        exam('A', '2026年11月07日(星期六)', '1500~1610第5節'),
+      )?.toISOString(),
+    ).toBe('2026-11-07T08:10:00.000Z');
+    expect(examEndsAt(exam('A', null, '1500~1610'))).toBeNull();
+    expect(
+      examEndsAt(exam('A', '2026年11月07日(星期六)', '待公告')),
+    ).toBeNull();
+  });
+
+  it('puts finished exams in 已結束 and keeps ongoing / unparsable ones up top', () => {
+    const now = new Date('2026-11-07T07:30:00Z'); // 15:30 in Taiwan
+    const [upcoming, ended] = splitExamsByStatus(
+      [
+        exam('past', '2026年11月06日(星期五)', '1500~1610'),
+        exam('ongoing', '2026年11月07日(星期六)', '1500~1610'),
+        exam('future', '2026年11月08日(星期日)', '0900~1010'),
+        exam('unknown', '2026年11月08日(星期日)', '待公告'),
+      ],
+      now,
+    );
+
+    expect(upcoming.items.map((item) => item.courseName)).toEqual([
+      'ongoing',
+      'future',
+      'unknown',
+    ]);
+    expect(ended.items.map((item) => item.courseName)).toEqual(['past']);
+    expect(ended.label).toBe('已結束');
   });
 });
 
