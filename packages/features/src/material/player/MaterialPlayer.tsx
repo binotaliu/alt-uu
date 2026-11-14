@@ -146,6 +146,8 @@ export function MaterialPlayerHost({
     created.timeUpdateEventInterval = 1;
     created.showNowPlayingNotification = true;
     created.staysActiveInBackground = true;
+    // expo-video's Android default is false, which scales the pitch with the speed (chipmunk voices).
+    created.preservesPitch = true;
     created.playbackRate = initialRate;
     created.play();
   });

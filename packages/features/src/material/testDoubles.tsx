@@ -12,6 +12,7 @@ export class FakeVideoPlayer {
   currentTime = 0;
   duration = 600;
   playbackRate = 1;
+  preservesPitch = false;
   playing = false;
   timeUpdateEventInterval = 0;
   showNowPlayingNotification = false;

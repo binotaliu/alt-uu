@@ -372,6 +372,15 @@ describe('MaterialScreen', () => {
     expect(player.play).toHaveBeenCalled();
   });
 
+  it('keeps the pitch while playing faster than 1x (Android defaults to scaling it)', async () => {
+    const { renderScreen } = setup({ progressSeconds: 2 });
+
+    await renderScreen('video');
+
+    await waitFor(() => expect(createdPlayers.length).toBe(1));
+    expect(createdPlayers[0].preservesPitch).toBe(true);
+  });
+
   it('does not offer to resume short positions', async () => {
     const { renderScreen } = setup({ progressSeconds: 2 });
 
